@@ -31,6 +31,7 @@ import com.aviccc.kvutzot.model.Model.Item;
 import com.aviccc.kvutzot.model.Model.Project;
 import com.aviccc.kvutzot.model.OpmlIO;
 import com.aviccc.kvutzot.model.TextLines;
+import com.aviccc.kvutzot.model.Views;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -42,7 +43,7 @@ public class Main extends Activity implements MapView.Host {
     private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3, REQ_EXPORT = 4;
     private static final int M_OPEN = 1, M_NEW = 2, M_SAVE = 3, M_SAVE_AS = 4, M_RELOAD = 5,
             M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8, M_EXPORT = 9,
-            M_VIEW = 10, M_DIR = 11, M_FIT = 12, M_LOOSE = 13, M_SETTINGS = 14;
+            M_VIEW = 10, M_DIR = 11, M_FIT = 12, M_LOOSE = 13, M_SETTINGS = 14, M_SHOW = 15, M_SORT = 16;
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
     private SharedPreferences prefs;
@@ -63,6 +64,12 @@ public class Main extends Activity implements MapView.Host {
     private float zoomStep;
     private LinearLayout zoomBar;
     private TextView zoomLabel;
+    /** תצוגה לפי פריט מידע: 0 רגילה, 1 תגיות, 2 מידע בשם, 3 תכונות. */
+    private int viewMode;
+    private int tagLevel = 1;
+    private String viewInfo = "";
+    private Views.Sort viewSort = Views.Sort.MAP;
+    private Views.Result viewResult;
     private Item clip;
     private final android.os.Handler handler = new android.os.Handler();
     private final Runnable saver = new Runnable() { public void run() { if (dirty && uri != null) save(); } };
@@ -153,6 +160,8 @@ public class Main extends Activity implements MapView.Host {
     public boolean onCreateOptionsMenu(Menu m) {
         m.add(0, M_VIEW, 0, "טקסט").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         m.add(0, M_OPEN, 0, "פתח קובץ").setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        m.add(0, M_SHOW, 1, "תצוגה לפי…");
+        m.add(0, M_SORT, 1, "מיון");
         m.add(0, M_DIR, 1, "כיוון המפה");
         m.add(0, M_FIT, 1, "התאם למסך");
         m.add(0, M_NEW, 1, "קובץ חדש");
@@ -177,7 +186,10 @@ public class Main extends Activity implements MapView.Host {
         m.findItem(M_VIEW).setTitle(showMap ? "טקסט" : "מפה").setVisible(project != null);
         m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap);
         m.findItem(M_FIT).setVisible(project != null && showMap);
-        m.findItem(M_LOOSE).setVisible(project != null);
+        m.findItem(M_LOOSE).setVisible(project != null && viewMode == 0);
+        m.findItem(M_SHOW).setVisible(project != null);
+        m.findItem(M_SORT).setVisible(project != null && viewMode != 0)
+                .setTitle(viewSort == Views.Sort.MAP ? "מיון: לפי שם" : "מיון: לפי סדר המפה");
         return true;
     }
 
@@ -203,10 +215,15 @@ public class Main extends Activity implements MapView.Host {
             case M_DIR:
                 vertical = !vertical;
                 prefs.edit().putBoolean("vertical", vertical).apply();
-                map.setProject(project, vertical, true);
+                render(null, true);
                 invalidateOptionsMenu();
                 return true;
             case M_FIT: map.fit(); return true;
+            case M_SHOW: chooseView(); return true;
+            case M_SORT:
+                viewSort = viewSort == Views.Sort.MAP ? Views.Sort.NAME : Views.Sort.MAP;
+                render(null, true);
+                return true;
             case M_LOOSE:
                 askName("פריט תלוש חדש", "", true, new Named() { public void done(String s) {
                     Item n = Edit.addLoose(project, s);
@@ -318,6 +335,7 @@ public class Main extends Activity implements MapView.Host {
                     lastText = text;
                     project = p;
                     dirty = false;
+                    viewMode = 0;
                     if (remember || prefs.getString("uri", null) == null)
                         prefs.edit().putString("uri", u.toString()).apply();
                     render("נטען", true);
@@ -346,6 +364,7 @@ public class Main extends Activity implements MapView.Host {
                     lastText = text;
                     project = p;
                     dirty = false;
+                    viewMode = 0;
                     render(ok ? "נשמר" : STALE, true);
                 }});
             } catch (Exception e) {
@@ -429,6 +448,7 @@ public class Main extends Activity implements MapView.Host {
             uri = null;
             lastText = null;
             dirty = false;
+            viewMode = 0;
             fileName = "דוגמה: " + name + " (לא שמורה)";
             render("כדי לשמור: \"שמור עותק בשם\"", true);
         } catch (Exception e) {
@@ -438,12 +458,51 @@ public class Main extends Activity implements MapView.Host {
 
     // ---------------- תצוגת טקסט ----------------
 
+    /** הפרויקט שמוצג: העץ עצמו, או עץ מדומה לפי פריט מידע. */
+    private Project shown() {
+        viewResult = null;
+        switch (viewMode) {
+            case 1: viewResult = Views.byTags(project, tagLevel, viewSort); break;
+            case 2: viewResult = Views.byInfoName(project, viewInfo, viewSort); break;
+            case 3: viewResult = Views.byProperties(project, viewSort); break;
+        }
+        return viewResult == null ? project : viewResult.project;
+    }
+
+    private void chooseView() {
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        labels.add("רגילה (העץ)"); acts.add(new Runnable() { public void run() { setView(0, 1, ""); }});
+        labels.add("לפי תגיות"); acts.add(new Runnable() { public void run() { setView(1, 1, ""); }});
+        int maxLevel = Views.maxTagLevel(project);
+        for (int k = 2; k <= maxLevel; k++) {
+            final int lv = k;
+            labels.add("לפי תגיות על תגיות (רמה " + k + ")");
+            acts.add(new Runnable() { public void run() { setView(1, lv, ""); }});
+        }
+        for (final String n : Views.usedInfoNames(project)) {
+            labels.add("לפי " + (n.isEmpty() ? "מידע בלי שם" : n));
+            acts.add(new Runnable() { public void run() { setView(2, 1, n); }});
+        }
+        labels.add("לפי תכונות (עצמיות ומקריות)"); acts.add(new Runnable() { public void run() { setView(3, 1, ""); }});
+        menu("תצוגה לפי…", labels, acts);
+    }
+
+    private void setView(int mode, int level, String info) {
+        viewMode = mode;
+        tagLevel = level;
+        viewInfo = info;
+        map.select(null, false);
+        render(null, true);
+    }
+
     private void render(String note, boolean refit) {
-        Project p = project;
-        setTitle(p.title.isEmpty() ? "קבוצות ותגיות" : p.title);
-        int items = TextLines.countItems(p);
+        Project p = shown();
+        setTitle(project.title.isEmpty() ? "קבוצות ותגיות" : project.title);
+        int items = TextLines.countItems(project);
         status.setText(fileName + " · " + items + " פריטים · "
-                + (p.absolute ? "מפה מוחלטת" : "מפה לא מוחלטת")
+                + (project.absolute ? "מפה מוחלטת" : "מפה לא מוחלטת")
+                + (viewResult != null ? " · תצוגה: " + viewResult.title : "")
                 + (dirty ? (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר") : "")
                 + (note == null ? "" : " · " + note));
         int indent = dp(22);
@@ -488,6 +547,7 @@ public class Main extends Activity implements MapView.Host {
                     Spanned.SPAN_PARAGRAPH);
         }
         body.setText(sb);
+        map.setReadOnly(viewResult != null);
         map.setProject(p, vertical, refit);
         applyView();
     }
@@ -671,7 +731,21 @@ public class Main extends Activity implements MapView.Host {
     }
 
     @Override
+    public boolean canOpen(MapLayout.Node n) {
+        return viewResult == null || (!n.isDivision() && viewResult.original(n.item) != null);
+    }
+
+    /** בתצוגה לפי פריט מידע: פותחים את החלון של הפריט המקורי. */
+    private boolean openOriginal(MapLayout.Node n) {
+        if (viewResult == null) return false;
+        final Item orig = n.isDivision() ? null : viewResult.original(n.item);
+        if (orig != null) new ItemWindow(this, project, orig, new Runnable() { public void run() { changed(null, null); }}).show();
+        return true;
+    }
+
+    @Override
     public void onAction(String action, final MapLayout.Node n) {
+        if (openOriginal(n)) return;
         final Item it = n.item;
         switch (action) {
             case MapView.A_CHILD:
@@ -704,6 +778,7 @@ public class Main extends Activity implements MapView.Host {
 
     @Override
     public void onEditNode(final MapLayout.Node n) {
+        if (openOriginal(n)) return;
         if (n.isDivision()) {
             askName("שם החלוקה (הבחינה)", n.division.basis, false, new Named() {
                 public void done(String s) { n.division.basis = s; changed(n.item, n.division); }});
@@ -715,6 +790,7 @@ public class Main extends Activity implements MapView.Host {
 
     @Override
     public void onBranchMenu(final MapLayout.Node n) {
+        if (openOriginal(n)) return;
         final Item it = n.item;
         final java.util.List<String> labels = new java.util.ArrayList<>();
         final java.util.List<Runnable> acts = new java.util.ArrayList<>();

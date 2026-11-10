@@ -9,6 +9,7 @@ import com.aviccc.kvutzot.model.Model.Tag;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 /** בדיקות מבנה הנתונים והקובץ. מריצים: java ModelTest <תיקיית הדוגמאות>. */
 public class ModelTest {
@@ -347,6 +348,45 @@ public class ModelTest {
         eq(ip2.mainRoot().infos.size(), iRoot.infos.size(), "מידע נשמר");
         Item noTags = new Item("x");
         eq(Edit.tagUse(ip2, "zz"), 0, "תגית שלא קיימת");
+
+        // --- תצוגה לפי פריט מידע ---
+        Project vp = OpmlIO.read(file(dir, "משולש.xml"));
+        eq(Views.allItems(vp).size(), 12, "כל הפריטים");
+        eq(Views.allItems(vp).get(0).name, "משולש", "סדר המפה: השורש ראשון");
+        Views.Result vt = Views.byTags(vp, 1, Views.Sort.MAP);
+        Item vr = vt.project.mainRoot();
+        eq(vr.childCount(), 6, "חמש תגיות ו'בלי תגית'");
+        eq(vr.divisions.get(0).children.get(0).name, "# גאומטריה (1)", "שם קבוצת תגית");
+        Item vleaf = vr.divisions.get(0).children.get(0).divisions.get(0).children.get(0);
+        check(vt.original(vleaf) == vp.mainRoot(), "הפריט במדומה מצביע על המקורי");
+        eq(vr.divisions.get(0).children.get(5).name, "בלי תגית (11)", "בלי תגית");
+        check(vr.divisions.get(0).children.get(5).collapsed == false, "11 לא מכווץ");
+        eq(TextLines.countItems(vp), 12, "המקור לא השתנה");
+        // תגית על תגית
+        Model.Tag shapes = vp.tagByName("צורות");
+        Model.Tag topic = vp.obtainTag("נושא לימוד");
+        shapes.tagIds.add(topic.id);
+        Edit.addTag(vp, vp.mainRoot().divisions.get(1).children.get(0), "צורות");
+        eq(Views.maxTagLevel(vp), 2, "רמת תגיות 2");
+        Views.Result vt2 = Views.byTags(vp, 2, Views.Sort.MAP);
+        Item g2 = vt2.project.mainRoot().divisions.get(0).children.get(0);
+        eq(g2.name, "# נושא לימוד (2)", "רמה 2: הקבוצה לפי התגית שעל התגית");
+        Views.Result vd = Views.byInfoName(vp, "הגדרה", Views.Sort.MAP);
+        Item vdr = vd.project.mainRoot();
+        eq(vdr.divisions.get(0).children.get(0).name, "משולש", "עץ שטוח: הפריט");
+        eq(vdr.divisions.get(0).children.get(0).childCount(), 3, "שלוש הגדרות");
+        eq(vdr.divisions.get(0).children.get(1).name, "בלי הגדרה (11)", "בלי הגדרה");
+        check(Views.usedInfoNames(vp).contains("דוגמה"), "שמות מידע בשימוש");
+        Views.Result vpr = Views.byProperties(vp, Views.Sort.MAP);
+        Item pg = null;
+        for (Item gg : vpr.project.mainRoot().divisions.get(0).children) if (gg.name.startsWith("סימטריה חלקית (אפשרית")) pg = gg;
+        eq(pg.childCount(), 3, "תכונה משותפת לשלושה");
+        eq(pg.divisions.get(0).children.get(0).name, "שווה צלעות · מקרית", "סימון מקרית");
+        Views.Result vn = Views.byTags(vp, 1, Views.Sort.NAME);
+        List<Item> noTag = vn.project.mainRoot().divisions.get(0).children.get(vn.project.mainRoot().childCount() - 1).divisions.get(0).children;
+        check(noTag.get(0).name.compareTo(noTag.get(1).name) <= 0, "מיון לפי שם");
+        for (boolean vert : new boolean[]{true, false})
+            check(noOverlap(MapLayout.build(vt.project, vert, fake, 30, 12)), "תצוגת תגיות בלי חפיפות");
 
         // --- סקאלת ההגדלה ---
         eq(Zoom.values(0.5f).toString(), "[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]", "סקאלה בחצאים");

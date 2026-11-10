@@ -34,7 +34,12 @@ public class MapView extends View {
         void onAction(String action, MapLayout.Node node);
         void onEditNode(MapLayout.Node node);
         void onBranchMenu(MapLayout.Node node);
+        /** בתצוגה לפי פריט מידע: האם לנגיעה בצומת יש פריט מקורי לפתוח. */
+        boolean canOpen(MapLayout.Node node);
     }
+
+    private boolean readOnly;
+    public void setReadOnly(boolean ro) { readOnly = ro; }
 
     public static final String A_CHILD = "child", A_SIBLING = "sibling", A_EDIT = "edit",
             A_COLLAPSE = "collapse", A_MORE = "more";
@@ -350,7 +355,10 @@ public class MapView extends View {
 
     private void drawButtons(Canvas c, MapLayout.Node n) {
         java.util.List<String> labels = new java.util.ArrayList<>();
-        if (n.isDivision()) {
+        if (readOnly) {
+            if (host == null || !host.canOpen(n)) return;
+            labels.add("פתח"); btnActions.add(A_EDIT);
+        } else if (n.isDivision()) {
             labels.add("+ בן"); btnActions.add(A_CHILD);
             labels.add("שם"); btnActions.add(A_EDIT);
             labels.add("⋯"); btnActions.add(A_MORE);
