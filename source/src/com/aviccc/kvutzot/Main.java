@@ -1116,7 +1116,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         }
         chip(viewRow, "+ טאב", false, false, new View.OnClickListener() { public void onClick(View v) { addSheet(); }});
         if (hiddenSheets > 0)
-            chip(viewRow, "☰ " + hiddenSheets + " מוסתרים", false, true, new View.OnClickListener() { public void onClick(View v) { showHidden(); }});
+            chip(viewRow, "מגירה (" + hiddenSheets + ")", false, true, new View.OnClickListener() { public void onClick(View v) { showHidden(); }});
         if (part != 2) return;
         gap(viewRow);
         chip(viewRow, "גרפי", showMap, false, new View.OnClickListener() { public void onClick(View v) {
@@ -1286,7 +1286,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         final int i = project.sheets.indexOf(s);
         if (i > 0) { labels.add("הזז ימינה"); acts.add(new Runnable() { public void run() { Sheets.move(project, s, -1); changedAny(true); }}); }
         if (i < project.sheets.size() - 1) { labels.add("הזז שמאלה"); acts.add(new Runnable() { public void run() { Sheets.move(project, s, 1); changedAny(true); }}); }
-        if (Sheets.visible(project) > 1) { labels.add("הסתר (נשאר בקובץ)"); acts.add(new Runnable() { public void run() {
+        if (Sheets.visible(project) > 1) { labels.add("העבר למגירה (נשמר בקובץ, לא מוצג)"); acts.add(new Runnable() { public void run() {
             s.hidden = true;
             changedAny(true);
         }}); }
@@ -1405,7 +1405,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             labels.add(s.name + " · " + s.kind.label);
             acts.add(new Runnable() { public void run() { s.hidden = false; sheetId = s.id; changedAny(true); }});
         }
-        menu("טאבים מוסתרים — נגיעה מחזירה", labels, acts);
+        menu("המגירה — טאבים שנשמרים לשלב אחר (נגיעה מחזירה)", labels, acts);
     }
 
     private interface Placed { void at(Item parent, Division d); }
