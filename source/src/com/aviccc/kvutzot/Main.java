@@ -379,6 +379,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
 
     // ---------------- קריאה וכתיבה ----------------
 
+    private static String sec(long ns) {
+        return String.format(java.util.Locale.US, "%.1f", ns / 1e9);
+    }
+
     private String readText(Uri u) throws Exception {
         InputStream in = getContentResolver().openInputStream(u);
         if (in == null) throw new Exception("השירות (למשל Dropbox) לא מצא את הקובץ בכתובת הזו. ייתכן שהוא הוחלף בשמירה. פתח אותו שוב מ\"פתח קובץ\".");
@@ -415,8 +419,14 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         busy++;
         new Thread(new Runnable() { public void run() {
             try {
+                final long t0 = System.nanoTime();
                 final String text = readText(u);
+                final long t1 = System.nanoTime();
                 final Project p = OpmlIO.read(text);
+                p.syncAspects();
+                final long t2 = System.nanoTime();
+                try { map.prepare(p, vertical); } catch (Throwable ignored) { }
+                final long t3 = System.nanoTime();
                 final String name = displayName(u);
                 runOnUiThread(new Runnable() { public void run() {
                     busy--;
@@ -434,7 +444,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     viewMode = 0;
                     stash();
                     saveTabs();
+                    long t4 = System.nanoTime();
                     render("נטען", true);
+                    long t5 = System.nanoTime();
+                    // זמני הטעינה בשניות — כדי לדעת מה מאט (קריאה מהשירות / פענוח / הכנת התיבות / הצגה)
+                    setStatus(TextLines.countItems(project) + (project.absolute ? " פריטים · מוחלטת" : " פריטים") + " · נטען ב-" + sec(t5 - t0)
+                            + " ש׳ (קריאה " + sec(t1 - t0) + " · פענוח " + sec(t2 - t1)
+                            + " · תיבות " + sec(t3 - t2) + " · הצגה " + sec(t5 - t4) + ")");
                 }});
             } catch (final SecurityException e) {
                 done();
@@ -971,9 +987,21 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             Doc d = new Doc();
             d.spread = line.startsWith("1");
             d.uri = Uri.parse(line.substring(bar + 1));
-            d.fileName = displayName(d.uri);
             docs.add(d);
         }
+        // שמות הקבצים — ברקע (שאלה לשירות, למשל Dropbox, עלולה להתעכב)
+        final java.util.List<Doc> named = new java.util.ArrayList<>(docs);
+        new Thread(new Runnable() { public void run() {
+            for (final Doc d : named) {
+                if (d.uri == null) continue;
+                final String nm = displayName(d.uri);
+                runOnUiThread(new Runnable() { public void run() {
+                    if (d.fileName == null || d.fileName.isEmpty()) d.fileName = nm;
+                    if (d == cur && (fileName == null || fileName.isEmpty())) fileName = nm;
+                    rebuildStrips();
+                }});
+            }
+        }}).start();
         if (docs.isEmpty()) { showWelcome(); return; }
         int i = Math.max(0, Math.min(prefs.getInt("tab", 0), docs.size() - 1));
         cur = docs.get(i);

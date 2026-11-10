@@ -90,7 +90,7 @@ public class MapView extends View {
     /** צבעים מחושבים מראש לכל צומת: מילוי, מסגרת, טקסט, עובי. */
     private final Map<MapLayout.Node, float[]> look = new HashMap<>();
     /** פריסות טקסט שמורות לפי התווית — כך שינוי אחד לא בונה מחדש את כל הטקסטים. */
-    private final Map<String, StaticLayout> slCache = new HashMap<>();
+    private final Map<String, StaticLayout> slCache = new java.util.concurrent.ConcurrentHashMap<>();
     private float scale = 1f, tx, ty;
     private boolean needFit = true;
     private final ScaleGestureDetector scaler;
@@ -222,16 +222,7 @@ public class MapView extends View {
         if (slCache.size() > 4000) slCache.clear();
         layout = MapLayout.build(p, vertical, new MapLayout.Measurer() {
             public float[] measure(MapLayout.Node n) {
-                TextPaint tp = n.isDivision() ? labelPaint : textPaint;
-                String t = label(n);
-                String key = (n.isDivision() ? "D" : "I") + t;
-                StaticLayout sl = slCache.get(key);
-                if (sl == null) {
-                    float want = Math.min(maxW, (float) Math.ceil(Layout.getDesiredWidth(t, tp)));
-                    sl = new StaticLayout(t, tp, Math.max(1, (int) Math.ceil(want)),
-                            Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
-                    slCache.put(key, sl);
-                }
+                StaticLayout sl = textLayout(n, textPaint, labelPaint);
                 texts.put(n, sl);
                 float mw = n.mark.isEmpty() ? 0 : markPaint.measureText(n.mark) + 5 * dens;
                 markW.put(n, mw);
@@ -252,6 +243,35 @@ public class MapView extends View {
         }
         if (refit) needFit = true;
         invalidate();
+    }
+
+    /** פריסת הטקסט של תיבה — מהמטמון, או חדשה. */
+    private StaticLayout textLayout(MapLayout.Node n, TextPaint text, TextPaint label) {
+        TextPaint tp = n.isDivision() ? label : text;
+        String t = label(n);
+        String key = (n.isDivision() ? "D" : "I") + t;
+        StaticLayout sl = slCache.get(key);
+        if (sl == null) {
+            float want = Math.min(maxW, (float) Math.ceil(Layout.getDesiredWidth(t, tp)));
+            sl = new StaticLayout(t, tp, Math.max(1, (int) Math.ceil(want)),
+                    Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
+            slCache.put(key, sl);
+        }
+        return sl;
+    }
+
+    /**
+     * הכנה ברקע (בזמן הטעינה, לא בתהליך המסך): בונה מראש את פריסות הטקסט של כל התיבות,
+     * כך שהציור הראשון לא מחכה להן. עם עותקים של הצבעים — כדי לא לגעת במה שהמסך משתמש בו.
+     */
+    public void prepare(Project p, boolean vertical) {
+        final TextPaint tx = new TextPaint(textPaint), lb = new TextPaint(labelPaint);
+        MapLayout.build(p, vertical, new MapLayout.Measurer() {
+            public float[] measure(MapLayout.Node n) {
+                StaticLayout sl = textLayout(n, tx, lb);
+                return new float[]{sl.getWidth() + 2 * pad, sl.getHeight() + 2 * pad};
+            }
+        }, 26 * dens, 10 * dens);
     }
 
     private static String label(MapLayout.Node n) {
@@ -329,8 +349,7 @@ public class MapView extends View {
             Float mwObj = markW.get(n);
             float mw = mwObj == null ? 0 : mwObj;
             if (sl != null) {
-                TextPaint tp = n.isDivision() ? labelPaint : textPaint;
-                tp.setColor(textColor);
+                sl.getPaint().setColor(textColor);
                 float avail = n.w - 2 * pad - mw;
                 float vp = n.isDivision() ? pad * .5f : pad;
                 c.save();
