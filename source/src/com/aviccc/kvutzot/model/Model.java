@@ -22,6 +22,74 @@ public final class Model {
         public Brain start = new Brain();
         /** טאב 2, "סיעור מוחות": מפה גמישה. */
         public FreeMap free = new FreeMap();
+        /**
+         * הבחינות (0.9): "זוויות ההסתכלות" שלפיהן מחלקים. אובייקט בקובץ, כמו תגית, עם מקום פתוח
+         * למידע (שם, מידע, תגיות — כמו פריט). כל חלוקה מצביעה על בחינה, ושמה מוצג בראש החלוקה.
+         */
+        public final LinkedHashMap<String, Item> aspects = new LinkedHashMap<>();
+
+        public Item aspect(String id) { return id == null ? null : aspects.get(id); }
+
+        public String aspectIdByName(String name) {
+            for (java.util.Map.Entry<String, Item> e : aspects.entrySet()) if (e.getValue().name.equals(name)) return e.getKey();
+            return null;
+        }
+
+        /** בחינה קיימת בשם הזה, או חדשה. מחזיר את המזהה. */
+        public String obtainAspect(String name) {
+            String id = aspectIdByName(name);
+            if (id != null) return id;
+            int n = aspects.size() + 1;
+            while (aspects.containsKey("b" + n)) n++;
+            id = "b" + n;
+            aspects.put(id, new Item(name));
+            return id;
+        }
+
+        /** כמה חלוקות לפי הבחינה. */
+        public int aspectUse(String id) {
+            int[] n = {0};
+            for (Item r : roots) countAspect(r, id, n);
+            return n[0];
+        }
+
+        private static void countAspect(Item it, String id, int[] n) {
+            for (Division d : it.divisions) {
+                if (id.equals(d.aspectId)) n[0]++;
+                for (Item c : d.children) countAspect(c, id, n);
+            }
+        }
+
+        /**
+         * יישור החלוקות והבחינות: חלוקה עם בחינה מקבלת את שמה; חלוקה עם שם בלי בחינה — מקבלת בחינה
+         * (קיימת בשם הזה, או חדשה); שתי בחינות באותו שם — מתאחדות (המידע והתגיות נאספים לראשונה).
+         */
+        public void syncAspects() {
+            java.util.Map<String, String> merge = new java.util.HashMap<>();
+            java.util.Map<String, String> firstByName = new java.util.HashMap<>();
+            for (java.util.Map.Entry<String, Item> e : new ArrayList<>(aspects.entrySet())) {
+                String nm = e.getValue().name;
+                String first = firstByName.get(nm);
+                if (first == null) { firstByName.put(nm, e.getKey()); continue; }
+                Item keep = aspects.get(first), gone = e.getValue();
+                keep.infos.addAll(gone.infos);
+                for (String tg : gone.tagIds) if (!keep.tagIds.contains(tg)) keep.tagIds.add(tg);
+                aspects.remove(e.getKey());
+                merge.put(e.getKey(), first);
+            }
+            for (Item r : roots) syncAspects(r, merge);
+        }
+
+        private void syncAspects(Item it, java.util.Map<String, String> merge) {
+            for (Division d : it.divisions) {
+                if (merge.containsKey(d.aspectId)) d.aspectId = merge.get(d.aspectId);
+                Item a = aspect(d.aspectId);
+                if (a != null) d.basis = a.name;
+                else if (!d.basis.isEmpty()) d.aspectId = obtainAspect(d.basis);
+                else d.aspectId = "";
+                for (Item c : d.children) syncAspects(c, merge);
+            }
+        }
 
         public Tag tag(String id) {
             for (Tag t : tags) if (t.id.equals(id)) return t;
@@ -100,6 +168,8 @@ public final class Model {
     /** חלוקה של פריט: בסיס (שם הבחינה) ובנים לפי הסדר. כמה חלוקות של אותו פריט הן צדדים. */
     public static final class Division {
         public String basis;
+        /** הבחינה שלפיה החלוקה (0.9); ריק — חלוקה בלי בחינה. */
+        public String aspectId = "";
         public final List<Item> children = new ArrayList<>();
         public Item owner;
         public final LinkedHashMap<String, String> extra = new LinkedHashMap<>();

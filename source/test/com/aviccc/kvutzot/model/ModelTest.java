@@ -459,6 +459,44 @@ public class ModelTest {
         eq(fromOld.mainRoot().name, br.title, "שורש למפה בשם הכותרת");
         roundTrip(OpmlIO.write(fromOld), "סיעור מוחות ישן אחרי המרה");
 
+        // --- בחינות ---
+        Project ap = OpmlIO.read(file(dir, "צעצועים.xml"));
+        eq(ap.aspects.size(), 4, "בחינות מהבסיסים בקובץ ישן");
+        Division byColor = ap.mainRoot().divisions.get(0);
+        check(!byColor.aspectId.isEmpty() && ap.aspect(byColor.aspectId).name.equals("לפי צבע"), "חלוקה מצביעה על בחינה");
+        eq(ap.aspectUse(byColor.aspectId), 1, "שימוש בבחינה");
+        Item plastic2 = ap.mainRoot().divisions.get(1).children.get(0);
+        Item wood = ap.mainRoot().divisions.get(1).children.get(1);
+        Division woodDiv = Edit.addSide(wood, "");
+        Edit.setAspect(ap, woodDiv, "לפי קשיחות");
+        eq(ap.aspects.size(), 4, "בחינה קיימת לפי שם, לא חדשה");
+        eq(ap.aspectUse(woodDiv.aspectId), 2, "אותה בחינה בשני מקומות");
+        Item hardness = ap.aspect(woodDiv.aspectId);
+        Edit.addInfo(hardness, Info.Kind.USER, "הגדרה", "עד כמה החומר עומד בלחץ");
+        Edit.addTag(ap, hardness, "חומרים");
+        Edit.renameAspect(ap, woodDiv.aspectId, "לפי עמידות");
+        eq(plastic2.divisions.get(0).basis, "לפי עמידות", "שינוי שם הבחינה חל על כל החלוקות");
+        eq(woodDiv.basis, "לפי עמידות", "גם בחלוקה השנייה");
+        Project ap2 = roundTrip(OpmlIO.write(ap), "בחינות");
+        Item hard2 = ap2.aspect(ap2.aspectIdByName("לפי עמידות"));
+        eq(hard2.infos.get(0).text, "עד כמה החומר עומד בלחץ", "מידע של בחינה נשמר");
+        eq(ap2.tag(hard2.tagIds.get(0)).name, "חומרים", "תגית של בחינה נשמרת");
+        eq(ap2.aspectUse(ap2.aspectIdByName("לפי עמידות")), 2, "שימוש אחרי טעינה");
+        Edit.renameAspect(ap, ap.aspectIdByName("לפי מקור"), "לפי עמידות");
+        eq(ap.aspects.size(), 3, "שינוי שם לשם קיים מאחד");
+        eq(ap.aspectUse(ap.aspectIdByName("לפי עמידות")), 3, "אחרי איחוד: כל החלוקות");
+        Item copied = Edit.copy(plastic2);
+        eq(copied.divisions.get(0).aspectId, plastic2.divisions.get(0).aspectId, "העתקה שומרת את הבחינה");
+        Views.Result va = Views.byAspects(ap, Views.Sort.MAP);
+        Item vg = va.project.mainRoot().divisions.get(0).children.get(0);
+        eq(vg.name, "לפי צבע (1)", "תצוגה לפי בחינות");
+        check(va.original(vg) == ap.aspect(ap.aspectIdByName("לפי צבע")), "קבוצה מצביעה על הבחינה");
+        check(!OpmlIO.write(OpmlIO.read(file(dir, "משולש.xml"))).contains("kvAspect id=\"b3\""), "במשולש שתי בחינות");
+        Project plain = new Project();
+        plain.roots.add(new Item("x"));
+        plain.mainRoot().addChild("y");
+        check(!OpmlIO.write(plain).contains("kvAspects"), "בלי חלוקות עם שם — בלי בחינות");
+
         // --- סקאלת ההגדלה ---
         eq(Zoom.values(0.5f).toString(), "[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]", "סקאלה בחצאים");
         eq(Zoom.values(0.25f).size(), 16, "סקאלה ברבעים");

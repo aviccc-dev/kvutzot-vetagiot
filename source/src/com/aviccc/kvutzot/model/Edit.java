@@ -84,6 +84,7 @@ public final class Edit {
         for (Xml.Node x : src.extraNodes) n.extraNodes.add(x.copy());
         for (Division d : src.divisions) {
             Division nd = n.addDivision(d.basis);
+            nd.aspectId = d.aspectId;
             nd.extra.putAll(d.extra);
             for (Item c : d.children) {
                 Item cc = copy(c);
@@ -205,5 +206,23 @@ public final class Edit {
         it.infos.set(it.infos.indexOf(moved), in);
         in.kind = k;
         if (k != Info.Kind.USER) in.name = "";
+    }
+
+    // ---------------- בחינות ----------------
+
+    /** קובע לחלוקה את הבחינה בשם הזה (קיימת או חדשה). שם ריק — חלוקה בלי בחינה. */
+    public static void setAspect(Project p, Division d, String name) {
+        name = name.trim();
+        if (name.isEmpty()) { d.aspectId = ""; d.basis = ""; return; }
+        d.aspectId = p.obtainAspect(name);
+        d.basis = name;
+    }
+
+    /** שינוי שם של בחינה — בכל החלוקות שלפיה (לשם קיים — איחוד). */
+    public static void renameAspect(Project p, String id, String name) {
+        Item a = p.aspect(id);
+        if (a == null || name.trim().isEmpty()) return;
+        a.name = name.trim();
+        p.syncAspects();
     }
 }

@@ -194,4 +194,30 @@ public final class Views {
         }
         return r;
     }
+
+    /**
+     * לפי בחינות: בחינה ← הפריטים שחולקו לפיה. נגיעה בקבוצה פותחת את הבחינה עצמה,
+     * ובפריט — את הפריט.
+     */
+    public static Result byAspects(Project p, Sort sort) {
+        p.syncAspects();
+        Result r = new Result();
+        r.project.tags.addAll(p.tags);
+        Item root = root(r, "לפי בחינות");
+        Map<String, List<Item>> owners = new LinkedHashMap<>();
+        for (String id : p.aspects.keySet()) owners.put(id, new ArrayList<Item>());
+        for (Item it : sorted(allItems(p), sort))
+            for (Division d : it.divisions)
+                if (!d.aspectId.isEmpty() && owners.containsKey(d.aspectId) && !owners.get(d.aspectId).contains(it))
+                    owners.get(d.aspectId).add(it);
+        for (Map.Entry<String, List<Item>> e : owners.entrySet()) {
+            Item a = p.aspect(e.getKey());
+            Item g = root.firstDivision().add(a.name + " (" + e.getValue().size() + ")");
+            g.infos.addAll(a.infos);
+            g.tagIds.addAll(a.tagIds);
+            r.origin.put(g, a);
+            for (Item it : e.getValue()) leaf(r, g.firstDivision(), it, null);
+        }
+        return r;
+    }
 }

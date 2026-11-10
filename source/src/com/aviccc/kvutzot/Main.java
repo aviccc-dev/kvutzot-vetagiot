@@ -627,6 +627,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             case 1: viewResult = Views.byTags(project, tagLevel, viewSort); break;
             case 2: viewResult = Views.byInfoName(project, viewInfo, viewSort); break;
             case 3: viewResult = Views.byProperties(project, viewSort); break;
+            case 4: viewResult = Views.byAspects(project, viewSort); break;
         }
         return viewResult == null ? project : viewResult.project;
     }
@@ -680,6 +681,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             applyView();
             return;
         }
+        project.syncAspects();
         Project p = shown();
         setTitle(project.title.isEmpty() ? "קבוצות ותגיות" : project.title);
         int items = TextLines.countItems(project);
@@ -1021,6 +1023,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             chip(viewRow, n.isEmpty() ? "מידע" : n, viewMode == 2 && viewInfo.equals(n), false, new View.OnClickListener() {
                 public void onClick(View v) { setView(2, 1, n); }});
         chip(viewRow, "תכונות", viewMode == 3, false, new View.OnClickListener() { public void onClick(View v) { setView(3, 1, ""); }});
+        if (!project.aspects.isEmpty())
+            chip(viewRow, "בחינות", viewMode == 4, false, new View.OnClickListener() { public void onClick(View v) { setView(4, 1, ""); }});
         if (viewMode != 0) {
             gap(viewRow);
             chip(viewRow, viewSort == Views.Sort.NAME ? "מיון: א-ב" : "מיון: מפה", false, false, new View.OnClickListener() {
@@ -1093,6 +1097,68 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
 
     @Override
     public void onFreeStatus(String s) { setStatus(s); }
+
+    // ---------------- בחינות ----------------
+
+    /** בחירת בחינה: מתוך הקיימות (רשימה במסגרת עם ▾) או חדשה. ריק — חלוקה בלי בחינה. */
+    private void askAspect(String title, String initial, final Named then) {
+        final android.widget.AutoCompleteTextView f = new android.widget.AutoCompleteTextView(this);
+        f.setSingleLine(true);
+        f.setText(initial);
+        f.setSelectAllOnFocus(true);
+        f.setTextDirection(View.TEXT_DIRECTION_RTL);
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (Item a : project.aspects.values()) names.add(a.name);
+        f.setThreshold(0);
+        f.setAdapter(new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, names));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
+        frame.setColor(0xFFFFFFFF);
+        frame.setStroke(Math.max(1, dp(1)), 0xFFB4B2A9);
+        frame.setCornerRadius(dp(6));
+        row.setBackground(frame);
+        row.setPadding(dp(8), 0, dp(4), 0);
+        f.setBackground(null);
+        f.setPadding(0, dp(10), 0, dp(10));
+        android.graphics.drawable.GradientDrawable drop = new android.graphics.drawable.GradientDrawable();
+        drop.setColor(0xFFFFFFFF);
+        drop.setStroke(Math.max(1, dp(1)), 0xFFB4B2A9);
+        drop.setCornerRadius(dp(6));
+        f.setDropDownBackgroundDrawable(drop);
+        row.addView(f, new LinearLayout.LayoutParams(0, -2, 1f));
+        if (!names.isEmpty()) {
+            TextView arrow = new TextView(this);
+            arrow.setText("▾");
+            arrow.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            arrow.setTextColor(0xFF888780);
+            arrow.setPadding(dp(10), dp(6), dp(6), dp(6));
+            arrow.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+                f.requestFocus();
+                if (f.isPopupShowing()) f.dismissDropDown(); else f.showDropDown();
+            }});
+            row.addView(arrow);
+        }
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(8), dp(20), 0);
+        box.addView(row, new LinearLayout.LayoutParams(-1, -2));
+        TextView hint = new TextView(this);
+        hint.setText(names.isEmpty() ? "בחינה חדשה תישמר ברשימת הבחינות של הקובץ."
+                : "בחינה קיימת — מהרשימה; שם חדש — בחינה חדשה. שינוי שם של בחינה בכל החלוקות: בכפתור \"בחינה\".");
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        hint.setTextColor(0xFF888780);
+        hint.setPadding(0, dp(6), 0, 0);
+        box.addView(hint);
+        AlertDialog d = new AlertDialog.Builder(this).setTitle(title).setView(box)
+                .setPositiveButton("אישור", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface di, int w) { then.done(f.getText().toString().trim()); }})
+                .setNegativeButton("ביטול", null).create();
+        if (d.getWindow() != null) d.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        d.show();
+    }
 
     // ---------------- עריכה ----------------
 
@@ -1303,6 +1369,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                         if (c != null) { last[0] = c; changed(c, null); }
                     }});
                 break;
+            case MapView.A_ASPECT: {
+                String id = n.division == null ? null : n.division.aspectId;
+                Item a = project.aspect(id);
+                if (a == null) { onEditNode(n); break; }
+                new ItemWindow(this, project, a, new Runnable() { public void run() { changed(it, n.division); }}).show();
+                break;
+            }
             case MapView.A_EDIT:
                 if (n.isDivision()) onEditNode(n);
                 else new ItemWindow(this, project, it, new Runnable() { public void run() { changed(it, null); }}).show();
@@ -1319,8 +1392,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     public void onEditNode(final MapLayout.Node n) {
         if (openOriginal(n)) return;
         if (n.isDivision()) {
-            askName("שם החלוקה (הבחינה)", n.division.basis, false, new Named() {
-                public void done(String s) { n.division.basis = s; changed(n.item, n.division); }});
+            askAspect("החלוקה — לפי איזו בחינה?", n.division.basis, new Named() {
+                public void done(String s) { Edit.setAspect(project, n.division, s); changed(n.item, n.division); }});
         } else {
             askName("שם הפריט", n.item.name, false, new Named() {
                 public void done(String s) { if (!s.isEmpty()) { n.item.name = s; changed(n.item, null); } }});
@@ -1336,7 +1409,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         if (n.isDivision()) {
             final Division d = n.division;
             labels.add("הוסף בן לחלוקה"); acts.add(new Runnable() { public void run() { onAction(MapView.A_CHILD, n); }});
-            labels.add("שנה את שם החלוקה"); acts.add(new Runnable() { public void run() { onEditNode(n); }});
+            labels.add("בחר בחינה לחלוקה"); acts.add(new Runnable() { public void run() { onEditNode(n); }});
             if (clip != null) { labels.add("הדבק כבן כאן: " + clip.name); acts.add(new Runnable() { public void run() {
                 Item c = Edit.paste(clip, it, d); changed(c, null); }}); }
             labels.add("מחק את החלוקה" + (d.children.isEmpty() ? "" : " ואת " + countDiv(d) + " הפריטים שבה"));
@@ -1350,8 +1423,9 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         int sibs = it.parentDivision == null ? 0 : it.parentDivision.children.size() - 1;
         String head = it.name + " · " + it.childCount() + " בנים · " + sibs + " אחים";
         labels.add("הוסף חלוקה בצד"); acts.add(new Runnable() { public void run() {
-            askName("שם החלוקה החדשה (למשל \"לפי צבע\")", "", false, new Named() { public void done(String s) {
+            askAspect("החלוקה החדשה — לפי איזו בחינה? (למשל \"לפי צבע\")", "", new Named() { public void done(String s) {
                 Division d = Edit.addSide(it, s);
+                Edit.setAspect(project, d, s);
                 it.collapsed = false;
                 changed(it, d.children.isEmpty() && !d.basis.isEmpty() ? d : null);
             }});

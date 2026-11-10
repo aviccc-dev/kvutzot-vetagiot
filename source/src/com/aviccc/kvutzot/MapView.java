@@ -42,7 +42,7 @@ public class MapView extends View {
     public void setReadOnly(boolean ro) { readOnly = ro; }
 
     public static final String A_CHILD = "child", A_SIBLING = "sibling", A_EDIT = "edit",
-            A_COLLAPSE = "collapse", A_MORE = "more";
+            A_COLLAPSE = "collapse", A_MORE = "more", A_ASPECT = "aspect";
 
     private Host host;
     private com.aviccc.kvutzot.model.Model.Item selItem;
@@ -360,7 +360,7 @@ public class MapView extends View {
             labels.add("פתח"); btnActions.add(A_EDIT);
         } else if (n.isDivision()) {
             labels.add("+ בן"); btnActions.add(A_CHILD);
-            labels.add("שם"); btnActions.add(A_EDIT);
+            labels.add("בחינה"); btnActions.add(A_ASPECT);
             labels.add("⋯"); btnActions.add(A_MORE);
         } else {
             labels.add("+ בן"); btnActions.add(A_CHILD);

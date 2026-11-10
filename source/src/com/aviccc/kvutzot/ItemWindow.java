@@ -118,6 +118,12 @@ public class ItemWindow {
 
     private String place() {
         StringBuilder b = new StringBuilder();
+        for (Map.Entry<String, Item> e : p.aspects.entrySet())
+            if (e.getValue() == it) {
+                int use = p.aspectUse(e.getKey());
+                return "בחינה · " + (use == 0 ? "עוד לא חילקו לפיה" : "חילקו לפיה " + use + (use == 1 ? " פעם" : " פעמים"))
+                        + " · נגיעה בשם — שינוי בכל החלוקות";
+            }
         Item par = it.parent();
         if (par != null) {
             b.append("תחת \"").append(par.name).append("\"");

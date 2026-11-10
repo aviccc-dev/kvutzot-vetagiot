@@ -62,6 +62,19 @@ public final class OpmlIO {
                     case "title": p.title = h.text.toString().trim(); break;
                     case "kv": p.absolute = YES.equals(h.attr("absolute")); break;
                     case "kvStart": BrainIO.readSections(h, p.start); break;
+                    case "kvAspects":
+                        for (Xml.Node an : h.all("kvAspect")) {
+                            String id = an.attr("id");
+                            if (id == null || id.isEmpty() || p.aspects.containsKey(id)) continue;
+                            Item a = new Item(nz(an.attr("name")));
+                            addIds(a.tagIds, an.attr("kvTags"));
+                            for (Xml.Node in : an.all("kvInfo")) {
+                                Info.Kind k = Info.Kind.of(nz(in.attr("kind")));
+                                if (k != null) a.infos.add(new Info(k, in.attr("name"), in.text.toString().trim()));
+                            }
+                            p.aspects.put(id, a);
+                        }
+                        break;
                     case "kvFree":
                         for (Xml.Node n : h.all("node"))
                             p.free.addWithId(n.attr("id"), n.attr("text"), num(n.attr("x")), num(n.attr("y")));
@@ -93,6 +106,8 @@ public final class OpmlIO {
         }
         // מזהי תגיות שאין להם תגית מוגדרת: יוצרים תגית בשם המזהה, כדי לא לאבד מידע.
         for (Item r : p.roots) fixTags(r, p);
+        for (Item a : p.aspects.values()) for (String id : a.tagIds) if (p.tag(id) == null) p.tags.add(new Tag(id, id));
+        p.syncAspects();
         return p;
     }
 
@@ -112,8 +127,9 @@ public final class OpmlIO {
             if (c.name.equals("outline")) {
                 if (YES.equals(c.attr("kvDivision"))) {
                     Division d = it.addDivision(nz(c.attr("text")));
+                    d.aspectId = nz(c.attr("kvAspect"));
                     for (Map.Entry<String, String> e : c.attrs.entrySet())
-                        if (!e.getKey().equals("text") && !e.getKey().equals("kvDivision"))
+                        if (!e.getKey().equals("text") && !e.getKey().equals("kvDivision") && !e.getKey().equals("kvAspect"))
                             d.extra.put(e.getKey(), e.getValue());
                     for (Xml.Node cc : c.all("outline")) attach(d, readItem(cc, p));
                 } else {
@@ -176,6 +192,7 @@ public final class OpmlIO {
 
     /** OPML תקני בלבד, בלי שורת פתיחה: לייצוא לתוכנות אחרות. */
     public static String writeOpml(Project p) {
+        p.syncAspects();
         Xml.Node root = new Xml.Node("opml");
         root.attrs.put("version", "2.0");
         Xml.Node head = new Xml.Node("head");
@@ -197,6 +214,24 @@ public final class OpmlIO {
                 tags.children.add(tn);
             }
             head.children.add(tags);
+        }
+        if (!p.aspects.isEmpty()) {
+            Xml.Node as = new Xml.Node("kvAspects");
+            for (Map.Entry<String, Item> e : p.aspects.entrySet()) {
+                Xml.Node an = new Xml.Node("kvAspect");
+                an.attrs.put("id", e.getKey());
+                an.attrs.put("name", e.getValue().name);
+                if (!e.getValue().tagIds.isEmpty()) an.attrs.put("kvTags", join(e.getValue().tagIds));
+                for (Info in : e.getValue().infos) {
+                    Xml.Node n = new Xml.Node("kvInfo");
+                    n.attrs.put("kind", in.kind.code);
+                    if (in.kind == Info.Kind.USER) n.attrs.put("name", in.name);
+                    n.text.append(in.text);
+                    an.children.add(n);
+                }
+                as.children.add(an);
+            }
+            head.children.add(as);
         }
         if (!p.start.sections.isEmpty()) {
             Xml.Node st = new Xml.Node("kvStart");
@@ -257,6 +292,7 @@ public final class OpmlIO {
                 Xml.Node dn = new Xml.Node("outline");
                 dn.attrs.put("kvDivision", YES);
                 dn.attrs.put("text", d.basis);
+                if (!d.aspectId.isEmpty()) dn.attrs.put("kvAspect", d.aspectId);
                 dn.attrs.putAll(d.extra);
                 for (Item c : d.children) dn.children.add(itemNode(c));
                 o.children.add(dn);
