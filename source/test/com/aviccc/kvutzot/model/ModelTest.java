@@ -528,6 +528,20 @@ public class ModelTest {
         Edit.showToLevel(lv, 0);
         eq(TextLines.build(lv).size(), 1, "רמה 0: רק השורש");
 
+        // --- מרמה עד רמה ---
+        Project lv2 = OpmlIO.read(file(dir, "צעצועים.xml"));
+        Views.Result rl = Views.byLevels(lv2, 2, 2);
+        Item rr = rl.project.mainRoot();
+        check(rr.divisions.size() >= 2, "רמה 2: מקובץ לפי האבות");
+        Item first = rr.divisions.get(0).children.get(0);
+        check(rl.original(first) != null && rl.original(first).parent().parent() == lv2.mainRoot(), "רמה 2: נכדי השורש");
+        check(!rr.divisions.get(0).basis.isEmpty(), "תווית החלוקה: שם האב");
+        Views.Result r12 = Views.byLevels(lv2, 1, 1);
+        int hid = 0;
+        for (Division d : r12.project.mainRoot().divisions) for (Item c : d.children) if (c.collapsed) hid++;
+        eq(hid, 1, "רמה 1 בלבד: מי שיש לו בנים — מכווץ");
+        check(!lv2.mainRoot().divisions.get(1).children.get(0).collapsed, "המקור לא השתנה");
+
         // --- מספור עברי ---
         int[] n = {1, 2, 9, 10, 11, 15, 16, 19, 20, 22, 100, 123, 400, 500};
         String[] h = {"א", "ב", "ט", "י", "י\"א", "ט\"ו", "ט\"ז", "י\"ט", "כ", "כ\"ב", "ק", "קכ\"ג", "ת", "ת\"ק"};

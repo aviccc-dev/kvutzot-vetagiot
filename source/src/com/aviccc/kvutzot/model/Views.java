@@ -220,4 +220,46 @@ public final class Views {
         }
         return r;
     }
+
+    /**
+     * "מרמה עד רמה" (0.9.2): רק הרמות from עד to, בלי מה שמעליהן. השורש ברמה 0.
+     * הפריטים שברמה from מקובצים לפי האב שלהם — האב מופיע רק כתווית החלוקה, לא כפריט.
+     * מה שמתחת ל-to מכווץ (רואים כמה מוסתר). העץ המקורי לא משתנה.
+     */
+    public static Result byLevels(Project p, int from, int to) {
+        if (from < 1) from = 1;
+        if (to < from) to = from;
+        Result r = new Result();
+        r.project.tags.addAll(p.tags);
+        Item root = root(r, from == to ? "רמה " + from : "רמות " + from + "–" + to);
+        root.divisions.clear();
+        List<Item> parents = new ArrayList<>();
+        for (Item it : allItems(p)) if (!it.loose && depthOf(it) == from - 1 && it.childCount() > 0) parents.add(it);
+        for (Item par : parents)
+            for (Division d : par.divisions) {
+                if (d.children.isEmpty()) continue;
+                Division g = root.addDivision(d.basis.isEmpty() ? par.name : par.name + " · " + d.basis);
+                for (Item c : d.children) deep(r, g, c, to - from);
+            }
+        if (root.divisions.isEmpty()) root.addDivision("");
+        return r;
+    }
+
+    private static int depthOf(Item it) {
+        int k = 0;
+        for (Item x = it.parent(); x != null; x = x.parent()) k++;
+        return k;
+    }
+
+    /** עותק תצוגה עם הבנים; בעומק left=0 — מכווץ. */
+    private static Item deep(Result r, Division into, Item orig, int left) {
+        Item v = leaf(r, into, orig, null);
+        if (left <= 0 && orig.childCount() > 0) v.collapsed = true;
+        for (Division d : orig.divisions) {
+            Division nd = v.addDivision(d.basis);
+            nd.aspectId = d.aspectId;
+            for (Item c : d.children) deep(r, nd, c, left - 1);
+        }
+        return v;
+    }
 }

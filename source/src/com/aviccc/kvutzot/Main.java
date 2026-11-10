@@ -65,7 +65,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         /** הטאב בתוך הקובץ: 0 התחלת נושא, 1 סיעור מוחות, 2 מפה. */
         int part = 2;
         boolean dirty;
-        int viewMode, tagLevel = 1;
+        int viewMode, tagLevel = 1, levelFrom = 1, levelTo = 1;
         String viewInfo = "";
         Views.Sort viewSort = Views.Sort.MAP;
         /** פרוס בשורת הטאבים (או ברקע — רק בניהול). */
@@ -106,6 +106,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private int tagLevel = 1;
     private String viewInfo = "";
     private Views.Sort viewSort = Views.Sort.MAP;
+    /** תצוגה 5: מרמה עד רמה. */
+    private int levelFrom = 1, levelTo = 1;
     private Views.Result viewResult;
     private Item clip;
     private final android.os.Handler handler = new android.os.Handler();
@@ -237,7 +239,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.add(0, M_CLOSE, 0, "סגור את הטאב");
         m.add(0, M_DIR, 1, "כיוון המפה");
         m.add(0, M_FIT, 1, "התאם למסך");
-        m.add(0, M_LEVEL, 1, "הצג עד רמה…");
+        m.add(0, M_LEVEL, 1, "רמות…");
         m.add(0, M_NEW, 1, "מפה חדשה");
         m.add(0, M_TITLE, 1, "שנה כותרת");
         m.add(0, M_SAVE, 2, "שמור");
@@ -263,7 +265,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.findItem(M_CLOSE).setVisible(cur != null);
         m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap && part == 2);
         m.findItem(M_FIT).setVisible(project != null && showMap && part == 2);
-        m.findItem(M_LEVEL).setVisible(project != null && viewMode == 0 && part == 2);
+        m.findItem(M_LEVEL).setVisible(project != null && part == 2);
         m.findItem(M_LOOSE).setVisible(project != null && viewMode == 0 && part == 2);
         return true;
     }
@@ -638,6 +640,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             case 2: viewResult = Views.byInfoName(project, viewInfo, viewSort); break;
             case 3: viewResult = Views.byProperties(project, viewSort); break;
             case 4: viewResult = Views.byAspects(project, viewSort); break;
+            case 5: viewResult = Views.byLevels(project, levelFrom, levelTo); break;
         }
         return viewResult == null ? project : viewResult.project;
     }
@@ -758,6 +761,37 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     /** "הצג עד רמה": מכווץ כל מה שמתחת לרמה שנבחרה (אפשר לפתוח שוב ענף ענף, או "הכול"). */
     private void showToLevel() {
         final int max = Edit.maxDepth(project);
+        if (max < 1) { setStatus("אין עדיין רמות מתחת לשורש"); return; }
+        new AlertDialog.Builder(this).setTitle("רמות")
+                .setItems(new String[]{"הצג עד רמה… (מכווץ בעץ עצמו)", "מרמה עד רמה… (תצוגה, בלי מה שמעליהן)"},
+                        new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        if (w == 0) upToLevel(); else fromToLevel(max);
+                    }}).show();
+    }
+
+    /** מרמה עד רמה: שתי בחירות — ההתחלה, ואחריה הסוף. */
+    private void fromToLevel(final int max) {
+        final String[] a = new String[max];
+        for (int k = 1; k <= max; k++) a[k - 1] = "מרמה " + k;
+        new AlertDialog.Builder(this).setTitle("מאיזו רמה (השורש — 0)")
+                .setItems(a, new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        final int from = w + 1;
+                        final String[] b = new String[max - from + 1];
+                        for (int k = from; k <= max; k++) b[k - from] = k == from ? "רק רמה " + k : "עד רמה " + k;
+                        new AlertDialog.Builder(Main.this).setTitle("מרמה " + from + " — עד איזו רמה")
+                                .setItems(b, new android.content.DialogInterface.OnClickListener() {
+                                    public void onClick(android.content.DialogInterface d2, int w2) {
+                                        levelFrom = from;
+                                        levelTo = from + w2;
+                                        setView(5, 1, "");
+                                    }}).show();
+                    }}).show();
+    }
+
+    private void upToLevel() {
+        final int max = Edit.maxDepth(project);
         final String[] names = new String[max + 1];
         for (int k = 0; k < max; k++) names[k] = k == 0 ? "רק השורש" : "עד רמה " + k;
         names[max] = "הכול פתוח";
@@ -766,6 +800,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     public void onClick(android.content.DialogInterface d, int w) {
                         int n = Edit.showToLevel(project, w == max ? Integer.MAX_VALUE : w);
                         refitPending = true;
+                        viewMode = 0;
+                        map.select(null, false);
                         if (n > 0) changedAny(true); else render(null, true);
                     }}).show();
     }
@@ -790,13 +826,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         if (cur == null) return;
         cur.uri = uri; cur.fileName = fileName; cur.lastText = lastText; cur.project = project; cur.part = part;
         cur.dirty = dirty; cur.viewMode = viewMode; cur.tagLevel = tagLevel; cur.viewInfo = viewInfo;
-        cur.viewSort = viewSort;
+        cur.viewSort = viewSort; cur.levelFrom = levelFrom; cur.levelTo = levelTo;
     }
 
     private void unstash(Doc d) {
         uri = d.uri; fileName = d.fileName; lastText = d.lastText; project = d.project; part = d.part;
         dirty = d.dirty; viewMode = d.viewMode; tagLevel = d.tagLevel; viewInfo = d.viewInfo;
-        viewSort = d.viewSort;
+        viewSort = d.viewSort; levelFrom = d.levelFrom; levelTo = d.levelTo;
     }
 
     /** טאב חדש וריק, והופך לנוכחי (מה שהיה — נשמר בטאב שלו). */
@@ -1057,7 +1093,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         chip(viewRow, "תכונות", viewMode == 3, false, new View.OnClickListener() { public void onClick(View v) { setView(3, 1, ""); }});
         if (!project.aspects.isEmpty())
             chip(viewRow, "בחינות", viewMode == 4, false, new View.OnClickListener() { public void onClick(View v) { setView(4, 1, ""); }});
-        if (viewMode != 0) {
+        if (viewMode == 5)
+            chip(viewRow, levelFrom == levelTo ? "רמה " + levelFrom : "רמות " + levelFrom + "–" + levelTo, true, false,
+                    new View.OnClickListener() { public void onClick(View v) { fromToLevel(Math.max(1, Edit.maxDepth(project))); }});
+        if (viewMode != 0 && viewMode != 5) {
             gap(viewRow);
             chip(viewRow, viewSort == Views.Sort.NAME ? "מיון: א-ב" : "מיון: מפה", false, false, new View.OnClickListener() {
                 public void onClick(View v) {
