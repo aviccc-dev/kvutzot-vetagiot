@@ -37,7 +37,8 @@ import java.nio.charset.Charset;
 public class Main extends Activity {
     private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3, REQ_EXPORT = 4;
     private static final int M_OPEN = 1, M_NEW = 2, M_SAVE = 3, M_SAVE_AS = 4, M_RELOAD = 5,
-            M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8, M_EXPORT = 9;
+            M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8, M_EXPORT = 9,
+            M_VIEW = 10, M_DIR = 11, M_FIT = 12;
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
     private SharedPreferences prefs;
@@ -49,6 +50,9 @@ public class Main extends Activity {
     private String lastText;
     private Project project;
     private boolean asking;
+    private ScrollView textScroll;
+    private MapView map;
+    private boolean showMap, vertical;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -72,8 +76,16 @@ public class Main extends Activity {
         body.setLineSpacing(dp(3), 1f);
         body.setTextDirection(View.TEXT_DIRECTION_RTL);
         sv.addView(body);
-        root.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
+        textScroll = sv;
+        map = new MapView(this);
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+        frame.addView(sv, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        frame.addView(map, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        root.addView(frame, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
+        showMap = prefs.getBoolean("showMap", true);
+        vertical = prefs.getBoolean("vertical", true);
+        applyView();
 
         String saved = prefs.getString("uri", null);
         if (saved != null) {
@@ -92,6 +104,13 @@ public class Main extends Activity {
 
     private int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
 
+    private void applyView() {
+        boolean m = showMap && project != null;
+        map.setVisibility(m ? View.VISIBLE : View.GONE);
+        textScroll.setVisibility(m ? View.GONE : View.VISIBLE);
+        invalidateOptionsMenu();
+    }
+
     private void showWelcome() {
         setTitle("קבוצות ותגיות");
         status.setText("אין קובץ פתוח");
@@ -103,7 +122,10 @@ public class Main extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu m) {
+        m.add(0, M_VIEW, 0, "טקסט").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         m.add(0, M_OPEN, 0, "פתח קובץ").setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        m.add(0, M_DIR, 1, "כיוון המפה");
+        m.add(0, M_FIT, 1, "התאם למסך");
         m.add(0, M_NEW, 1, "קובץ חדש");
         m.add(0, M_SAVE, 2, "שמור");
         m.add(0, M_SAVE_AS, 3, "שמור עותק בשם");
@@ -121,6 +143,9 @@ public class Main extends Activity {
         m.findItem(M_SAVE_AS).setEnabled(project != null);
         m.findItem(M_RELOAD).setEnabled(uri != null);
         m.findItem(M_EXPORT).setEnabled(project != null);
+        m.findItem(M_VIEW).setTitle(showMap ? "טקסט" : "מפה").setVisible(project != null);
+        m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap);
+        m.findItem(M_FIT).setVisible(project != null && showMap);
         return true;
     }
 
@@ -137,6 +162,18 @@ public class Main extends Activity {
             case M_NEW: create(REQ_CREATE, "מפה חדשה.xml"); return true;
             case M_SAVE_AS: create(REQ_SAVE_AS, (project.title.isEmpty() ? "מפה" : project.title) + ".xml"); return true;
             case M_SAVE: save(); return true;
+            case M_VIEW:
+                showMap = !showMap;
+                prefs.edit().putBoolean("showMap", showMap).apply();
+                applyView();
+                return true;
+            case M_DIR:
+                vertical = !vertical;
+                prefs.edit().putBoolean("vertical", vertical).apply();
+                map.setProject(project, vertical, true);
+                invalidateOptionsMenu();
+                return true;
+            case M_FIT: map.fit(); return true;
             case M_EXPORT: create(REQ_EXPORT, (project.title.isEmpty() ? "מפה" : project.title) + ".opml"); return true;
             case M_RELOAD: load(uri, false); return true;
             case M_EX_TRI: example("triangle.xml", "משולש"); return true;
@@ -200,7 +237,7 @@ public class Main extends Activity {
 
     private String readText(Uri u) throws Exception {
         InputStream in = getContentResolver().openInputStream(u);
-        if (in == null) throw new Exception("לא ניתן לפתוח את הקובץ");
+        if (in == null) throw new Exception("השירות (למשל Dropbox) לא מצא את הקובץ בכתובת הזו. ייתכן שהוא הוחלף בשמירה. פתח אותו שוב מ\"פתח קובץ\".");
         try {
             ByteArrayOutputStream bo = new ByteArrayOutputStream();
             byte[] buf = new byte[8192];
@@ -211,7 +248,9 @@ public class Main extends Activity {
     }
 
     private void writeText(Uri u, String text) throws Exception {
-        OutputStream out = getContentResolver().openOutputStream(u, "wt");
+        OutputStream out;
+        try { out = getContentResolver().openOutputStream(u, "wt"); }
+        catch (IllegalArgumentException | java.io.FileNotFoundException e) { out = getContentResolver().openOutputStream(u, "w"); }
         if (out == null) throw new Exception("לא ניתן לכתוב לקובץ");
         try { out.write(text.getBytes(UTF8)); out.flush(); }
         finally { out.close(); }
@@ -240,7 +279,7 @@ public class Main extends Activity {
                     project = p;
                     if (remember || prefs.getString("uri", null) == null)
                         prefs.edit().putString("uri", u.toString()).apply();
-                    render("נטען");
+                    render("נטען", true);
                 }});
             } catch (final SecurityException e) {
                 fail("אין הרשאה לקובץ. פתח אותו שוב מהתפריט.", e);
@@ -250,19 +289,34 @@ public class Main extends Activity {
         }}).start();
     }
 
+    /** כתיבה לקובץ חדש, ומעבר אליו מתוך הזיכרון (בלי לקרוא שוב: Dropbox מחליף כתובות). */
     private void writeThenLoad(final Uri u, final String text) {
         status.setText("שומר…");
         new Thread(new Runnable() { public void run() {
             try {
                 writeText(u, text);
+                final Project p = OpmlIO.read(text);
+                final String name = displayName(u);
+                final boolean ok = readsBack(u, text);
                 runOnUiThread(new Runnable() { public void run() {
                     prefs.edit().putString("uri", u.toString()).apply();
-                    load(u, true);
+                    uri = u;
+                    fileName = name;
+                    lastText = text;
+                    project = p;
+                    render(ok ? "נשמר" : STALE, true);
                 }});
             } catch (Exception e) {
                 fail("השמירה נכשלה", e);
             }
         }}).start();
+    }
+
+    private static final String STALE = "נשמר, אבל השירות החליף את הקובץ. לפני השמירה הבאה: פתח אותו שוב מ\"פתח קובץ\"";
+
+    /** בדיקה אחרי כתיבה: הקובץ נקרא בחזרה מאותה כתובת וזהה. */
+    private boolean readsBack(Uri u, String text) {
+        try { return readText(u).equals(text); } catch (Exception e) { return false; }
     }
 
     private void save() {
@@ -273,9 +327,10 @@ public class Main extends Activity {
         new Thread(new Runnable() { public void run() {
             try {
                 writeText(u, text);
+                final boolean ok = readsBack(u, text);
                 runOnUiThread(new Runnable() { public void run() {
                     lastText = text;
-                    render("נשמר");
+                    render(ok ? "נשמר" : STALE, false);
                 }});
             } catch (Exception e) {
                 fail("השמירה נכשלה", e);
@@ -331,7 +386,7 @@ public class Main extends Activity {
             uri = null;
             lastText = null;
             fileName = "דוגמה: " + name + " (לא שמורה)";
-            render("כדי לשמור: \"שמור עותק בשם\"");
+            render("כדי לשמור: \"שמור עותק בשם\"", true);
         } catch (Exception e) {
             fail("לא ניתן לפתוח את הדוגמה", e);
         }
@@ -339,7 +394,7 @@ public class Main extends Activity {
 
     // ---------------- תצוגת טקסט ----------------
 
-    private void render(String note) {
+    private void render(String note, boolean refit) {
         Project p = project;
         setTitle(p.title.isEmpty() ? "קבוצות ותגיות" : p.title);
         int items = TextLines.countItems(p);
@@ -387,7 +442,8 @@ public class Main extends Activity {
                     Spanned.SPAN_PARAGRAPH);
         }
         body.setText(sb);
-        invalidateOptionsMenu();
+        map.setProject(p, vertical, refit);
+        applyView();
     }
 
     private static void span(SpannableStringBuilder sb, Object what, int s, int e) {

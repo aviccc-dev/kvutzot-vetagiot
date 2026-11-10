@@ -38,6 +38,39 @@ public class ModelTest {
         return OpmlIO.read(w1);
     }
 
+    static int grown = 0;
+
+    static void grow(Item it, int depth, java.util.Random r) {
+        if (depth >= 4 || grown > 120) return;
+        int sides = r.nextInt(5) == 0 ? 2 : 1;
+        for (int s = 0; s < sides; s++) {
+            Division d = it.addDivision(sides > 1 ? "בחינה " + (s + 1) : "");
+            int n = 1 + r.nextInt(4);
+            for (int i = 0; i < n; i++) {
+                StringBuilder name = new StringBuilder("פריט");
+                for (int k = r.nextInt(6); k > 0; k--) name.append(" מילה");
+                Item c = d.add(name.toString());
+                grown++;
+                if (r.nextInt(7) == 0) c.collapsed = true;
+                grow(c, depth + 1, r);
+            }
+        }
+    }
+
+    static boolean noOverlap(MapLayout ml) {
+        for (int i = 0; i < ml.nodes.size(); i++)
+            for (int j = i + 1; j < ml.nodes.size(); j++) {
+                MapLayout.Node a = ml.nodes.get(i), b = ml.nodes.get(j);
+                boolean sep = a.x + a.w <= b.x + 0.01 || b.x + b.w <= a.x + 0.01
+                        || a.y + a.h <= b.y + 0.01 || b.y + b.h <= a.y + 0.01;
+                if (!sep) {
+                    System.out.println("חפיפה: [" + a.text + "] [" + b.text + "]");
+                    return false;
+                }
+            }
+        return true;
+    }
+
     public static void main(String[] a) throws Exception {
         String dir = a.length > 0 ? a[0] : "examples";
 
@@ -188,6 +221,57 @@ public class ModelTest {
         boolean thrownH = false;
         try { OpmlIO.read("רק שורת פתיחה"); } catch (Xml.ParseException ex) { thrownH = true; }
         check(thrownH, "שורת פתיחה בלי XML נדחית");
+
+        // --- פריסת המפה ---
+        MapLayout.Measurer fake = new MapLayout.Measurer() {
+            public float[] measure(MapLayout.Node n) {
+                float w = Math.min(160, 12 + n.text.length() * 9);
+                float lines = (float) Math.ceil(n.text.length() * 9 / 148.0);
+                return new float[]{w, n.isDivision() ? 22 : 14 + 20 * Math.max(1, lines)};
+            }
+        };
+        java.util.Random rnd = new java.util.Random(7);
+        Project big = new Project();
+        Item bigRoot = new Item("שורש גדול");
+        big.roots.add(bigRoot);
+        grow(bigRoot, 0, rnd);
+        big.roots.add(new Item("תלוש ארוך מאוד מאוד מאוד מאוד"));
+        big.roots.get(1).loose = true;
+        Project[] ps = {p, toys, big, s2};
+        String[] names = {"משולש", "צעצועים", "עץ אקראי", "מכווץ"};
+        for (int k = 0; k < ps.length; k++) {
+            for (boolean vert : new boolean[]{true, false}) {
+                MapLayout ml = MapLayout.build(ps[k], vert, fake, 30, 12);
+                String wn = names[k] + (vert ? " למטה" : " לשמאל");
+                check(noOverlap(ml), wn + ": אין חפיפות");
+                boolean inside = true;
+                for (MapLayout.Node n : ml.nodes)
+                    if (n.x < -0.01 || n.y < -0.01 || n.x + n.w > ml.width + 0.01 || n.y + n.h > ml.height + 0.01) inside = false;
+                check(inside, wn + ": הכול בתוך הגבולות");
+                boolean down = true;
+                for (MapLayout.Node n : ml.nodes) for (MapLayout.Node c : n.children) {
+                    if (vert && !(c.y >= n.y + n.h)) down = false;
+                    if (!vert && !(c.x + c.w <= n.x)) down = false;
+                }
+                check(down, wn + ": בנים מתחת/משמאל לאב");
+                boolean order = true;
+                for (MapLayout.Node n : ml.nodes) for (int i = 1; i < n.children.size(); i++) {
+                    MapLayout.Node a1 = n.children.get(i - 1), a2 = n.children.get(i);
+                    if (vert && !(a1.x > a2.x)) order = false;
+                    if (!vert && !(a1.y < a2.y)) order = false;
+                }
+                check(order, wn + ": הבן הראשון מימין/למעלה");
+            }
+        }
+        MapLayout tl = MapLayout.build(p, true, fake, 30, 12);
+        eq(tl.roots.size(), 6, "שורש ראשי וחמישה תלושים");
+        eq(tl.roots.get(0).children.size(), 2, "שתי תוויות חלוקה מתחת למשולש");
+        check(tl.roots.get(0).children.get(0).isDivision(), "תווית חלוקה");
+        eq(tl.roots.get(0).children.get(1).mark, "ב", "תווית צד ב");
+        eq(tl.roots.get(0).children.get(0).children.get(0).hue, 1, "גוון ענף ראשון");
+        eq(tl.roots.get(0).children.get(1).children.get(2).hue, 6, "גוון ענף שישי");
+        eq(tl.roots.get(0).hue, 0, "שורש אפור");
+        eq(tl.roots.get(0).children.get(0).children.get(0).depth, 1, "עומק בלי לספור תוויות");
 
         // --- מספור עברי ---
         int[] n = {1, 2, 9, 10, 11, 15, 16, 19, 20, 22, 100, 123, 400, 500};
