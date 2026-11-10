@@ -80,12 +80,43 @@ public final class MapLayout {
     }
 
     public static MapLayout build(Project p, boolean vertical, Measurer m, float gapDepth, float gapBreadth, boolean compact) {
+        return build(p, vertical, m, gapDepth, gapBreadth, compact, 1f);
+    }
+
+    /** unit: כמה פיקסלים ביחידת הזזה ידנית (צפיפות המסך). */
+    public static MapLayout build(Project p, boolean vertical, Measurer m, float gapDepth, float gapBreadth, boolean compact, float unit) {
         MapLayout L = new MapLayout(vertical, gapDepth, gapBreadth, compact);
         for (Item r : p.roots) if (!r.loose) L.roots.add(L.tree(r, null, 0, 0, "0", false));
         for (Item r : p.roots) if (r.loose) L.roots.add(L.tree(r, null, 0, 0, "תלוש", true));
         L.measureAll(m);
         L.place();
+        L.offsets(unit);
         return L;
+    }
+
+    /** כמה הוזזה כל המפה כדי שלא תצא מהגבולות אחרי הזזות ידניות (למסך: להשאיר את התמונה במקומה). */
+    public float shiftX, shiftY;
+
+    /** הזזות ידניות: כל פריט זז במה שנגרר, והענף שלו איתו. */
+    private void offsets(float unit) {
+        boolean any = false;
+        for (Node n : nodes) if (n.division == null && (n.item.dx != 0 || n.item.dy != 0)) { any = true; break; }
+        if (!any) return;
+        for (Node r : roots) offset(r, 0, 0, unit);
+        float lx = Float.MAX_VALUE, ly = Float.MAX_VALUE, hx = -Float.MAX_VALUE, hy = -Float.MAX_VALUE;
+        for (Node n : nodes) { lx = Math.min(lx, n.x); ly = Math.min(ly, n.y); hx = Math.max(hx, n.x + n.w); hy = Math.max(hy, n.y + n.h); }
+        shiftX = -lx;
+        shiftY = -ly;
+        for (Node n : nodes) { n.x += shiftX; n.y += shiftY; }
+        width = hx - lx;
+        height = hy - ly;
+    }
+
+    private void offset(Node n, float ox, float oy, float unit) {
+        if (n.division == null) { ox += n.item.dx * unit; oy += n.item.dy * unit; }
+        n.x += ox;
+        n.y += oy;
+        for (Node k : n.children) offset(k, ox, oy, unit);
     }
 
     private Node tree(Item it, Node parent, int depth, int hue, String mark, boolean loose) {
@@ -296,13 +327,12 @@ public final class MapLayout {
         if (vertical) {
             float x1 = parent.x + parent.w / 2, y1 = parent.y + parent.h;
             float x2 = child.x + child.w / 2, y2 = child.y;
-            float ym = rankStart[child.rank] - gapDepth / 2;
+            float ym = Math.max(y1 + 2, child.y - gapDepth / 2);
             return new float[]{x1, y1, x1, ym, x2, ym, x2, y2};
         } else {
             float x1 = parent.x, y1 = parent.y + parent.h / 2;
             float x2 = child.x + child.w, y2 = child.y + child.h / 2;
-            float colRight = width - rankStart[child.rank];
-            float xm = colRight + gapDepth / 2;
+            float xm = Math.min(x1 - 2, child.x + child.w + gapDepth / 2);
             return new float[]{x1, y1, xm, y1, xm, y2, x2, y2};
         }
     }

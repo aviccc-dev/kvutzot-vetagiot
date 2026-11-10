@@ -78,6 +78,8 @@ public final class Edit {
     public static Item copy(Item src) {
         Item n = new Item(src.name);
         n.collapsed = src.collapsed;
+        n.dx = src.dx;
+        n.dy = src.dy;
         for (Info in : src.infos) n.infos.add(new Info(in.kind, in.name, in.text));
         n.tagIds.addAll(src.tagIds);
         n.extra.putAll(src.extra);
@@ -264,5 +266,21 @@ public final class Edit {
         it.parentDivision = into;
         into.children.add(it);
         return true;
+    }
+
+    /** החזרה למקום האוטומטי: הפריט וכל הענף שמתחתיו. מחזיר כמה הוחזרו. */
+    public static int clearOffsets(Item it) {
+        int n = it.dx != 0 || it.dy != 0 ? 1 : 0;
+        it.dx = 0;
+        it.dy = 0;
+        for (Division d : it.divisions) for (Item c : d.children) n += clearOffsets(c);
+        return n;
+    }
+
+    /** כמה פריטים הוזזו ביד בענף. */
+    public static int countOffsets(Item it) {
+        int n = it.dx != 0 || it.dy != 0 ? 1 : 0;
+        for (Division d : it.divisions) for (Item c : d.children) n += countOffsets(c);
+        return n;
     }
 }

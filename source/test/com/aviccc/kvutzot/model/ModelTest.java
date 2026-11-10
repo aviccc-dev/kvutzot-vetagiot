@@ -499,6 +499,40 @@ public class ModelTest {
             }
         } else check(false, "לא נמצא ספר ההגיון: " + bookF);
 
+        // --- גרירה ומרווחים (0.10.3) ---
+        Project dg = OpmlIO.read(file(dir, "צעצועים.xml"));
+        Item dragPl = dg.mainRoot().divisions.get(1).children.get(0);
+        MapLayout before0 = MapLayout.build(dg, true, fake, 30, 12, true, 2f);
+        MapLayout.Node pl0 = null, kid0 = null;
+        for (MapLayout.Node n : before0.nodes) if (n.item == dragPl && n.division == null) pl0 = n;
+        for (MapLayout.Node n : before0.nodes) if (n.parent == pl0) kid0 = n;
+        float relX0 = kid0.x - pl0.x, relY0 = kid0.y - pl0.y;
+        dragPl.dx = -300; dragPl.dy = 40;
+        MapLayout moved = MapLayout.build(dg, true, fake, 30, 12, true, 2f);
+        MapLayout.Node pl1 = null, kid1 = null, root1 = null;
+        for (MapLayout.Node n : moved.nodes) if (n.item == dragPl && n.division == null) pl1 = n;
+        for (MapLayout.Node n : moved.nodes) if (n.parent == pl1) kid1 = n;
+        for (MapLayout.Node n : moved.nodes) if (n.parent == null) root1 = n;
+        eq(kid1.x - pl1.x, relX0, "הענף זז עם הפריט (x)");
+        eq(kid1.y - pl1.y, relY0, "הענף זז עם הפריט (y)");
+        boolean inside2 = true;
+        for (MapLayout.Node n : moved.nodes)
+            if (n.x < -0.01 || n.y < -0.01 || n.x + n.w > moved.width + 0.01 || n.y + n.h > moved.height + 0.01) inside2 = false;
+        check(inside2, "אחרי גרירה הכול בגבולות");
+        Project dg2 = OpmlIO.read(OpmlIO.write(dg));
+        Item plastic3 = dg2.mainRoot().divisions.get(1).children.get(0);
+        check(plastic3.dx == -300 && plastic3.dy == 40, "ההזזה נשמרת בקובץ");
+        eq(Edit.countOffsets(dg2.mainRoot()), 1, "פריט אחד הוזז");
+        eq(Edit.clearOffsets(dg2.mainRoot()), 1, "החזרה");
+        check(plastic3.dx == 0 && Edit.countOffsets(dg2.mainRoot()) == 0, "חזר למקום האוטומטי");
+        check(Edit.copy(dragPl).dx == -300, "העתקה שומרת את ההזזה");
+        Model.Sheet spS = dg.first(Model.Sheet.Kind.MAP);
+        spS.spaceB = 1.5f; spS.spaceD = 0.5f;
+        Project dg3 = OpmlIO.read(OpmlIO.write(dg));
+        check(dg3.first(Model.Sheet.Kind.MAP).spaceB == 1.5f && dg3.first(Model.Sheet.Kind.MAP).spaceD == 0.5f, "מרווחים נשמרים");
+        MapLayout wide = MapLayout.build(dg3, true, fake, 30 * 0.5f, 12 * 3f, true, 2f);
+        check(noOverlap(wide), "מרווחים: אין חפיפות");
+
         // --- טאבים: כמה מכל סוג, עם מאפיינים (0.10) ---
         Project ms = OpmlIO.read(file(dir, "משולש.xml"));
         eq(ms.sheets.size(), 3, "קובץ ישן: שלושה טאבים");

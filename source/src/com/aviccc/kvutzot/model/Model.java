@@ -246,6 +246,8 @@ public final class Model {
         public boolean collapsed;
         /** פריט תלוש: בלי הורה, מחוץ למפה הראשית. */
         public boolean loose;
+        /** הזזה ידנית (גרירה, 0.10.3) מהמקום האוטומטי, ביחידות מסך בצפיפות 1. הענף זז איתו. */
+        public float dx, dy;
         public final List<Info> infos = new ArrayList<>();
         public final List<String> tagIds = new ArrayList<>();
         public final List<Division> divisions = new ArrayList<>();
@@ -342,6 +344,8 @@ public final class Model {
         public String view = "";
         /** פריסה: "" — צפופה, כמו מפת חשיבה (0.10.2); "tidy" — מרווחת, כל ענף מעל התחום שלו. */
         public String layout = "";
+        /** מרווחים (0.10.3): בין אחים ובין רמות, כפולה של הרגיל. */
+        public float spaceB = 1f, spaceD = 1f;
 
         public Sheet(Kind kind, String id, String name) {
             this.kind = kind;

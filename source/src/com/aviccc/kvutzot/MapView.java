@@ -36,7 +36,13 @@ public class MapView extends View {
         void onBranchMenu(MapLayout.Node node);
         /** בתצוגה לפי פריט מידע: האם לנגיעה בצומת יש פריט מקורי לפתוח. */
         boolean canOpen(MapLayout.Node node);
+        /** אחרי גרירה של פריט (ההזזה כבר נרשמה בו). */
+        void onDragged(com.aviccc.kvutzot.model.Model.Item item);
     }
+
+    /** גרירה (0.10.3): פריט נבחר נגרר עם הענף שלו. */
+    private MapLayout.Node dragging;
+    private float dragX, dragY;
 
     private boolean readOnly;
     public void setReadOnly(boolean ro) { readOnly = ro; }
@@ -141,8 +147,24 @@ public class MapView extends View {
             }
         });
         gestures = new GestureDetector(c, new GestureDetector.SimpleOnGestureListener() {
-            @Override public boolean onDown(MotionEvent e) { return true; }
+            @Override public boolean onDown(MotionEvent e) {
+                dragging = null;
+                dragX = dragY = 0;
+                if (readOnly || layout == null) return true;
+                MapLayout.Node n = hit(e.getX(), e.getY());
+                MapLayout.Node sel = selectedNode();
+                if (n != null && n == sel && !n.isDivision() && (n.parent != null || n.loose)) dragging = n;
+                return true;
+            }
             @Override public boolean onScroll(MotionEvent a, MotionEvent b, float dx, float dy) {
+                if (dragging != null) {
+                    float mx = -dx / scale, my = -dy / scale;
+                    dragX += mx;
+                    dragY += my;
+                    moveBranch(dragging, mx, my);
+                    invalidate();
+                    return true;
+                }
                 tx -= dx; ty -= dy; invalidate(); return true;
             }
             @Override public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -218,12 +240,15 @@ public class MapView extends View {
 
     /** פריסה צפופה (כמו מפת חשיבה) או מרווחת. */
     public boolean compact = true;
+    /** מרווחים: בין אחים ובין רמות (כפולה של הרגיל). */
+    public float spaceB = 1f, spaceD = 1f;
 
     public void setProject(Project p, boolean vertical, boolean refit) {
         texts.clear();
         markW.clear();
         look.clear();
         if (slCache.size() > 4000) slCache.clear();
+        MapLayout old = layout;
         layout = MapLayout.build(p, vertical, new MapLayout.Measurer() {
             public float[] measure(MapLayout.Node n) {
                 StaticLayout sl = textLayout(n, textPaint, labelPaint);
@@ -233,7 +258,12 @@ public class MapView extends View {
                 float vp = n.isDivision() ? pad * .5f : pad;
                 return new float[]{sl.getWidth() + 2 * pad + mw, sl.getHeight() + 2 * vp};
             }
-        }, 26 * dens, 10 * dens, compact);
+        }, 26 * dens * spaceD, 10 * dens * spaceB, compact, dens);
+        if (old != null && !refit) {
+            // אחרי גרירה המפה עשויה להתרחב; התמונה נשארת במקומה על המסך
+            tx += (old.shiftX - layout.shiftX) * scale;
+            ty += (old.shiftY - layout.shiftY) * scale;
+        }
         for (MapLayout.Node n : layout.nodes) {
             int depth = n.isDivision() ? n.depth - 1 : n.depth;
             int f, s, tc;
@@ -305,8 +335,25 @@ public class MapView extends View {
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         scaler.onTouchEvent(e);
+        if (scaler.isInProgress() && dragging != null) { moveBranch(dragging, -dragX, -dragY); dragging = null; invalidate(); }
         if (!scaler.isInProgress()) gestures.onTouchEvent(e);
+        int act = e.getActionMasked();
+        if ((act == MotionEvent.ACTION_UP || act == MotionEvent.ACTION_CANCEL) && dragging != null) {
+            MapLayout.Node d = dragging;
+            dragging = null;
+            if (Math.abs(dragX) + Math.abs(dragY) > 2 / scale && host != null) {
+                d.item.dx += dragX / dens;
+                d.item.dy += dragY / dens;
+                host.onDragged(d.item);
+            }
+        }
         return true;
+    }
+
+    private void moveBranch(MapLayout.Node n, float mx, float my) {
+        n.x += mx;
+        n.y += my;
+        for (MapLayout.Node k : n.children) moveBranch(k, mx, my);
     }
 
     @Override

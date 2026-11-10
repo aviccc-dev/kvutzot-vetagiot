@@ -89,6 +89,8 @@ public final class OpmlIO {
                     s.dir = nz(sn.attr("dir"));
                     s.view = nz(sn.attr("view"));
                     s.layout = nz(sn.attr("layout"));
+                    s.spaceB = space(sn.attr("spaceB"));
+                    s.spaceD = space(sn.attr("spaceD"));
                     if (YES.equals(sn.attr("body")) && bodySheet == null) bodySheet = s;
                     else readRoots(sn, s.roots, p);
                 }
@@ -167,6 +169,8 @@ public final class OpmlIO {
             switch (k) {
                 case "text": case "kvLoose": break;
                 case "kvCollapsed": it.collapsed = YES.equals(e.getValue()); break;
+                case "kvDx": it.dx = num(e.getValue()); break;
+                case "kvDy": it.dy = num(e.getValue()); break;
                 case "kvTags": addIds(it.tagIds, e.getValue()); break;
                 default: it.extra.put(k, e.getValue());
             }
@@ -216,6 +220,11 @@ public final class OpmlIO {
     }
 
     private static String nz(String s) { return s == null ? "" : s; }
+
+    private static float space(String s) {
+        float f = s == null ? 1f : num(s);
+        return f <= 0 ? 1f : Math.max(0.2f, Math.min(5f, f));
+    }
 
     private static float num(String s) {
         try { return s == null ? 0 : Float.parseFloat(s); } catch (NumberFormatException e) { return 0; }
@@ -309,6 +318,8 @@ public final class OpmlIO {
                 if (!s.dir.isEmpty()) sn.attrs.put("dir", s.dir);
                 if (!s.view.isEmpty()) sn.attrs.put("view", s.view);
                 if (!s.layout.isEmpty()) sn.attrs.put("layout", s.layout);
+                if (s.spaceB != 1f) sn.attrs.put("spaceB", fmt(s.spaceB));
+                if (s.spaceD != 1f) sn.attrs.put("spaceD", fmt(s.spaceD));
                 if (s == bodySheet) sn.attrs.put("body", YES);
                 else writeRoots(s.roots, sn);
             }
@@ -354,6 +365,8 @@ public final class OpmlIO {
         o.attrs.put("text", it.name);
         if (!it.tagIds.isEmpty()) o.attrs.put("kvTags", join(it.tagIds));
         if (it.collapsed) o.attrs.put("kvCollapsed", YES);
+        if (it.dx != 0) o.attrs.put("kvDx", fmt(it.dx));
+        if (it.dy != 0) o.attrs.put("kvDy", fmt(it.dy));
         o.attrs.putAll(it.extra);
         for (Info in : it.infos) {
             Xml.Node n = new Xml.Node("kvInfo");

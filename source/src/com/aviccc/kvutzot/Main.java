@@ -1228,8 +1228,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         part = s.kind == Sheet.Kind.START ? 0 : s.kind == Sheet.Kind.FREE ? 1 : 2;
         showMap = s.view.equals("map") || (!s.view.equals("text") && prefs.getBoolean("showMap", true));
         vertical = s.dir.equals("v") || (!s.dir.equals("h") && prefs.getBoolean("vertical", true));
-        if (s.kind == Sheet.Kind.MAP && map.compact != !s.layout.equals("tidy")) {
+        if (s.kind == Sheet.Kind.MAP && (map.compact != !s.layout.equals("tidy") || map.spaceB != s.spaceB || map.spaceD != s.spaceD)) {
             map.compact = !s.layout.equals("tidy");
+            map.spaceB = s.spaceB;
+            map.spaceD = s.spaceD;
             mapStale = true;
         }
     }
@@ -1347,6 +1349,25 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 labels.add(s.layout.equals("tidy") ? "פריסה: מרווחת — כל ענף מעל התחום שלו" : "פריסה: צפופה — כמו מפת חשיבה, קווים בעיקול");
                 acts.add(new Runnable() { public void run() {
                     s.layout = s.layout.equals("tidy") ? "" : "tidy"; refitPending = true; again.run(); }});
+                labels.add("מרווח בין אחים: " + spaceName(s.spaceB));
+                acts.add(new Runnable() { public void run() {
+                    chooseSpace("מרווח בין אחים", s.spaceB, new Spaced() { public void at(float f) { s.spaceB = f; again.run(); }}); }});
+                labels.add("מרווח בין רמות: " + spaceName(s.spaceD));
+                acts.add(new Runnable() { public void run() {
+                    chooseSpace("מרווח בין רמות", s.spaceD, new Spaced() { public void at(float f) { s.spaceD = f; again.run(); }}); }});
+                int moved = 0;
+                for (Item r : s.roots) moved += Edit.countOffsets(r);
+                if (moved > 0) {
+                    labels.add("הזזות ביד: " + moved + " פריטים — נגיעה מחזירה הכול למקום האוטומטי");
+                    acts.add(new Runnable() { public void run() {
+                        int k = 0;
+                        for (Item r : s.roots) k += Edit.countOffsets(r);
+                        confirmDo("להחזיר " + k + " פריטים שהוזזו ביד למקום האוטומטי?", "החזר", new Runnable() { public void run() {
+                            for (Item r : s.roots) Edit.clearOffsets(r);
+                            again.run();
+                        }});
+                    }});
+                }
                 labels.add("תצוגה: " + (s.view.equals("map") ? "גרפית" : s.view.equals("text") ? "טקסט" : "לפי התוכנה"));
                 acts.add(new Runnable() { public void run() {
                     choose("תצוגה בטאב הזה", new String[]{"לפי התוכנה", "גרפית", "טקסט"},
@@ -1359,6 +1380,49 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     }
 
     private interface Chosen { void at(int w); }
+
+    private interface Spaced { void at(float f); }
+
+    private static final float[] SPACES = {0.5f, 1f, 1.5f, 2f, 3f};
+    private static final String[] SPACE_NAMES = {"צפוף", "רגיל", "רחב", "רחב מאוד", "רחב ביותר"};
+
+    private static String spaceName(float f) {
+        for (int k = 0; k < SPACES.length; k++) if (Math.abs(SPACES[k] - f) < 0.01f) return SPACE_NAMES[k] + " (" + com.aviccc.kvutzot.model.Zoom.format(f) + ")";
+        return com.aviccc.kvutzot.model.Zoom.format(f);
+    }
+
+    private void chooseSpace(final String title, float cur, final Spaced then) {
+        String[] names = new String[SPACES.length + 1];
+        int sel = -1;
+        for (int k = 0; k < SPACES.length; k++) {
+            names[k] = SPACE_NAMES[k] + " (" + com.aviccc.kvutzot.model.Zoom.format(SPACES[k]) + ")";
+            if (Math.abs(SPACES[k] - cur) < 0.01f) sel = k;
+        }
+        names[SPACES.length] = "מספר אחר…";
+        choose(title, names, sel, new Chosen() { public void at(int w) {
+            if (w < SPACES.length) { then.at(SPACES[w]); return; }
+            askName(title + " — מספר (1 = רגיל, בין 0.2 ל-5)", com.aviccc.kvutzot.model.Zoom.format(1f), false, new Named() { public void done(String x) {
+                try {
+                    float f = Float.parseFloat(x.trim().replace(',', '.'));
+                    if (f > 0) then.at(Math.max(0.2f, Math.min(5f, f)));
+                } catch (NumberFormatException ignored) { }
+            }});
+        }});
+    }
+
+    private void confirmDo(String q, String yesLabel, final Runnable yes) {
+        new AlertDialog.Builder(this).setTitle(q)
+                .setPositiveButton(yesLabel, new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { yes.run(); }})
+                .setNegativeButton("ביטול", null).show();
+    }
+
+    @Override
+    public void onDragged(Item it) {
+        if (locked() || viewResult != null) return;
+        changed(null, null);
+        setStatus("הוזז: " + it.name + " · להחזיר — ⋯ ← \"החזר למקום האוטומטי\"");
+    }
 
     private void choose(String title, String[] names, int sel, final Chosen then) {
         new AlertDialog.Builder(this).setTitle(title)
@@ -1867,6 +1931,11 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     else setStatus("אי אפשר להציב פריט תחת עצמו או תחת בנו");
                 }});
             }});
+        }
+        final int movedHere = Edit.countOffsets(it);
+        if (movedHere > 0) {
+            labels.add("החזר למקום האוטומטי" + (movedHere > 1 || (it.dx == 0 && it.dy == 0) ? " (" + movedHere + " בענף)" : ""));
+            acts.add(new Runnable() { public void run() { Edit.clearOffsets(it); changed(it, null); }});
         }
         labels.add("העתק"); acts.add(new Runnable() { public void run() { clip = Edit.copy(it); setStatus("הועתק: " + it.name); }});
         final boolean canDelete = it.parentDivision != null || it.loose;
