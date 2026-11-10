@@ -340,6 +340,8 @@ public final class Model {
         public String dir = "";
         /** תצוגה: "" — לפי התוכנה, "map" — גרפית, "text" — טקסט. */
         public String view = "";
+        /** פריסה: "" — צפופה, כמו מפת חשיבה (0.10.2); "tidy" — מרווחת, כל ענף מעל התחום שלו. */
+        public String layout = "";
 
         public Sheet(Kind kind, String id, String name) {
             this.kind = kind;

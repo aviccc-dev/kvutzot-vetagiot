@@ -112,6 +112,7 @@ public class MapView extends View {
         line.setStyle(Paint.Style.STROKE);
         line.setStrokeWidth(1.4f * dens);
         line.setColor(0xFFB4B2A9);
+        line.setStrokeJoin(Paint.Join.ROUND);
         dash = new DashPathEffect(new float[]{5 * dens, 4 * dens}, 0);
         pad = 8 * dens;
         maxW = 150 * dens;
@@ -215,6 +216,9 @@ public class MapView extends View {
         return false;
     }
 
+    /** פריסה צפופה (כמו מפת חשיבה) או מרווחת. */
+    public boolean compact = true;
+
     public void setProject(Project p, boolean vertical, boolean refit) {
         texts.clear();
         markW.clear();
@@ -229,7 +233,7 @@ public class MapView extends View {
                 float vp = n.isDivision() ? pad * .5f : pad;
                 return new float[]{sl.getWidth() + 2 * pad + mw, sl.getHeight() + 2 * vp};
             }
-        }, 26 * dens, 10 * dens);
+        }, 26 * dens, 10 * dens, compact);
         for (MapLayout.Node n : layout.nodes) {
             int depth = n.isDivision() ? n.depth - 1 : n.depth;
             int f, s, tc;

@@ -61,9 +61,14 @@ public final class MapLayout {
     public float[] rankSize = new float[0];
 
     public final float gapDepth, gapBreadth;
+    /**
+     * פריסה צפופה (0.10.2), "כמו במפת חשיבה רגילה": הבנים סמוכים לאביהם עם מעט ריווח,
+     * והקווים לבניהם נמתחים בעיקול לפי הצורך. בלי צפופה — כל ענף ממורכז מעל כל תחום תת־העץ שלו.
+     */
+    public final boolean compact;
 
-    private MapLayout(boolean vertical, float gapDepth, float gapBreadth) {
-        this.vertical = vertical; this.gapDepth = gapDepth; this.gapBreadth = gapBreadth;
+    private MapLayout(boolean vertical, float gapDepth, float gapBreadth, boolean compact) {
+        this.vertical = vertical; this.gapDepth = gapDepth; this.gapBreadth = gapBreadth; this.compact = compact;
     }
 
     /**
@@ -71,7 +76,11 @@ public final class MapLayout {
      * gapDepth: מרווח בין שורות/עמודות; gapBreadth: מרווח בין אחים.
      */
     public static MapLayout build(Project p, boolean vertical, Measurer m, float gapDepth, float gapBreadth) {
-        MapLayout L = new MapLayout(vertical, gapDepth, gapBreadth);
+        return build(p, vertical, m, gapDepth, gapBreadth, false);
+    }
+
+    public static MapLayout build(Project p, boolean vertical, Measurer m, float gapDepth, float gapBreadth, boolean compact) {
+        MapLayout L = new MapLayout(vertical, gapDepth, gapBreadth, compact);
         for (Item r : p.roots) if (!r.loose) L.roots.add(L.tree(r, null, 0, 0, "0", false));
         for (Item r : p.roots) if (r.loose) L.roots.add(L.tree(r, null, 0, 0, "תלוש", true));
         L.measureAll(m);
@@ -164,6 +173,7 @@ public final class MapLayout {
             b0 += r.span;
         }
         float breadth = b0;
+        if (compact && !nodes.isEmpty()) breadth = compactB();
         float depthTotal = rankStart.length == 0 ? 0
                 : rankStart[rankStart.length - 1] + rankSize[rankSize.length - 1];
         for (Node n : nodes) {
@@ -182,8 +192,107 @@ public final class MapLayout {
         height = vertical ? depthTotal : breadth;
     }
 
-    /** הקו מאב לבן: נקודות (x,y) לציור קו שבור. */
+    /**
+     * פריסה צפופה: שורה אחר שורה מלמעלה. כל קבוצת אחים מבקשת לשבת צמודה, ממורכזת מול האב;
+     * אם קבוצות סמוכות מתנגשות — הן נדחקות זו מזו כמה שפחות (בלוקים ממוצעים), והסדר נשמר,
+     * כך שקווים בין שתי שורות לא נחתכים. מחזיר את הרוחב הכולל.
+     */
+    private float compactB() {
+        int maxRank = rankSize.length - 1;
+        List<List<Node>> byRank = new ArrayList<>();
+        for (int r = 0; r <= maxRank; r++) byRank.add(new ArrayList<Node>());
+        for (Node rt : roots) collect(rt, byRank);
+        float groupGap = gapBreadth * 2.5f;
+        for (int r = 1; r <= maxRank; r++) {
+            List<Node> row = byRank.get(r);
+            int n = row.size();
+            if (n == 0) continue;
+            float[] want = new float[n];
+            int i = 0;
+            while (i < n) {
+                Node par = row.get(i).parent;
+                int j = i;
+                float total = 0;
+                while (j < n && row.get(j).parent == par) { total += (j > i ? gapBreadth : 0) + row.get(j).bSize; j++; }
+                float c = par.b + par.bSize / 2 - total / 2;
+                for (int k = i; k < j; k++) { want[k] = c; c += row.get(k).bSize + gapBreadth; }
+                i = j;
+            }
+            // בלוקים: כל בלוק — רצף צמוד; מיקומו = ממוצע מה שחבריו מבקשים
+            int[] first = new int[n];
+            float[] sum = new float[n], width = new float[n], pos = new float[n];
+            int[] count = new int[n];
+            int top = -1;
+            for (int k = 0; k < n; k++) {
+                top++;
+                first[top] = k; sum[top] = want[k]; count[top] = 1; width[top] = row.get(k).bSize; pos[top] = want[k];
+                while (top > 0) {
+                    int lastPrev = first[top] - 1;
+                    float g = row.get(lastPrev).parent == row.get(first[top]).parent ? gapBreadth : groupGap;
+                    if (pos[top - 1] + width[top - 1] + g <= pos[top]) break;
+                    float off = width[top - 1] + g;
+                    sum[top - 1] += sum[top] - count[top] * off;
+                    count[top - 1] += count[top];
+                    width[top - 1] = off + width[top];
+                    pos[top - 1] = sum[top - 1] / count[top - 1];
+                    top--;
+                }
+            }
+            for (int bl = 0; bl <= top; bl++) {
+                int end = bl < top ? first[bl + 1] : n;
+                float c = pos[bl];
+                for (int k = first[bl]; k < end; k++) {
+                    if (k > first[bl]) c += row.get(k - 1).parent == row.get(k).parent ? gapBreadth : groupGap;
+                    row.get(k).b = c;
+                    c += row.get(k).bSize;
+                }
+            }
+        }
+        float lo = Float.MAX_VALUE, hi = -Float.MAX_VALUE;
+        for (Node x : nodes) { lo = Math.min(lo, x.b); hi = Math.max(hi, x.b + x.bSize); }
+        for (Node x : nodes) x.b -= lo;
+        // מרווח בין שורות לפי מתיחת הקווים, כדי שהעיקול לא יהיה שטוח מדי
+        float acc = 0;
+        for (int r = 0; r <= maxRank; r++) {
+            rankStart[r] = acc;
+            float stretch = 0;
+            if (r + 1 <= maxRank)
+                for (Node c : byRank.get(r + 1))
+                    stretch = Math.max(stretch, Math.abs((c.b + c.bSize / 2) - (c.parent.b + c.parent.bSize / 2)));
+            acc += rankSize[r] + Math.max(gapDepth, Math.min(gapDepth * 5, stretch * 0.12f));
+        }
+        return hi - lo;
+    }
+
+    private static void collect(Node n, List<List<Node>> byRank) {
+        byRank.get(n.rank).add(n);
+        for (Node k : n.children) collect(k, byRank);
+    }
+
+    /** הקו מאב לבן: נקודות (x,y) לציור קו שבור (בצפופה — עיקול). */
     public float[] edge(Node parent, Node child) {
+        if (compact) {
+            float x1, y1, x2, y2, c1x, c1y, c2x, c2y;
+            if (vertical) {
+                x1 = parent.x + parent.w / 2; y1 = parent.y + parent.h;
+                x2 = child.x + child.w / 2; y2 = child.y;
+                float dy = (y2 - y1) * 0.55f;
+                c1x = x1; c1y = y1 + dy; c2x = x2; c2y = y2 - dy;
+            } else {
+                x1 = parent.x; y1 = parent.y + parent.h / 2;
+                x2 = child.x + child.w; y2 = child.y + child.h / 2;
+                float dx = (x1 - x2) * 0.55f;
+                c1x = x1 - dx; c1y = y1; c2x = x2 + dx; c2y = y2;
+            }
+            int steps = Math.abs(x2 - x1) + Math.abs(y2 - y1) < 40 ? 2 : 14;
+            float[] e = new float[(steps + 1) * 2];
+            for (int s = 0; s <= steps; s++) {
+                float u = s / (float) steps, v = 1 - u;
+                e[2 * s] = v * v * v * x1 + 3 * v * v * u * c1x + 3 * v * u * u * c2x + u * u * u * x2;
+                e[2 * s + 1] = v * v * v * y1 + 3 * v * v * u * c1y + 3 * v * u * u * c2y + u * u * u * y2;
+            }
+            return e;
+        }
         if (vertical) {
             float x1 = parent.x + parent.w / 2, y1 = parent.y + parent.h;
             float x2 = child.x + child.w / 2, y2 = child.y;

@@ -43,6 +43,8 @@ public class Preview {
         label = new Font("DejaVu Sans", Font.ITALIC, Math.round(12 * S));
         Model.Project p = OpmlIO.read(new String(Files.readAllBytes(Paths.get(a[0])), StandardCharsets.UTF_8));
         boolean vert = a[2].equals("v");
+        boolean cmp = a.length > 3 && a[3].equals("c");
+        if (a.length > 4) Edit.showToLevel(p, Integer.parseInt(a[4]));
         MapLayout L = MapLayout.build(p, vert, new MapLayout.Measurer() {
             public float[] measure(MapLayout.Node n) {
                 Font f = n.isDivision() ? label : font;
@@ -53,7 +55,7 @@ public class Preview {
                 float markW = n.mark.isEmpty() ? 0 : scratch.createGraphics().getFontMetrics(small).stringWidth(n.mark) + 4 * S;
                 return new float[]{w + 2 * PAD + markW, lines.size() * fm.getHeight() + 2 * PAD * (n.isDivision() ? .5f : 1)};
             }
-        }, 26 * S, 10 * S);
+        }, 26 * S, 10 * S, cmp);
         float M = 16 * S;
         BufferedImage img = new BufferedImage((int) (L.width + 2 * M), (int) (L.height + 2 * M), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();

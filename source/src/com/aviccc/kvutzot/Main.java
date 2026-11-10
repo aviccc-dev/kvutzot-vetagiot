@@ -1228,6 +1228,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         part = s.kind == Sheet.Kind.START ? 0 : s.kind == Sheet.Kind.FREE ? 1 : 2;
         showMap = s.view.equals("map") || (!s.view.equals("text") && prefs.getBoolean("showMap", true));
         vertical = s.dir.equals("v") || (!s.dir.equals("h") && prefs.getBoolean("vertical", true));
+        if (s.kind == Sheet.Kind.MAP && map.compact != !s.layout.equals("tidy")) {
+            map.compact = !s.layout.equals("tidy");
+            mapStale = true;
+        }
     }
 
     private boolean locked() {
@@ -1340,6 +1344,9 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                             s.dir.equals("v") ? 1 : s.dir.equals("h") ? 2 : 0, new Chosen() { public void at(int w) {
                                 s.dir = w == 1 ? "v" : w == 2 ? "h" : ""; refitPending = true; again.run(); }});
                 }});
+                labels.add(s.layout.equals("tidy") ? "פריסה: מרווחת — כל ענף מעל התחום שלו" : "פריסה: צפופה — כמו מפת חשיבה, קווים בעיקול");
+                acts.add(new Runnable() { public void run() {
+                    s.layout = s.layout.equals("tidy") ? "" : "tidy"; refitPending = true; again.run(); }});
                 labels.add("תצוגה: " + (s.view.equals("map") ? "גרפית" : s.view.equals("text") ? "טקסט" : "לפי התוכנה"));
                 acts.add(new Runnable() { public void run() {
                     choose("תצוגה בטאב הזה", new String[]{"לפי התוכנה", "גרפית", "טקסט"},

@@ -88,6 +88,7 @@ public final class OpmlIO {
                     s.absolute = YES.equals(sn.attr("absolute"));
                     s.dir = nz(sn.attr("dir"));
                     s.view = nz(sn.attr("view"));
+                    s.layout = nz(sn.attr("layout"));
                     if (YES.equals(sn.attr("body")) && bodySheet == null) bodySheet = s;
                     else readRoots(sn, s.roots, p);
                 }
@@ -307,6 +308,7 @@ public final class OpmlIO {
                 if (s.absolute) sn.attrs.put("absolute", YES);
                 if (!s.dir.isEmpty()) sn.attrs.put("dir", s.dir);
                 if (!s.view.isEmpty()) sn.attrs.put("view", s.view);
+                if (!s.layout.isEmpty()) sn.attrs.put("layout", s.layout);
                 if (s == bodySheet) sn.attrs.put("body", YES);
                 else writeRoots(s.roots, sn);
             }

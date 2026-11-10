@@ -34,6 +34,7 @@ public final class Sheets {
         s.absolute = src.absolute;
         s.dir = src.dir;
         s.view = src.view;
+        s.layout = src.layout;
         switch (src.kind) {
             case MAP:
                 for (Item r : src.roots) {

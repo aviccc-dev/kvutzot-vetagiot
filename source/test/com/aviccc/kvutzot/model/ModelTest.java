@@ -58,6 +58,36 @@ public class ModelTest {
         }
     }
 
+    /** רוחב השורה (ברוחב הציר) — מהקצה לקצה. */
+    static float rankSpan(MapLayout ml, int depthRank) {
+        float lo = Float.MAX_VALUE, hi = -Float.MAX_VALUE;
+        for (MapLayout.Node n : ml.nodes) {
+            if (n.loose || n.parent == null || n.parent.parent != null) continue;
+            float a = ml.vertical ? n.x : n.y, b = a + (ml.vertical ? n.w : n.h);
+            lo = Math.min(lo, a); hi = Math.max(hi, b);
+        }
+        return hi - lo;
+    }
+
+    /** בכל אב: הבנים באותו סדר כמו האבות שלהם בשורה — אין קווים נחתכים. */
+    static boolean orderKept(MapLayout ml) {
+        java.util.Map<Integer, java.util.List<MapLayout.Node>> rows = new java.util.TreeMap<>();
+        for (MapLayout.Node n : ml.nodes) {
+            int r = 0;
+            for (MapLayout.Node x = n.parent; x != null; x = x.parent) r++;
+            if (!rows.containsKey(r)) rows.put(r, new java.util.ArrayList<MapLayout.Node>());
+            rows.get(r).add(n);
+        }
+        for (java.util.List<MapLayout.Node> row : rows.values()) {
+            for (int i = 1; i < row.size(); i++) {
+                MapLayout.Node a = row.get(i - 1), b = row.get(i);
+                float pa = ml.vertical ? -a.x : a.y, pb = ml.vertical ? -b.x : b.y;
+                if (pb < pa) return false;
+            }
+        }
+        return true;
+    }
+
     static boolean noOverlap(MapLayout ml) {
         for (int i = 0; i < ml.nodes.size(); i++)
             for (int j = i + 1; j < ml.nodes.size(); j++) {
@@ -241,9 +271,10 @@ public class ModelTest {
         Project[] ps = {p, toys, big, s2};
         String[] names = {"משולש", "צעצועים", "עץ אקראי", "מכווץ"};
         for (int k = 0; k < ps.length; k++) {
-            for (boolean vert : new boolean[]{true, false}) {
-                MapLayout ml = MapLayout.build(ps[k], vert, fake, 30, 12);
-                String wn = names[k] + (vert ? " למטה" : " לשמאל");
+            for (int mode = 0; mode < 4; mode++) {
+                boolean vert = mode % 2 == 0, cmp = mode >= 2;
+                MapLayout ml = MapLayout.build(ps[k], vert, fake, 30, 12, cmp);
+                String wn = names[k] + (vert ? " למטה" : " לשמאל") + (cmp ? " צפופה" : "");
                 check(noOverlap(ml), wn + ": אין חפיפות");
                 boolean inside = true;
                 for (MapLayout.Node n : ml.nodes)
@@ -452,6 +483,21 @@ public class ModelTest {
         three2.free.remove(three2.free.node(fb.id));
         eq(three2.free.links.size(), 0, "מחיקת פריט מוחקת את הקווים שלו");
         check(OpmlIO.writeOpml(three).contains("kvSheets") && OpmlIO.writeOpml(three).contains("<link"), "ייצוא OPML שומר גם את 2 הטאבים (בראש)");
+
+        // --- פריסה צפופה: ספר ההגיון ---
+        java.io.File bookF = new java.io.File(dir, "../../books/higayon/ספר ההגיון.xml");
+        if (bookF.exists()) {
+            Project book = OpmlIO.read(new String(java.nio.file.Files.readAllBytes(bookF.toPath()), "UTF-8"));
+            for (boolean vert : new boolean[]{true, false}) {
+                MapLayout tidy = MapLayout.build(book, vert, fake, 30, 12, false);
+                MapLayout cmp = MapLayout.build(book, vert, fake, 30, 12, true);
+                check(noOverlap(cmp), "ספר ההגיון צפוף" + (vert ? " למטה" : " לשמאל") + ": אין חפיפות");
+                float t0 = rankSpan(tidy, 1), c0 = rankSpan(cmp, 1);
+                check(c0 < t0 / 5, "ספר ההגיון: החלוקה הראשונה סמוכה (" + c0 + " במקום " + t0 + ")");
+                // הסדר בכל שורה נשמר: אין קווים נחתכים
+                check(orderKept(cmp), "ספר ההגיון צפוף: סדר נשמר");
+            }
+        } else check(false, "לא נמצא ספר ההגיון: " + bookF);
 
         // --- טאבים: כמה מכל סוג, עם מאפיינים (0.10) ---
         Project ms = OpmlIO.read(file(dir, "משולש.xml"));
