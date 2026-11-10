@@ -11,17 +11,70 @@ public final class Model {
     /** קובץ אחד = פרויקט אחד: מפה ראשית, פריטים תלושים ותגיות. */
     public static final class Project {
         public String title = "";
-        /** הגדרת המפה: מוחלטת או לא. בגרסה 1 נשמרת ומוצגת בלבד. */
-        public boolean absolute = false;
         public final List<Tag> tags = new ArrayList<>();
-        /** פריטים בלי הורה: הראשון שאינו תלוש הוא המפה הראשית. */
-        public final List<Item> roots = new ArrayList<>();
+        /**
+         * הטאבים שבקובץ (0.10): כמה מכל סוג — "התהליך עשוי להיות מסורבל ולהצריך כמה טיוטות
+         * לכיווני חשיבה". לכל טאב שם, הערה ומאפיינים.
+         */
+        public final List<Sheet> sheets = new ArrayList<>();
+        /** פריטים בלי הורה של המפה הפעילה: הראשון שאינו תלוש הוא ראש המפה. */
+        public List<Item> roots;
         /** צמתים בראש הקובץ שהתוכנה לא מכירה, נשמרים כמו שהם. */
         public final List<Xml.Node> headExtra = new ArrayList<>();
-        /** טאב 1, "התחלת נושא": מה שעולה בראש — רשימות, טבלאות, כתבן. */
-        public Brain start = new Brain();
-        /** טאב 2, "סיעור מוחות": מפה גמישה. */
-        public FreeMap free = new FreeMap();
+        /** "התחלת נושא" הפעילה: מה שעולה בראש — רשימות, טבלאות, כתבן. */
+        public Brain start;
+        /** "סיעור מוחות" הפעיל: מפה גמישה. */
+        public FreeMap free;
+
+        /** קובץ חדש: שלושה טאבים — התחלת נושא, סיעור מוחות, מפה. */
+        public Project() {
+            sheets.add(new Sheet(Sheet.Kind.START, "s1", Sheet.Kind.START.label));
+            sheets.add(new Sheet(Sheet.Kind.FREE, "s2", Sheet.Kind.FREE.label));
+            sheets.add(new Sheet(Sheet.Kind.MAP, "s3", Sheet.Kind.MAP.label));
+            for (Sheet s : sheets) use(s);
+        }
+
+        /** הופך את הטאב לפעיל מסוגו (המפה / הסיעור / ההתחלה שהפעולות חלות עליהם). */
+        public void use(Sheet s) {
+            if (s.kind == Sheet.Kind.MAP) roots = s.roots;
+            else if (s.kind == Sheet.Kind.START) start = s.brain;
+            else free = s.free;
+        }
+
+        /** הטאב הפעיל מהסוג הזה. */
+        public Sheet active(Sheet.Kind k) {
+            for (Sheet s : sheets) if (s.kind == k && (k == Sheet.Kind.MAP ? s.roots == roots : k == Sheet.Kind.START ? s.brain == start : s.free == free)) return s;
+            return first(k);
+        }
+
+        public Sheet first(Sheet.Kind k) {
+            for (Sheet s : sheets) if (s.kind == k) return s;
+            return null;
+        }
+
+        public Sheet sheet(String id) {
+            for (Sheet s : sheets) if (s.id.equals(id)) return s;
+            return null;
+        }
+
+        public String newSheetId() {
+            int n = sheets.size() + 1;
+            while (sheet("s" + n) != null) n++;
+            return "s" + n;
+        }
+
+        /** כל ראשי המפות שבקובץ (לתגיות ולבחינות המשותפות). */
+        public List<Item> allRoots() {
+            List<Item> l = new ArrayList<>();
+            for (Sheet s : sheets) if (s.kind == Sheet.Kind.MAP) l.addAll(s.roots);
+            return l;
+        }
+
+        /** המפה הפעילה מסודרת בסדר מוחלט (מאפיין של הטאב). */
+        public boolean absolute() {
+            Sheet s = active(Sheet.Kind.MAP);
+            return s != null && s.absolute;
+        }
         /**
          * הבחינות (0.9): "זוויות ההסתכלות" שלפיהן מחלקים. אובייקט בקובץ, כמו תגית, עם מקום פתוח
          * למידע (שם, מידע, תגיות — כמו פריט). כל חלוקה מצביעה על בחינה, ושמה מוצג בראש החלוקה.
@@ -49,7 +102,7 @@ public final class Model {
         /** כמה חלוקות לפי הבחינה. */
         public int aspectUse(String id) {
             int[] n = {0};
-            for (Item r : roots) countAspect(r, id, n);
+            for (Item r : allRoots()) countAspect(r, id, n);
             return n[0];
         }
 
@@ -77,7 +130,7 @@ public final class Model {
                 aspects.remove(e.getKey());
                 merge.put(e.getKey(), first);
             }
-            for (Item r : roots) syncAspects(r, merge);
+            for (Item r : allRoots()) syncAspects(r, merge);
         }
 
         private void syncAspects(Item it, java.util.Map<String, String> merge) {
@@ -229,6 +282,72 @@ public final class Model {
             List<Info> r = new ArrayList<>();
             for (Info in : infos) if (in.kind == k) r.add(in);
             return r;
+        }
+    }
+
+    /**
+     * טאב בתוך הקובץ (0.10), עם המאפיינים שלו. התוכן לפי הסוג: מפה — עץ; סיעור מוחות — מפה גמישה;
+     * התחלת נושא — חלקים (כתבן, גיליון, פנקס).
+     */
+    public static final class Sheet {
+        public enum Kind {
+            START("start", "התחלת נושא"), FREE("free", "סיעור מוחות"), MAP("map", "מפה");
+            public final String code, label;
+            Kind(String code, String label) { this.code = code; this.label = label; }
+            public static Kind of(String c) {
+                for (Kind k : values()) if (k.code.equals(c)) return k;
+                return null;
+            }
+        }
+
+        /** מחיקה בפנקס: גם פס וגם מחיקה, רק פס (הכול נשאר), או רק מחיקה. */
+        public enum Erase {
+            BOTH("both", "פס ומחיקה"), STRIKE("strike", "רק פס — הכול נשאר"), DELETE("delete", "רק מחיקה");
+            public final String code, label;
+            Erase(String code, String label) { this.code = code; this.label = label; }
+            public static Erase of(String c) {
+                for (Erase e : values()) if (e.code.equals(c)) return e;
+                return BOTH;
+            }
+        }
+
+        public final Kind kind;
+        public final String id;
+        public String name;
+        /** הערה קצרה: למה הטאב משמש. */
+        public String note = "";
+        /** נעול: רק קוראים. */
+        public boolean locked;
+        /** מוסתר משורת הטאבים (נשאר בקובץ). */
+        public boolean hidden;
+
+        // התחלת נושא
+        public Brain brain;
+        /** סוגי החלקים המותרים (ריק = כולם). */
+        public final java.util.Set<Brain.Kind> kinds = java.util.EnumSet.allOf(Brain.Kind.class);
+        public Erase erase = Erase.BOTH;
+
+        // סיעור מוחות
+        public FreeMap free;
+        /** מותר לחבר בקווים. */
+        public boolean links = true;
+
+        // מפה
+        public List<Item> roots;
+        /** סדר מוחלט: בלי פריטים תלושים — לכל פריט מקום בעץ. */
+        public boolean absolute;
+        /** כיוון: "" — לפי התוכנה, "v" — מלמעלה למטה, "h" — מימין לשמאל. */
+        public String dir = "";
+        /** תצוגה: "" — לפי התוכנה, "map" — גרפית, "text" — טקסט. */
+        public String view = "";
+
+        public Sheet(Kind kind, String id, String name) {
+            this.kind = kind;
+            this.id = id;
+            this.name = name == null ? "" : name;
+            if (kind == Kind.START) brain = new Brain();
+            else if (kind == Kind.FREE) free = new FreeMap();
+            else roots = new ArrayList<>();
         }
     }
 }

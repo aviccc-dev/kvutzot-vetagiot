@@ -42,6 +42,20 @@ public class BrainView extends LinearLayout {
     private final float dens;
     private Brain brain;
     private Listener listener;
+    /** מאפייני הטאב (0.10): נעול, סוגי חלקים מותרים, ואופן המחיקה בפנקס. */
+    private boolean locked;
+    private java.util.Set<Brain.Kind> kinds = java.util.EnumSet.allOf(Brain.Kind.class);
+    private com.aviccc.kvutzot.model.Model.Sheet.Erase erase = com.aviccc.kvutzot.model.Model.Sheet.Erase.BOTH;
+
+    public void setProps(boolean locked, java.util.Set<Brain.Kind> kinds, com.aviccc.kvutzot.model.Model.Sheet.Erase erase) {
+        this.locked = locked;
+        this.kinds = kinds;
+        this.erase = erase;
+    }
+
+    /** נעול: נגיעות לא מגיעות לעורכים (הגלילה נשארת). */
+    @Override
+    public boolean onInterceptTouchEvent(android.view.MotionEvent e) { return locked || super.onInterceptTouchEvent(e); }
 
     public BrainView(Activity act) {
         super(act);
@@ -71,6 +85,12 @@ public class BrainView extends LinearLayout {
                 case GRID: gridEditor(s); break;
                 case NOTEBOOK: notebook(s); break;
             }
+        }
+        if (locked) {
+            TextView lk = label("נעול — רק קריאה (מאפייני הטאב)", 13, GREY, false);
+            lk.setPadding(0, dp(18), 0, dp(8));
+            addView(lk);
+            return;
         }
         TextView add = label("+ הוסף חלק", 15, BLUE, false);
         add.setPadding(0, dp(18), 0, dp(8));
@@ -164,6 +184,7 @@ public class BrainView extends LinearLayout {
         List<String> l = new ArrayList<>();
         List<Runnable> a = new ArrayList<>();
         for (final Brain.Kind k : Brain.Kind.values()) {
+            if (!kinds.contains(k)) continue;
             l.add(k.label);
             a.add(new Runnable() { public void run() { brain.addSection(k); listener.structure(); }});
         }
@@ -340,8 +361,10 @@ public class BrainView extends LinearLayout {
         final int n = s.lines.size();
         List<String> l = new ArrayList<>();
         List<Runnable> a = new ArrayList<>();
-        l.add(ln.struck ? "הסר את הפס" : "העבר פס (השורה נשארת)");
-        a.add(new Runnable() { public void run() { ln.struck = !ln.struck; listener.structure(); }});
+        if (erase != com.aviccc.kvutzot.model.Model.Sheet.Erase.DELETE || ln.struck) {
+            l.add(ln.struck ? "הסר את הפס" : "העבר פס (השורה נשארת)");
+            a.add(new Runnable() { public void run() { ln.struck = !ln.struck; listener.structure(); }});
+        }
         if (i > 0) {
             l.add("הזז למעלה"); a.add(new Runnable() { public void run() { s.moveLine(i, i - 1); listener.structure(); }});
             l.add("הזז לראש"); a.add(new Runnable() { public void run() { s.moveLine(i, 0); listener.structure(); }});
@@ -361,7 +384,8 @@ public class BrainView extends LinearLayout {
         l.add("הוסף שורה מעל"); a.add(new Runnable() { public void run() {
             ask("שורה חדשה מעל " + (i + 1), "", true, new Done() { public void done(String x) {
                 if (!x.trim().isEmpty()) { s.lines.add(i, new Brain.Line(x.trim(), false)); listener.structure(); } }}); }});
-        l.add("מחק לגמרי"); a.add(new Runnable() { public void run() {
+        if (erase != com.aviccc.kvutzot.model.Model.Sheet.Erase.STRIKE) l.add("מחק לגמרי");
+        if (erase != com.aviccc.kvutzot.model.Model.Sheet.Erase.STRIKE) a.add(new Runnable() { public void run() {
             new AlertDialog.Builder(act).setTitle("למחוק את השורה לגמרי?")
                     .setMessage(ln.text)
                     .setPositiveButton("מחק", new DialogInterface.OnClickListener() {

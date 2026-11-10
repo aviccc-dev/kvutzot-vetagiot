@@ -86,7 +86,7 @@ public class FreeView extends View {
         gestures = new GestureDetector(c, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onDown(MotionEvent e) {
                 FreeMap.Node n = hit(e.getX(), e.getY());
-                dragging = n != null && n == selected && linkFrom == null ? n : null;
+                dragging = !locked && n != null && n == selected && linkFrom == null ? n : null;
                 return true;
             }
             @Override public boolean onScroll(MotionEvent a, MotionEvent b, float dx, float dy) {
@@ -121,13 +121,16 @@ public class FreeView extends View {
             }
             @Override public boolean onDoubleTap(MotionEvent e) {
                 FreeMap.Node n = hit(e.getX(), e.getY());
-                if (host == null) return true;
+                if (host == null || locked) return true;
                 if (n != null) { selected = n; host.onFreeEdit(n); }
                 else host.onFreeAdd(toX(e.getX()), toY(e.getY()));
                 return true;
             }
         });
     }
+
+    /** מאפייני הטאב (0.10): נעול — רק מסתכלים; links — מותר לחבר בקווים. */
+    public boolean locked, links = true;
 
     public void setMap(FreeMap m, Host h) {
         if (m != map) { selected = null; linkFrom = null; placed = false; }
@@ -249,12 +252,12 @@ public class FreeView extends View {
             c.drawText(hint, (getWidth() - w) / 2, getHeight() / 3f, tp);
             tp.setColor(0xFF2C2C2A);
         }
-        if (selected != null && linkFrom == null) drawButtons(c);
+        if (selected != null && linkFrom == null && !locked) drawButtons(c);
     }
 
     private void drawButtons(Canvas c) {
-        String[] labels = {"ערוך", "חבר", "⋯"};
-        String[] acts = {"edit", "link", "more"};
+        String[] labels = links ? new String[]{"ערוך", "חבר", "⋯"} : new String[]{"ערוך", "⋯"};
+        String[] acts = links ? new String[]{"edit", "link", "more"} : new String[]{"edit", "more"};
         box(selected, r);
         float sx = tx + r.left * scale, sy = ty + r.top * scale, sw = r.width() * scale, sh = r.height() * scale;
         float bw = 52 * dens, bh = 36 * dens, gap = 6 * dens, total = labels.length * bw + (labels.length - 1) * gap;

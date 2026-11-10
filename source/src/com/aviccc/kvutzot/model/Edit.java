@@ -140,7 +140,7 @@ public final class Edit {
         name = name.trim();
         Model.Tag other = p.tagByName(name);
         if (other == null || other == t) { t.name = name; return t; }
-        for (Item r : p.roots) replaceTag(r, t.id, other.id);
+        for (Item r : p.allRoots()) replaceTag(r, t.id, other.id);
         for (Model.Tag x : p.tags) replaceId(x.tagIds, t.id, other.id);
         for (String id : t.tagIds) if (!other.tagIds.contains(id) && !id.equals(other.id)) other.tagIds.add(id);
         p.tags.remove(t);
@@ -161,7 +161,7 @@ public final class Edit {
     /** כמה פריטים נושאים את התגית. */
     public static int tagUse(Project p, String tagId) {
         int n = 0;
-        for (Item r : p.roots) n += tagUse(r, tagId);
+        for (Item r : p.allRoots()) n += tagUse(r, tagId);
         return n;
     }
 
@@ -177,7 +177,7 @@ public final class Edit {
         s.add("הגדרה");
         s.add("דוגמה");
         s.add("הערה");
-        for (Item r : p.roots) collectNames(r, s);
+        for (Item r : p.allRoots()) collectNames(r, s);
         return new java.util.ArrayList<>(s);
     }
 
@@ -252,5 +252,17 @@ public final class Edit {
         int m = 0;
         for (Division d : it.divisions) for (Item c : d.children) m = Math.max(m, 1 + depth(c));
         return m;
+    }
+
+    /** הצבת פריט (תלוש, או מכל מקום) כבן של parent, בחלוקה d (או הראשונה). */
+    public static boolean placeUnder(Project p, Item it, Item parent, Division d) {
+        if (it == parent || within(parent, it)) return false;
+        if (it.parentDivision != null) { it.parentDivision.children.remove(it); it.parentDivision = null; }
+        else p.roots.remove(it);
+        it.loose = false;
+        Division into = d != null ? d : parent.firstDivision();
+        it.parentDivision = into;
+        into.children.add(it);
+        return true;
     }
 }

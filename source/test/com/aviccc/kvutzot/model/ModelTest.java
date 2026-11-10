@@ -78,7 +78,7 @@ public class ModelTest {
         // --- המשולש ---
         Project p = roundTrip(file(dir, "משולש.xml"), "משולש");
         eq(p.title, "משולש", "כותרת");
-        check(!p.absolute, "המפה לא מוחלטת");
+        check(!p.absolute(), "המפה לא מוחלטת");
         Item tri = p.mainRoot();
         eq(tri.name, "משולש", "שם השורש");
         eq(tri.divisions.size(), 2, "שתי חלוקות במקביל");
@@ -451,7 +451,65 @@ public class ModelTest {
         eq(three2.mainRoot().childCount(), 6, "טאב 3 לא נפגע");
         three2.free.remove(three2.free.node(fb.id));
         eq(three2.free.links.size(), 0, "מחיקת פריט מוחקת את הקווים שלו");
-        check(OpmlIO.writeOpml(three).contains("kvFree"), "ייצוא OPML שומר גם את 2 הטאבים (בראש)");
+        check(OpmlIO.writeOpml(three).contains("kvSheets") && OpmlIO.writeOpml(three).contains("<link"), "ייצוא OPML שומר גם את 2 הטאבים (בראש)");
+
+        // --- טאבים: כמה מכל סוג, עם מאפיינים (0.10) ---
+        Project ms = OpmlIO.read(file(dir, "משולש.xml"));
+        eq(ms.sheets.size(), 3, "קובץ ישן: שלושה טאבים");
+        eq(ms.sheets.get(2).name, "מפה", "שם ברירת מחדל");
+        Model.Sheet copyMap = Sheets.copy(ms, ms.first(Model.Sheet.Kind.MAP));
+        eq(ms.sheets.size(), 4, "העתקת מפה: טאב רביעי");
+        check(ms.sheets.get(3) == copyMap, "העותק מיד אחרי המקור");
+        eq(copyMap.name, "מפה (עותק)", "שם העותק");
+        copyMap.absolute = true;
+        copyMap.note = "ניסיון לסדר לפי הזוויות";
+        copyMap.dir = "h";
+        copyMap.roots.get(0).name = "משולש — טיוטה";
+        check(!ms.mainRoot().name.equals("משולש — טיוטה"), "העותק נפרד מהמקור");
+        Model.Sheet st2 = Sheets.add(ms, Model.Sheet.Kind.START, "רעיונות נוספים");
+        st2.kinds.remove(Brain.Kind.GRID);
+        st2.erase = Model.Sheet.Erase.STRIKE;
+        st2.brain.addSection(Brain.Kind.NOTEBOOK).lines.add(new Brain.Line("שורה", true));
+        st2.locked = true;
+        Model.Sheet fr2 = Sheets.copy(ms, ms.first(Model.Sheet.Kind.FREE));
+        fr2.links = false;
+        fr2.hidden = true;
+        Sheets.rename(fr2, "סופי");
+        check(Sheets.move(ms, st2, -1), "הזזת טאב");
+        String msText = OpmlIO.write(ms);
+        Project ms2 = OpmlIO.read(msText);
+        eq(ms2.sheets.size(), 6, "שישה טאבים נשמרו");
+        Model.Sheet c2 = ms2.sheet(copyMap.id);
+        check(c2 != null && c2.absolute && c2.dir.equals("h") && c2.note.equals("ניסיון לסדר לפי הזוויות"), "מאפייני המפה נשמרו");
+        eq(c2.roots.get(0).name, "משולש — טיוטה", "תוכן העותק נשמר");
+        eq(ms2.mainRoot().name, ms.mainRoot().name, "המפה הראשונה — בגוף הקובץ");
+        Model.Sheet sst = ms2.sheet(st2.id);
+        check(sst.locked && sst.erase == Model.Sheet.Erase.STRIKE && !sst.kinds.contains(Brain.Kind.GRID) && sst.kinds.size() == 2, "מאפייני התחלת נושא נשמרו");
+        check(sst.brain.sections.get(0).lines.get(0).struck, "תוכן התחלת נושא נשמר");
+        Model.Sheet f2 = ms2.sheet(fr2.id);
+        check(!f2.links && f2.hidden && f2.name.equals("סופי"), "מאפייני סיעור נשמרו");
+        eq(ms2.sheets.indexOf(sst), ms.sheets.indexOf(st2), "סדר הטאבים נשמר");
+        eq(OpmlIO.write(ms2), msText, "שמירה שנייה זהה");
+        // תגיות משותפות: שינוי שם חל על כל המפות
+        Model.Tag shared = Edit.addTag(ms2, c2.roots.get(0), "צורה");
+        ms2.use(ms2.first(Model.Sheet.Kind.MAP));
+        Edit.addTag(ms2, ms2.mainRoot(), "צורה");
+        eq(Edit.tagUse(ms2, shared.id), 2, "תגית בשתי מפות");
+        Edit.renameTag(ms2, shared, "צורות");
+        check(ms2.tagByName("צורות") != null, "שינוי שם תגית משותפת");
+        // מחיקה: את הטאב האחרון מסוגו אי אפשר למחוק
+        check(!Sheets.delete(ms2, ms2.sheet(ms.first(Model.Sheet.Kind.FREE).id)) || ms2.first(Model.Sheet.Kind.FREE) != null, "נשאר סיעור");
+        Model.Sheet onlyMapCopy = ms2.sheet(copyMap.id);
+        check(Sheets.delete(ms2, onlyMapCopy), "מחיקת עותק המפה");
+        check(!Sheets.delete(ms2, ms2.first(Model.Sheet.Kind.MAP)), "את המפה האחרונה אי אפשר למחוק");
+        // סדר מוחלט: העברה לעץ
+        Project ab = OpmlIO.read(file(dir, "משולש.xml"));
+        int misBefore = Sheets.misplaced(ab).size();
+        Item lz = Edit.addLoose(ab, "תלוש");
+        eq(Sheets.misplaced(ab).size(), misBefore + 1, "פריט לא במקומו");
+        check(Edit.placeUnder(ab, lz, ab.mainRoot(), null), "הצבה");
+        check(!lz.loose && lz.parent() == ab.mainRoot() && Sheets.misplaced(ab).size() == misBefore, "הוצב בעץ");
+        check(!Edit.placeUnder(ab, ab.mainRoot(), lz, null), "לא מציבים אב תחת בנו");
         // קובץ סיעור מוחות נפרד מ-0.7 נקרא כקובץ עם טאב 1
         Project fromOld = OpmlIO.read(bw);
         eq(fromOld.start.sections.size(), 3, "סיעור מוחות ישן → טאב 1");

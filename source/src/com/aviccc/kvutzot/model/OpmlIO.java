@@ -4,6 +4,7 @@ import com.aviccc.kvutzot.model.Model.Division;
 import com.aviccc.kvutzot.model.Model.Info;
 import com.aviccc.kvutzot.model.Model.Item;
 import com.aviccc.kvutzot.model.Model.Project;
+import com.aviccc.kvutzot.model.Model.Sheet;
 import com.aviccc.kvutzot.model.Model.Tag;
 
 import java.util.Map;
@@ -49,19 +50,61 @@ public final class OpmlIO {
             if (t != null) b.title = t.text.toString().trim();
             BrainIO.readSections(root, b);
             p.title = b.title;
-            p.start = b;
+            p.start.title = b.title;
+            p.start.sections.addAll(b.sections);
             p.roots.add(new Item(b.title.isEmpty() ? "נושא" : b.title));
             return p;
         }
         if (!root.name.equals("opml")) throw new Xml.ParseException("השורש אינו opml", 0);
         Project p = new Project();
         Xml.Node head = root.child("head");
+        Xml.Node sheetsNode = head == null ? null : head.child("kvSheets");
+        Sheet bodySheet = p.first(Sheet.Kind.MAP);
+        if (sheetsNode != null) {
+            p.sheets.clear();
+            bodySheet = null;
+            for (Xml.Node sn : sheetsNode.all("kvSheet")) {
+                Sheet.Kind k = Sheet.Kind.of(nz(sn.attr("kind")));
+                if (k == null) continue;
+                String id = nz(sn.attr("id"));
+                if (id.isEmpty() || p.sheet(id) != null) id = p.newSheetId();
+                Sheet s = new Sheet(k, id, nz(sn.attr("name")));
+                s.note = nz(sn.attr("note"));
+                s.locked = YES.equals(sn.attr("locked"));
+                s.hidden = YES.equals(sn.attr("hidden"));
+                if (k == Sheet.Kind.START) {
+                    String ks = sn.attr("kinds");
+                    if (ks != null && !ks.trim().isEmpty()) {
+                        s.kinds.clear();
+                        for (String c : ks.trim().split("\\s+")) { Brain.Kind bk = Brain.Kind.of(c); if (bk != null) s.kinds.add(bk); }
+                        if (s.kinds.isEmpty()) s.kinds.addAll(java.util.EnumSet.allOf(Brain.Kind.class));
+                    }
+                    s.erase = Sheet.Erase.of(nz(sn.attr("erase")));
+                    BrainIO.readSections(sn, s.brain);
+                } else if (k == Sheet.Kind.FREE) {
+                    s.links = !"no".equals(sn.attr("links"));
+                    readFree(sn, s.free);
+                } else {
+                    s.absolute = YES.equals(sn.attr("absolute"));
+                    s.dir = nz(sn.attr("dir"));
+                    s.view = nz(sn.attr("view"));
+                    if (YES.equals(sn.attr("body")) && bodySheet == null) bodySheet = s;
+                    else readRoots(sn, s.roots, p);
+                }
+                p.sheets.add(s);
+            }
+            if (bodySheet == null) bodySheet = p.first(Sheet.Kind.MAP);
+            if (bodySheet == null) { bodySheet = new Sheet(Sheet.Kind.MAP, p.newSheetId(), Sheet.Kind.MAP.label); p.sheets.add(bodySheet); }
+            for (Sheet.Kind k : Sheet.Kind.values()) if (p.first(k) == null) p.sheets.add(new Sheet(k, p.newSheetId(), k.label));
+            for (Sheet.Kind k : Sheet.Kind.values()) p.use(p.first(k));
+        }
         if (head != null) {
             for (Xml.Node h : head.children) {
                 switch (h.name) {
                     case "title": p.title = h.text.toString().trim(); break;
-                    case "kv": p.absolute = YES.equals(h.attr("absolute")); break;
-                    case "kvStart": BrainIO.readSections(h, p.start); break;
+                    case "kv": if (sheetsNode == null) bodySheet.absolute = YES.equals(h.attr("absolute")); break;
+                    case "kvSheets": break;
+                    case "kvStart": if (sheetsNode == null) BrainIO.readSections(h, p.start); break;
                     case "kvAspects":
                         for (Xml.Node an : h.all("kvAspect")) {
                             String id = an.attr("id");
@@ -75,14 +118,7 @@ public final class OpmlIO {
                             p.aspects.put(id, a);
                         }
                         break;
-                    case "kvFree":
-                        for (Xml.Node n : h.all("node"))
-                            p.free.addWithId(n.attr("id"), n.attr("text"), num(n.attr("x")), num(n.attr("y")));
-                        for (Xml.Node l : h.all("link")) {
-                            FreeMap.Node a1 = p.free.node(nz(l.attr("a"))), b1 = p.free.node(nz(l.attr("b")));
-                            p.free.link(a1, b1);
-                        }
-                        break;
+                    case "kvFree": if (sheetsNode == null) readFree(h, p.free); break;
                     case "kvTags":
                         for (Xml.Node tn : h.all("kvTag")) {
                             String id = tn.attr("id");
@@ -97,18 +133,30 @@ public final class OpmlIO {
             }
         }
         Xml.Node body = root.child("body");
-        if (body != null) {
-            for (Xml.Node o : body.all("outline")) {
-                Item it = readItem(o, p);
-                it.loose = YES.equals(o.attr("kvLoose"));
-                p.roots.add(it);
-            }
-        }
+        if (body != null) readRoots(body, bodySheet.roots, p);
+        for (Sheet s : p.sheets) if (s.kind == Sheet.Kind.MAP && s.roots.isEmpty()) s.roots.add(new Item(p.title.isEmpty() ? "נושא" : p.title));
         // מזהי תגיות שאין להם תגית מוגדרת: יוצרים תגית בשם המזהה, כדי לא לאבד מידע.
-        for (Item r : p.roots) fixTags(r, p);
+        for (Item r : p.allRoots()) fixTags(r, p);
         for (Item a : p.aspects.values()) for (String id : a.tagIds) if (p.tag(id) == null) p.tags.add(new Tag(id, id));
         p.syncAspects();
         return p;
+    }
+
+    private static void readRoots(Xml.Node parent, java.util.List<Item> into, Project p) {
+        for (Xml.Node o : parent.all("outline")) {
+            Item it = readItem(o, p);
+            it.loose = YES.equals(o.attr("kvLoose"));
+            into.add(it);
+        }
+    }
+
+    private static void readFree(Xml.Node h, FreeMap f) {
+        for (Xml.Node n : h.all("node"))
+            f.addWithId(n.attr("id"), n.attr("text"), num(n.attr("x")), num(n.attr("y")));
+        for (Xml.Node l : h.all("link")) {
+            FreeMap.Node a1 = f.node(nz(l.attr("a"))), b1 = f.node(nz(l.attr("b")));
+            f.link(a1, b1);
+        }
     }
 
     private static Item readItem(Xml.Node o, Project p) {
@@ -200,9 +248,10 @@ public final class OpmlIO {
         Xml.Node title = new Xml.Node("title");
         title.text.append(p.title);
         head.children.add(title);
+        Sheet bodySheet = p.first(Sheet.Kind.MAP);
         Xml.Node kv = new Xml.Node("kv");
-        kv.attrs.put("version", "1");
-        kv.attrs.put("absolute", p.absolute ? YES : "no");
+        kv.attrs.put("version", "2");
+        kv.attrs.put("absolute", bodySheet != null && bodySheet.absolute ? YES : "no");
         head.children.add(kv);
         if (!p.tags.isEmpty()) {
             Xml.Node tags = new Xml.Node("kvTags");
@@ -233,40 +282,69 @@ public final class OpmlIO {
             }
             head.children.add(as);
         }
-        if (!p.start.sections.isEmpty()) {
-            Xml.Node st = new Xml.Node("kvStart");
-            BrainIO.writeSections(p.start, st);
-            head.children.add(st);
-        }
-        if (!p.free.isEmpty()) {
-            Xml.Node fr = new Xml.Node("kvFree");
-            for (FreeMap.Node n : p.free.nodes) {
-                Xml.Node x = new Xml.Node("node");
-                x.attrs.put("id", n.id);
-                x.attrs.put("x", fmt(n.x));
-                x.attrs.put("y", fmt(n.y));
-                x.attrs.put("text", n.text);
-                fr.children.add(x);
+        // הטאבים: כל אחד עם המאפיינים והתוכן שלו; המפה הראשונה — בגוף הקובץ (OPML רגיל)
+        Xml.Node sh = new Xml.Node("kvSheets");
+        for (Sheet s : p.sheets) {
+            Xml.Node sn = new Xml.Node("kvSheet");
+            sn.attrs.put("id", s.id);
+            sn.attrs.put("kind", s.kind.code);
+            sn.attrs.put("name", s.name);
+            if (!s.note.isEmpty()) sn.attrs.put("note", s.note);
+            if (s.locked) sn.attrs.put("locked", YES);
+            if (s.hidden) sn.attrs.put("hidden", YES);
+            if (s.kind == Sheet.Kind.START) {
+                if (s.kinds.size() < Brain.Kind.values().length) {
+                    java.util.List<String> ks = new java.util.ArrayList<>();
+                    for (Brain.Kind bk : s.kinds) ks.add(bk.code);
+                    sn.attrs.put("kinds", join(ks));
+                }
+                if (s.erase != Sheet.Erase.BOTH) sn.attrs.put("erase", s.erase.code);
+                BrainIO.writeSections(s.brain, sn);
+            } else if (s.kind == Sheet.Kind.FREE) {
+                if (!s.links) sn.attrs.put("links", "no");
+                writeFree(s.free, sn);
+            } else {
+                if (s.absolute) sn.attrs.put("absolute", YES);
+                if (!s.dir.isEmpty()) sn.attrs.put("dir", s.dir);
+                if (!s.view.isEmpty()) sn.attrs.put("view", s.view);
+                if (s == bodySheet) sn.attrs.put("body", YES);
+                else writeRoots(s.roots, sn);
             }
-            for (FreeMap.Link l : p.free.links) {
-                Xml.Node x = new Xml.Node("link");
-                x.attrs.put("a", l.a);
-                x.attrs.put("b", l.b);
-                fr.children.add(x);
-            }
-            head.children.add(fr);
+            sh.children.add(sn);
         }
+        head.children.add(sh);
         for (Xml.Node h : p.headExtra) head.children.add(h.copy());
         Xml.Node body = new Xml.Node("body");
         root.children.add(body);
-        for (Item r : p.roots) {
-            Xml.Node o = itemNode(r);
-            if (r.loose) o.attrs.put("kvLoose", YES);
-            body.children.add(o);
-        }
+        if (bodySheet != null) writeRoots(bodySheet.roots, body);
         StringBuilder out = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         Xml.write(root, out, 0);
         return out.toString();
+    }
+
+    private static void writeRoots(java.util.List<Item> roots, Xml.Node into) {
+        for (Item r : roots) {
+            Xml.Node o = itemNode(r);
+            if (r.loose) o.attrs.put("kvLoose", YES);
+            into.children.add(o);
+        }
+    }
+
+    private static void writeFree(FreeMap f, Xml.Node fr) {
+        for (FreeMap.Node n : f.nodes) {
+            Xml.Node x = new Xml.Node("node");
+            x.attrs.put("id", n.id);
+            x.attrs.put("x", fmt(n.x));
+            x.attrs.put("y", fmt(n.y));
+            x.attrs.put("text", n.text);
+            fr.children.add(x);
+        }
+        for (FreeMap.Link l : f.links) {
+            Xml.Node x = new Xml.Node("link");
+            x.attrs.put("a", l.a);
+            x.attrs.put("b", l.b);
+            fr.children.add(x);
+        }
     }
 
     private static Xml.Node itemNode(Item it) {

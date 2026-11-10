@@ -31,6 +31,8 @@ import com.aviccc.kvutzot.model.MapLayout;
 import com.aviccc.kvutzot.model.Model.Division;
 import com.aviccc.kvutzot.model.Model.Item;
 import com.aviccc.kvutzot.model.Model.Project;
+import com.aviccc.kvutzot.model.Model.Sheet;
+import com.aviccc.kvutzot.model.Sheets;
 import com.aviccc.kvutzot.model.OpmlIO;
 import com.aviccc.kvutzot.model.TextLines;
 import com.aviccc.kvutzot.model.Views;
@@ -66,6 +68,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         int part = 2;
         boolean dirty;
         int viewMode, tagLevel = 1, levelFrom = 1, levelTo = 1;
+        String sheetId = "";
         String viewInfo = "";
         Views.Sort viewSort = Views.Sort.MAP;
         /** פרוס בשורת הטאבים (או ברקע — רק בניהול). */
@@ -82,8 +85,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     /** הטקסט כפי שנטען או נשמר לאחרונה, להשוואה עם שינוי מבחוץ. */
     private String lastText;
     private Project project;
-    /** הטאב בתוך הקובץ: 0 התחלת נושא, 1 סיעור מוחות (מפה גמישה), 2 מפה. */
+    /** סוג הטאב הנוכחי בתוך הקובץ: 0 התחלת נושא, 1 סיעור מוחות (מפה גמישה), 2 מפה. */
     private int part = 2;
+    /** הטאב הנוכחי (0.10: כמה מכל סוג). */
+    private String sheetId = "";
     private BrainView brainView;
     private ScrollView brainScroll;
     private FreeView freeView;
@@ -266,7 +271,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap && part == 2);
         m.findItem(M_FIT).setVisible(project != null && showMap && part == 2);
         m.findItem(M_LEVEL).setVisible(project != null && part == 2);
-        m.findItem(M_LOOSE).setVisible(project != null && viewMode == 0 && part == 2);
+        m.findItem(M_LOOSE).setVisible(project != null && viewMode == 0 && part == 2 && !project.absolute() && !locked());
         return true;
     }
 
@@ -290,13 +295,11 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 return true;
             case M_SAVE: save(); return true;
             case M_VIEW:
-                showMap = !showMap;
-                prefs.edit().putBoolean("showMap", showMap).apply();
+                setShowMap(!showMap);
                 applyView();
                 return true;
             case M_DIR:
-                vertical = !vertical;
-                prefs.edit().putBoolean("vertical", vertical).apply();
+                setVertical(!vertical);
                 render(null, true);
                 invalidateOptionsMenu();
                 return true;
@@ -360,8 +363,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             Project p = new Project();
             p.title = "מפה חדשה";
             p.roots.add(new Item("נושא"));
+            p.first(Sheet.Kind.MAP).absolute = true;
             newTab();
             part = 0;
+            sheetId = "";
             writeThenLoad(u, OpmlIO.write(p));
         } else if (req == REQ_SAVE_AS) {
             writeThenLoad(u, currentText());
@@ -448,7 +453,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     render("נטען", true);
                     long t5 = System.nanoTime();
                     // זמני הטעינה בשניות — כדי לדעת מה מאט (קריאה מהשירות / פענוח / הכנת התיבות / הצגה)
-                    setStatus(TextLines.countItems(project) + (project.absolute ? " פריטים · מוחלטת" : " פריטים") + " · נטען ב-" + sec(t5 - t0)
+                    setStatus(TextLines.countItems(project) + " פריטים" + " · נטען ב-" + sec(t5 - t0)
                             + " ש׳ (קריאה " + sec(t1 - t0) + " · פענוח " + sec(t2 - t1)
                             + " · תיבות " + sec(t3 - t2) + " · הצגה " + sec(t5 - t4) + ")");
                 }});
@@ -634,6 +639,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             newTab();
             project = ex;
             part = 2;
+            sheetId = "";
             uri = null;
             lastText = null;
             dirty = false;
@@ -689,20 +695,27 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     }
 
     private void render(String note, boolean refit) {
+        syncSheet();
+        Sheet sh = sheet();
+        String sheetNote = sh == null || sh.note.isEmpty() ? "" : " · " + sh.note;
         if (part != 2) {
             setTitle(project.title.isEmpty() ? "קבוצות ותגיות" : project.title);
             setStatus(partSummary()
+                    + (sh.locked ? " · נעול" : "")
                     + (dirty ? (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר") : "")
-                    + (note == null ? "" : " · " + note));
+                    + (note == null ? "" : " · " + note) + sheetNote);
             stash();
             if (part == 0) {
                 int y = brainScroll.getScrollY();
+                brainView.setProps(sh.locked, sh.kinds, sh.erase);
                 brainView.setBrain(project.start, new BrainView.Listener() {
                     public void changed() { changedAny(false); }
                     public void structure() { changedAny(true); }
                 });
                 brainScroll.scrollTo(0, y);
             } else {
+                freeView.locked = sh.locked;
+                freeView.links = sh.links;
                 freeView.setMap(project.free, this);
             }
             tabsDirtyShown = dirty;
@@ -715,12 +728,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         setTitle(project.title.isEmpty() ? "קבוצות ותגיות" : project.title);
         int items = TextLines.countItems(project);
         setStatus(items + " פריטים"
-                + (project.absolute ? " · מוחלטת" : "")
+                + (project.absolute() ? " · סדר מוחלט" + (Sheets.misplaced(project).isEmpty() ? "" : " · " + Sheets.misplaced(project).size() + " לא במקומם") : "")
+                + (sh.locked ? " · נעול" : "")
                 + (dirty ? (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר") : "")
-                + (note == null ? "" : " · " + note));
+                + (note == null ? "" : " · " + note) + sheetNote);
         stash();
         rebuildStrips();
-        map.setReadOnly(viewResult != null);
+        map.setReadOnly(viewResult != null || sh.locked);
         shownP = p;
         textStale = true;
         mapStale = true;
@@ -807,6 +821,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     }
 
     private void upToLevel() {
+        if (locked()) { setStatus("הטאב נעול — אפשר לשנות במאפייני הטאב"); return; }
         final int max = Edit.maxDepth(project);
         final String[] names = new String[max + 1];
         for (int k = 0; k < max; k++) names[k] = k == 0 ? "רק השורש" : "עד רמה " + k;
@@ -842,13 +857,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         if (cur == null) return;
         cur.uri = uri; cur.fileName = fileName; cur.lastText = lastText; cur.project = project; cur.part = part;
         cur.dirty = dirty; cur.viewMode = viewMode; cur.tagLevel = tagLevel; cur.viewInfo = viewInfo;
-        cur.viewSort = viewSort; cur.levelFrom = levelFrom; cur.levelTo = levelTo;
+        cur.viewSort = viewSort; cur.levelFrom = levelFrom; cur.levelTo = levelTo; cur.sheetId = sheetId;
     }
 
     private void unstash(Doc d) {
         uri = d.uri; fileName = d.fileName; lastText = d.lastText; project = d.project; part = d.part;
         dirty = d.dirty; viewMode = d.viewMode; tagLevel = d.tagLevel; viewInfo = d.viewInfo;
-        viewSort = d.viewSort; levelFrom = d.levelFrom; levelTo = d.levelTo;
+        viewSort = d.viewSort; levelFrom = d.levelFrom; levelTo = d.levelTo; sheetId = d.sheetId;
     }
 
     /** טאב חדש וריק, והופך לנוכחי (מה שהיה — נשמר בטאב שלו). */
@@ -1089,23 +1104,25 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         viewRow.removeAllViews();
         ((View) viewRow.getParent()).setVisibility(project == null ? View.GONE : View.VISIBLE);
         if (project == null) return;
-        final String[] parts = {"התחלת נושא", "סיעור מוחות", "מפה"};
-        for (int k = 0; k < 3; k++) {
-            final int pk = k;
-            chip(viewRow, parts[k], part == k, false, new View.OnClickListener() { public void onClick(View v) {
-                if (part == pk) return;
-                part = pk;
-                map.select(null, false);
-                stash();
-                render(null, true);
+        final Sheet curSh = sheet();
+        int hiddenSheets = 0;
+        for (final Sheet s : project.sheets) {
+            if (s.hidden) { hiddenSheets++; continue; }
+            TextView c = chip(viewRow, (s.locked ? "🔒 " : "") + s.name, s == curSh, false, new View.OnClickListener() { public void onClick(View v) {
+                if (s == sheet()) { sheetMenu(s); return; }
+                enterSheet(s);
             }});
+            c.setOnLongClickListener(new View.OnLongClickListener() { public boolean onLongClick(View v) { sheetMenu(s); return true; }});
         }
+        chip(viewRow, "+ טאב", false, false, new View.OnClickListener() { public void onClick(View v) { addSheet(); }});
+        if (hiddenSheets > 0)
+            chip(viewRow, "☰ " + hiddenSheets + " מוסתרים", false, true, new View.OnClickListener() { public void onClick(View v) { showHidden(); }});
         if (part != 2) return;
         gap(viewRow);
         chip(viewRow, "גרפי", showMap, false, new View.OnClickListener() { public void onClick(View v) {
-            showMap = true; prefs.edit().putBoolean("showMap", true).apply(); applyView(); rebuildStrips(); }});
+            setShowMap(true); applyView(); rebuildStrips(); }});
         chip(viewRow, "טקסט", !showMap, false, new View.OnClickListener() { public void onClick(View v) {
-            showMap = false; prefs.edit().putBoolean("showMap", false).apply(); applyView(); rebuildStrips(); }});
+            setShowMap(false); applyView(); rebuildStrips(); }});
         gap(viewRow);
         chip(viewRow, "עץ", viewMode == 0, false, new View.OnClickListener() { public void onClick(View v) { setView(0, 1, ""); }});
         chip(viewRow, "# תגיות", viewMode == 1 && tagLevel == 1, false, new View.OnClickListener() { public void onClick(View v) { setView(1, 1, ""); }});
@@ -1162,19 +1179,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     public void onFreeMenu(final FreeMap.Node n) {
         final java.util.List<String> labels = new java.util.ArrayList<>();
         final java.util.List<Runnable> acts = new java.util.ArrayList<>();
-        labels.add("העבר למפה (כפריט תלוש)"); acts.add(new Runnable() { public void run() {
-            Item it = Edit.addLoose(project, n.text);
-            project.free.remove(n);
-            freeView.select(null);
-            changedAny(false);
-            freeView.invalidate();
-            setStatus("עבר למפה כתלוש: " + it.name);
-        }});
-        labels.add("העתק למפה (ונשאר כאן)"); acts.add(new Runnable() { public void run() {
-            Edit.addLoose(project, n.text);
-            changedAny(false);
-            setStatus("הועתק למפה כתלוש: " + n.text);
-        }});
+        labels.add("העבר למפה"); acts.add(new Runnable() { public void run() { toMap(n, true); }});
+        labels.add("העתק למפה (ונשאר כאן)"); acts.add(new Runnable() { public void run() { toMap(n, false); }});
         for (final FreeMap.Node o : project.free.neighbors(n)) {
             labels.add("נתק מ: " + o.text);
             acts.add(new Runnable() { public void run() { project.free.unlink(n, o); changedAny(false); freeView.invalidate(); }});
@@ -1196,6 +1202,311 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
 
     @Override
     public void onFreeStatus(String s) { setStatus(s); }
+
+    // ---------------- טאבים בתוך הקובץ (0.10) ----------------
+
+    /** הטאב הנוכחי; אם אינו (נמחק, הוסתר) — הראשון הגלוי מאותו סוג, או הראשון הגלוי. */
+    private Sheet sheet() {
+        if (project == null) return null;
+        Sheet s = project.sheet(sheetId);
+        if (s == null || s.hidden) {
+            Sheet.Kind want = part == 0 ? Sheet.Kind.START : part == 1 ? Sheet.Kind.FREE : Sheet.Kind.MAP;
+            s = null;
+            for (Sheet x : project.sheets) if (!x.hidden && x.kind == want) { s = x; break; }
+            if (s == null) for (Sheet x : project.sheets) if (!x.hidden) { s = x; break; }
+            if (s == null) { s = project.sheets.get(0); s.hidden = false; }
+            sheetId = s.id;
+        }
+        return s;
+    }
+
+    /** הטאב הנוכחי נהיה הפעיל בקובץ, וכיוון ותצוגה לפי המאפיינים שלו (או לפי התוכנה). */
+    private void syncSheet() {
+        Sheet s = sheet();
+        if (s == null) return;
+        project.use(s);
+        part = s.kind == Sheet.Kind.START ? 0 : s.kind == Sheet.Kind.FREE ? 1 : 2;
+        showMap = s.view.equals("map") || (!s.view.equals("text") && prefs.getBoolean("showMap", true));
+        vertical = s.dir.equals("v") || (!s.dir.equals("h") && prefs.getBoolean("vertical", true));
+    }
+
+    private boolean locked() {
+        Sheet s = sheet();
+        return s != null && s.locked;
+    }
+
+    private void enterSheet(Sheet s) {
+        if (s.hidden) s.hidden = false;
+        sheetId = s.id;
+        viewMode = 0;
+        map.select(null, false);
+        syncSheet();
+        stash();
+        render(null, true);
+    }
+
+    /** גרפי/טקסט: לטאב שקבע לעצמו — בטאב (נשמר בקובץ); אחרת — לכל התוכנה. */
+    private void setShowMap(boolean b) {
+        Sheet s = sheet();
+        if (s != null && s.kind == Sheet.Kind.MAP && !s.view.isEmpty()) { s.view = b ? "map" : "text"; markDirty(); }
+        else prefs.edit().putBoolean("showMap", b).apply();
+        showMap = b;
+    }
+
+    private void setVertical(boolean b) {
+        Sheet s = sheet();
+        if (s != null && s.kind == Sheet.Kind.MAP && !s.dir.isEmpty()) { s.dir = b ? "v" : "h"; markDirty(); }
+        else prefs.edit().putBoolean("vertical", b).apply();
+        vertical = b;
+    }
+
+    /** שינוי שאינו צריך בנייה מחדש: לסמן ולשמור. */
+    private void markDirty() {
+        dirty = true;
+        stash();
+        rebuildTabsOnly();
+        if (autosave && uri != null) {
+            handler.removeCallbacks(saver);
+            handler.postDelayed(saver, 2000);
+        }
+    }
+
+    private void sheetMenu(final Sheet s) {
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        labels.add("מאפיינים…"); acts.add(new Runnable() { public void run() { sheetProps(s); }});
+        labels.add("שנה שם"); acts.add(new Runnable() { public void run() {
+            askName("שם הטאב", s.name, false, new Named() { public void done(String x) { Sheets.rename(s, x); changedAny(true); }}); }});
+        labels.add("העתק (טאב נוסף עם אותו תוכן)"); acts.add(new Runnable() { public void run() {
+            Sheet c = Sheets.copy(project, s);
+            sheetId = c.id;
+            changedAny(true);
+            setStatus("נוצר עותק: " + c.name);
+        }});
+        final int i = project.sheets.indexOf(s);
+        if (i > 0) { labels.add("הזז ימינה"); acts.add(new Runnable() { public void run() { Sheets.move(project, s, -1); changedAny(true); }}); }
+        if (i < project.sheets.size() - 1) { labels.add("הזז שמאלה"); acts.add(new Runnable() { public void run() { Sheets.move(project, s, 1); changedAny(true); }}); }
+        if (Sheets.visible(project) > 1) { labels.add("הסתר (נשאר בקובץ)"); acts.add(new Runnable() { public void run() {
+            s.hidden = true;
+            changedAny(true);
+        }}); }
+        int same = 0;
+        for (Sheet x : project.sheets) if (x.kind == s.kind) same++;
+        if (same > 1) { labels.add("מחק את הטאב"); acts.add(new Runnable() { public void run() {
+            confirm("למחוק את הטאב \"" + s.name + "\" עם כל התוכן שבו?", new Runnable() { public void run() {
+                if (Sheets.delete(project, s)) changedAny(true);
+            }});
+        }}); }
+        menu(s.name + " · " + s.kind.label + (s.note.isEmpty() ? "" : " · " + s.note), labels, acts);
+    }
+
+    /** מאפייני הטאב: כל שורה מראה את המצב, ונגיעה משנה. אחרי שינוי — החלון נפתח שוב. */
+    private void sheetProps(final Sheet s) {
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        final Runnable again = new Runnable() { public void run() { changedAny(true); sheetProps(s); }};
+        labels.add("שם: " + s.name); acts.add(new Runnable() { public void run() {
+            askName("שם הטאב", s.name, false, new Named() { public void done(String x) { Sheets.rename(s, x); again.run(); }}); }});
+        labels.add("הערה: " + (s.note.isEmpty() ? "(אין)" : s.note)); acts.add(new Runnable() { public void run() {
+            askName("הערה לטאב — למה הוא משמש", s.note, false, new Named() { public void done(String x) { s.note = x.trim(); again.run(); }}); }});
+        labels.add(s.locked ? "עריכה: נעול — רק קריאה" : "עריכה: מותרת"); acts.add(new Runnable() { public void run() {
+            s.locked = !s.locked; again.run(); }});
+        switch (s.kind) {
+            case START: {
+                StringBuilder ks = new StringBuilder();
+                for (Brain.Kind k : Brain.Kind.values()) if (s.kinds.contains(k)) ks.append(ks.length() > 0 ? ", " : "").append(k.label);
+                labels.add("סוגי חלקים מותרים: " + ks); acts.add(new Runnable() { public void run() { chooseKinds(s, again); }});
+                labels.add("מחיקה בפנקס: " + s.erase.label); acts.add(new Runnable() { public void run() {
+                    final Sheet.Erase[] all = Sheet.Erase.values();
+                    String[] names = new String[all.length];
+                    for (int k = 0; k < all.length; k++) names[k] = all[k].label;
+                    new AlertDialog.Builder(Main.this).setTitle("מחיקה בפנקס")
+                            .setSingleChoiceItems(names, s.erase.ordinal(), new android.content.DialogInterface.OnClickListener() {
+                                public void onClick(android.content.DialogInterface d, int w) { s.erase = all[w]; d.dismiss(); again.run(); }})
+                            .show();
+                }});
+                break;
+            }
+            case FREE:
+                labels.add(s.links ? "קווים: מותר לחבר" : "קווים: לא מחברים"); acts.add(new Runnable() { public void run() {
+                    s.links = !s.links; again.run(); }});
+                break;
+            case MAP:
+                labels.add(s.absolute ? "סדר מוחלט: כן — לכל פריט מקום בעץ" : "סדר מוחלט: לא — מותרים פריטים תלושים");
+                acts.add(new Runnable() { public void run() { s.absolute = !s.absolute; again.run(); }});
+                labels.add("כיוון: " + (s.dir.equals("v") ? "מלמעלה למטה" : s.dir.equals("h") ? "מימין לשמאל" : "לפי התוכנה"));
+                acts.add(new Runnable() { public void run() {
+                    choose("כיוון העץ בטאב הזה", new String[]{"לפי התוכנה", "מלמעלה למטה", "מימין לשמאל"},
+                            s.dir.equals("v") ? 1 : s.dir.equals("h") ? 2 : 0, new Chosen() { public void at(int w) {
+                                s.dir = w == 1 ? "v" : w == 2 ? "h" : ""; refitPending = true; again.run(); }});
+                }});
+                labels.add("תצוגה: " + (s.view.equals("map") ? "גרפית" : s.view.equals("text") ? "טקסט" : "לפי התוכנה"));
+                acts.add(new Runnable() { public void run() {
+                    choose("תצוגה בטאב הזה", new String[]{"לפי התוכנה", "גרפית", "טקסט"},
+                            s.view.equals("map") ? 1 : s.view.equals("text") ? 2 : 0, new Chosen() { public void at(int w) {
+                                s.view = w == 1 ? "map" : w == 2 ? "text" : ""; again.run(); }});
+                }});
+                break;
+        }
+        menu("מאפייני הטאב: " + s.name, labels, acts);
+    }
+
+    private interface Chosen { void at(int w); }
+
+    private void choose(String title, String[] names, int sel, final Chosen then) {
+        new AlertDialog.Builder(this).setTitle(title)
+                .setSingleChoiceItems(names, sel, new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { d.dismiss(); then.at(w); }})
+                .show();
+    }
+
+    private void chooseKinds(final Sheet s, final Runnable after) {
+        final Brain.Kind[] all = Brain.Kind.values();
+        String[] names = new String[all.length];
+        final boolean[] on = new boolean[all.length];
+        for (int k = 0; k < all.length; k++) { names[k] = all[k].label; on[k] = s.kinds.contains(all[k]); }
+        new AlertDialog.Builder(this).setTitle("סוגי חלקים מותרים (חלקים קיימים נשארים)")
+                .setMultiChoiceItems(names, on, new android.content.DialogInterface.OnMultiChoiceClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w, boolean b) { on[w] = b; }})
+                .setPositiveButton("אישור", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        java.util.Set<Brain.Kind> n = java.util.EnumSet.noneOf(Brain.Kind.class);
+                        for (int k = 0; k < all.length; k++) if (on[k]) n.add(all[k]);
+                        if (n.isEmpty()) { setStatus("צריך לפחות סוג אחד"); return; }
+                        s.kinds.clear();
+                        s.kinds.addAll(n);
+                        after.run();
+                    }})
+                .setNegativeButton("ביטול", null).show();
+    }
+
+    private void addSheet() {
+        final Sheet.Kind[] all = Sheet.Kind.values();
+        String[] names = new String[all.length];
+        for (int k = 0; k < all.length; k++) names[k] = all[k].label;
+        new AlertDialog.Builder(this).setTitle("טאב חדש — מאיזה סוג?")
+                .setItems(names, new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, final int w) {
+                        askName("שם הטאב", all[w].label, false, new Named() { public void done(String x) {
+                            Sheet s = Sheets.add(project, all[w], x);
+                            sheetId = s.id;
+                            viewMode = 0;
+                            refitPending = true;
+                            changedAny(true);
+                        }});
+                    }}).show();
+    }
+
+    private void showHidden() {
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        for (final Sheet s : project.sheets) {
+            if (!s.hidden) continue;
+            labels.add(s.name + " · " + s.kind.label);
+            acts.add(new Runnable() { public void run() { s.hidden = false; sheetId = s.id; changedAny(true); }});
+        }
+        menu("טאבים מוסתרים — נגיעה מחזירה", labels, acts);
+    }
+
+    private interface Placed { void at(Item parent, Division d); }
+
+    /** בחירת מקום בעץ: אב (רשימה לפי העץ), ואם יש לו כמה חלוקות — החלוקה. */
+    private void chooseParent(Sheet ms, final Item moving, final Placed then) {
+        final java.util.List<Item> items = new java.util.ArrayList<>();
+        final java.util.List<String> names = new java.util.ArrayList<>();
+        for (Item r : ms.roots) if (!r.loose) listTree(r, 0, moving, items, names);
+        if (items.isEmpty()) { setStatus("אין בעץ מקום להציב"); return; }
+        new AlertDialog.Builder(this).setTitle("תחת איזה פריט?")
+                .setItems(names.toArray(new String[0]), new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        final Item par = items.get(w);
+                        if (par.divisions.size() <= 1) { then.at(par, null); return; }
+                        String[] ds = new String[par.divisions.size()];
+                        for (int k = 0; k < ds.length; k++) {
+                            String b = par.divisions.get(k).basis;
+                            ds[k] = b.isEmpty() ? "צד " + com.aviccc.kvutzot.model.Hebrew.number(k + 1) : b;
+                        }
+                        new AlertDialog.Builder(Main.this).setTitle("באיזו חלוקה של \"" + par.name + "\"?")
+                                .setItems(ds, new android.content.DialogInterface.OnClickListener() {
+                                    public void onClick(android.content.DialogInterface d2, int w2) { then.at(par, par.divisions.get(w2)); }})
+                                .show();
+                    }}).show();
+    }
+
+    private static void listTree(Item it, int depth, Item skip, java.util.List<Item> items, java.util.List<String> names) {
+        if (it == skip) return;
+        StringBuilder b = new StringBuilder();
+        for (int k = 0; k < depth; k++) b.append("   ");
+        if (depth > 0) b.append("· ");
+        items.add(it);
+        names.add(b + (it.name.isEmpty() ? "(בלי שם)" : it.name));
+        for (Division d : it.divisions) for (Item c : d.children) listTree(c, depth + 1, skip, items, names);
+    }
+
+    /** מסיעור המוחות למפה: בוחרים מפה (אם יש כמה); במפה בסדר מוחלט — גם מקום בעץ, אחרת — תלוש. */
+    private void toMap(final FreeMap.Node n, final boolean move) {
+        final java.util.List<Sheet> maps = new java.util.ArrayList<>();
+        for (Sheet s : project.sheets) if (s.kind == Sheet.Kind.MAP && !s.locked) maps.add(s);
+        if (maps.isEmpty()) { setStatus("כל המפות נעולות"); return; }
+        if (maps.size() == 1) { toMap(n, move, maps.get(0)); return; }
+        String[] names = new String[maps.size()];
+        for (int k = 0; k < names.length; k++) names[k] = maps.get(k).name + (maps.get(k).absolute ? " · סדר מוחלט" : "");
+        new AlertDialog.Builder(this).setTitle("לאיזו מפה?")
+                .setItems(names, new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { toMap(n, move, maps.get(w)); }}).show();
+    }
+
+    private void toMap(final FreeMap.Node n, final boolean move, final Sheet ms) {
+        final Runnable done = new Runnable() { public void run() {
+            if (move) { project.free.remove(n); freeView.select(null); freeView.invalidate(); }
+            changedAny(false);
+        }};
+        if (!ms.absolute) {
+            Item it = new Item(n.text);
+            it.loose = true;
+            ms.roots.add(it);
+            done.run();
+            setStatus((move ? "עבר" : "הועתק") + " ל\"" + ms.name + "\" כתלוש: " + n.text);
+            return;
+        }
+        chooseParent(ms, null, new Placed() { public void at(Item parent, Division d) {
+            Item it = Edit.addChild(parent, d, n.text);
+            parent.collapsed = false;
+            done.run();
+            setStatus((move ? "עבר" : "הועתק") + " ל\"" + ms.name + "\" תחת \"" + parent.name + "\": " + it.name);
+        }});
+    }
+
+    /** בטאב נעול: מה שיש על הפריט, לקריאה בלבד. */
+    private void readOnlyItem(Item it) {
+        StringBuilder b = new StringBuilder();
+        java.util.LinkedHashMap<String, java.util.List<String>> groups = new java.util.LinkedHashMap<>();
+        for (com.aviccc.kvutzot.model.Model.Info in : it.infos) {
+            String g = in.kind == com.aviccc.kvutzot.model.Model.Info.Kind.USER ? (in.name.isEmpty() ? "מידע" : in.name)
+                    : in.kind == com.aviccc.kvutzot.model.Model.Info.Kind.ESSENTIAL ? "תכונה עצמית" : "תכונה מקרית";
+            if (!groups.containsKey(g)) groups.put(g, new java.util.ArrayList<String>());
+            groups.get(g).add(in.text);
+        }
+        for (java.util.Map.Entry<String, java.util.List<String>> e : groups.entrySet()) {
+            b.append(e.getKey()).append(":\n");
+            for (String x : e.getValue()) b.append("• ").append(x).append("\n");
+            b.append("\n");
+        }
+        if (!it.tagIds.isEmpty()) {
+            b.append("תגיות: ");
+            boolean first = true;
+            for (String id : it.tagIds) {
+                com.aviccc.kvutzot.model.Model.Tag tg = project.tag(id);
+                b.append(first ? "" : ", ").append(tg == null ? id : tg.name);
+                first = false;
+            }
+            b.append("\n");
+        }
+        if (b.length() == 0) b.append("אין מידע על הפריט.");
+        new AlertDialog.Builder(this).setTitle(it.name + " · נעול")
+                .setMessage(b.toString().trim())
+                .setPositiveButton("סגור", null).show();
+    }
 
     // ---------------- בחינות ----------------
 
@@ -1441,6 +1752,11 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
 
     /** בתצוגה לפי פריט מידע: פותחים את החלון של הפריט המקורי. */
     private boolean openOriginal(MapLayout.Node n) {
+        if (locked()) {
+            Item o = n.isDivision() ? null : viewResult == null ? n.item : viewResult.original(n.item);
+            if (o != null) readOnlyItem(o);
+            return true;
+        }
         if (viewResult == null) return false;
         final Item orig = n.isDivision() ? null : viewResult.original(n.item);
         if (orig != null) new ItemWindow(this, project, orig, new Runnable() { public void run() { changed(null, null); }}).show();
@@ -1534,6 +1850,16 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         if (it.parentDivision != null) {
             labels.add("הזז לפני"); acts.add(new Runnable() { public void run() { if (Edit.move(it, -1)) changed(it, null); }});
             labels.add("הזז אחרי"); acts.add(new Runnable() { public void run() { if (Edit.move(it, 1)) changed(it, null); }});
+        }
+        if (it.loose || it.parentDivision != null) {
+            labels.add(it.loose ? "הצב בעץ…" : "העבר למקום אחר בעץ…");
+            acts.add(new Runnable() { public void run() {
+                Sheet ms = project.active(Sheet.Kind.MAP);
+                chooseParent(ms, it, new Placed() { public void at(Item parent, Division d) {
+                    if (Edit.placeUnder(project, it, parent, d)) { parent.collapsed = false; changed(it, null); }
+                    else setStatus("אי אפשר להציב פריט תחת עצמו או תחת בנו");
+                }});
+            }});
         }
         labels.add("העתק"); acts.add(new Runnable() { public void run() { clip = Edit.copy(it); setStatus("הועתק: " + it.name); }});
         final boolean canDelete = it.parentDivision != null || it.loose;
