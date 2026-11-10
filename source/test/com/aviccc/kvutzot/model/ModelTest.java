@@ -147,6 +147,34 @@ public class ModelTest {
         // BOM בתחילת הקובץ
         eq(OpmlIO.read("﻿<opml><body><outline text=\"a\"/></body></opml>").mainRoot().name, "a", "BOM");
 
+        // --- תצוגת הטקסט ---
+        java.util.List<TextLines.Line> L = TextLines.build(p);
+        eq(L.get(0).mark, "0", "שורש מסומן 0");
+        eq(L.get(0).text, "משולש", "שורה ראשונה");
+        check(L.get(0).info.startsWith("הגדרה: שטח סגור"), "מידע בשורת השורש");
+        check(L.get(0).info.contains("תגיות: גאומטריה, צורות"), "שמות תגיות במידע");
+        eq(L.get(1).kind, TextLines.Kind.DIVISION, "שורת חלוקה");
+        eq(L.get(1).mark, "א", "חלוקה א");
+        eq(L.get(1).text, "לפי הצלעות", "בסיס בשורת החלוקה");
+        eq(L.get(2).mark, "1 א", "שווה צלעות: עומק 1 צד א");
+        eq(L.get(2).depth, 1, "עומק שווה צלעות");
+        eq(L.get(5).mark, "ב", "חלוקה ב");
+        eq(L.get(6).mark, "1 ב", "ישר זוית: עומק 1 צד ב");
+        eq(L.get(9).kind, TextLines.Kind.HEADER, "כותרת תלושים");
+        eq(L.size(), 15, "מספר שורות במשולש");
+        eq(TextLines.countItems(p), 12, "מספר פריטים במשולש");
+        java.util.List<TextLines.Line> T = TextLines.build(toys);
+        TextLines.Line hard = null;
+        for (TextLines.Line l : T) if (l.text.equals("קשיח")) hard = l;
+        eq(hard.mark, "2 א", "קשיח: עומק 2 צד א של פלסטיק");
+        java.util.List<TextLines.Line> S = TextLines.build(s2);
+        eq(S.size(), 4, "עץ פשוט בלי שורות חלוקה");
+        eq(S.get(1).mark, "1", "בלי אות כשיש חלוקה אחת");
+        s2.mainRoot().collapsed = true;
+        S = TextLines.build(s2);
+        eq(S.size(), 1, "מכווץ: רק השורש");
+        eq(S.get(0).hidden, 3, "מכווץ: שלושה מוסתרים");
+
         // --- מספור עברי ---
         int[] n = {1, 2, 9, 10, 11, 15, 16, 19, 20, 22, 100, 123, 400, 500};
         String[] h = {"א", "ב", "ט", "י", "י\"א", "ט\"ו", "ט\"ז", "י\"ט", "כ", "כ\"ב", "ק", "קכ\"ג", "ת", "ת\"ק"};
