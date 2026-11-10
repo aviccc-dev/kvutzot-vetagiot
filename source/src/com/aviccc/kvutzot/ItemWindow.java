@@ -1,0 +1,354 @@
+package com.aviccc.kvutzot;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.graphics.Typeface;
+import android.text.InputType;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+
+import com.aviccc.kvutzot.model.Edit;
+import com.aviccc.kvutzot.model.Model.Division;
+import com.aviccc.kvutzot.model.Model.Info;
+import com.aviccc.kvutzot.model.Model.Item;
+import com.aviccc.kvutzot.model.Model.Project;
+import com.aviccc.kvutzot.model.Model.Tag;
+import com.aviccc.kvutzot.model.TextLines;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * החלון על הפריט (שלב 6): כל המידע עליו, וניתן לעריכה. כל שינוי נשמר מיד בפריט
+ * (ומשם — בשמירה האוטומטית או הידנית).
+ */
+public class ItemWindow {
+    private static final int BLUE = 0xFF185FA5, GREY = 0xFF5F5E5A, LIGHT = 0xFFF1EFE8, DARK = 0xFF2C2C2A;
+
+    private final Activity act;
+    private final Project p;
+    private final Item it;
+    private final Runnable onChange;
+    private final float dens;
+    private LinearLayout body;
+    private AlertDialog dlg;
+
+    public ItemWindow(Activity act, Project p, Item it, Runnable onChange) {
+        this.act = act; this.p = p; this.it = it; this.onChange = onChange;
+        this.dens = act.getResources().getDisplayMetrics().density;
+    }
+
+    private int dp(float v) { return Math.round(v * dens); }
+
+    public void show() {
+        ScrollView sv = new ScrollView(act);
+        body = new LinearLayout(act);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        body.setPadding(dp(18), dp(6), dp(18), dp(10));
+        sv.addView(body);
+        dlg = new AlertDialog.Builder(act).setView(sv).setPositiveButton("סגור", null).create();
+        rebuild();
+        dlg.show();
+    }
+
+    private void changed() {
+        onChange.run();
+        rebuild();
+    }
+
+    // ---------------- בניית החלון ----------------
+
+    private void rebuild() {
+        body.removeAllViews();
+        TextView name = text(it.name.isEmpty() ? "(בלי שם)" : it.name, 22, DARK, true);
+        name.setPadding(0, dp(6), 0, dp(2));
+        name.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { renameItem(); }});
+        body.addView(name);
+        body.addView(text(place(), 13, GREY, false));
+
+        // מידע שהמשתמש ממציא, לפי שמות
+        Map<String, List<Info>> groups = new LinkedHashMap<>();
+        for (Info in : it.infos) if (in.kind == Info.Kind.USER) {
+            List<Info> l = groups.get(in.name);
+            if (l == null) { l = new ArrayList<>(); groups.put(in.name, l); }
+            l.add(in);
+        }
+        header("מידע", "+ מידע חדש", new Runnable() { public void run() { editInfo(null, Info.Kind.USER, ""); }});
+        if (groups.isEmpty()) body.addView(hint("אין עדיין. למשל הגדרה, דוגמה, הערה."));
+        for (final Map.Entry<String, List<Info>> g : groups.entrySet()) {
+            final String gname = g.getKey().isEmpty() ? "מידע" : g.getKey();
+            sub(gname + (g.getValue().size() > 1 ? " (" + g.getValue().size() + ")" : ""), "+",
+                    new Runnable() { public void run() { editInfo(null, Info.Kind.USER, g.getKey()); }});
+            for (final Info in : g.getValue()) row(in.text, new Runnable() { public void run() { editInfo(in, in.kind, in.name); }});
+        }
+
+        // תגיות
+        header("תגיות", "+ תגית", new Runnable() { public void run() { addTag(); }});
+        if (it.tagIds.isEmpty()) body.addView(hint("אין תגיות."));
+        for (final String id : new ArrayList<>(it.tagIds)) {
+            final Tag t = p.tag(id);
+            if (t == null) continue;
+            int others = Edit.tagUse(p, id) - 1;
+            row("# " + t.name + (others > 0 ? "   ·   עוד " + others + " פריטים" : ""),
+                    new Runnable() { public void run() { tagMenu(t); }});
+        }
+
+        // תכונות
+        header("תכונות עצמיות (מחויבות)", "+ הוסף", new Runnable() { public void run() { editInfo(null, Info.Kind.ESSENTIAL, ""); }});
+        List<Info> ess = it.infos(Info.Kind.ESSENTIAL);
+        if (ess.isEmpty()) body.addView(hint("אין."));
+        for (final Info in : ess) row(in.text, new Runnable() { public void run() { editInfo(in, in.kind, ""); }});
+        header("תכונות מקריות (שאינן מחויבות)", "+ הוסף", new Runnable() { public void run() { editInfo(null, Info.Kind.INCIDENTAL, ""); }});
+        List<Info> inc = it.infos(Info.Kind.INCIDENTAL);
+        if (inc.isEmpty()) body.addView(hint("אין."));
+        for (final Info in : inc) row(in.text, new Runnable() { public void run() { editInfo(in, in.kind, ""); }});
+    }
+
+    private String place() {
+        StringBuilder b = new StringBuilder();
+        Item par = it.parent();
+        if (par != null) {
+            b.append("תחת \"").append(par.name).append("\"");
+            Division d = it.parentDivision;
+            if (!d.basis.isEmpty()) b.append(" · ").append(d.basis);
+        } else {
+            b.append(it.loose ? "פריט תלוש" : "ראש המפה");
+        }
+        int depth = 0;
+        for (Item x = par; x != null; x = x.parent()) depth++;
+        b.append(" · עומק ").append(depth);
+        b.append(" · ").append(it.childCount()).append(" בנים");
+        int all = TextLines.descendants(it);
+        if (all > it.childCount()) b.append(" (").append(all).append(" בסך הכול)");
+        return b.toString();
+    }
+
+    private TextView text(String s, float size, int color, boolean bold) {
+        TextView t = new TextView(act);
+        t.setText(s);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
+        t.setTextColor(color);
+        t.setTextDirection(View.TEXT_DIRECTION_RTL);
+        if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
+        return t;
+    }
+
+    private TextView hint(String s) {
+        TextView t = text(s, 14, 0xFF888780, false);
+        t.setPadding(0, dp(2), 0, dp(4));
+        return t;
+    }
+
+    private void header(String title, String action, final Runnable onAdd) {
+        LinearLayout l = new LinearLayout(act);
+        l.setOrientation(LinearLayout.HORIZONTAL);
+        l.setGravity(Gravity.CENTER_VERTICAL);
+        l.setPadding(0, dp(16), 0, dp(4));
+        TextView t = text(title, 16, BLUE, true);
+        l.addView(t, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView a = text(action, 15, BLUE, false);
+        a.setPadding(dp(10), dp(6), dp(4), dp(6));
+        a.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { onAdd.run(); }});
+        l.addView(a);
+        body.addView(l);
+        View line = new View(act);
+        line.setBackgroundColor(0xFFB5D4F4);
+        body.addView(line, new LinearLayout.LayoutParams(-1, Math.max(1, dp(1))));
+    }
+
+    private void sub(String title, String action, final Runnable onAdd) {
+        LinearLayout l = new LinearLayout(act);
+        l.setOrientation(LinearLayout.HORIZONTAL);
+        l.setGravity(Gravity.CENTER_VERTICAL);
+        l.setPadding(0, dp(8), 0, 0);
+        l.addView(text(title, 14, GREY, true), new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView a = text(action, 17, BLUE, false);
+        a.setPadding(dp(12), 0, dp(4), 0);
+        a.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { onAdd.run(); }});
+        l.addView(a);
+        body.addView(l);
+    }
+
+    private void row(String s, final Runnable onTap) {
+        TextView t = text(s.isEmpty() ? "(ריק)" : s, 16, DARK, false);
+        t.setBackgroundColor(LIGHT);
+        t.setPadding(dp(10), dp(8), dp(10), dp(8));
+        t.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { onTap.run(); }});
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.topMargin = dp(4);
+        body.addView(t, lp);
+    }
+
+    // ---------------- פעולות ----------------
+
+    private void renameItem() {
+        final EditText ed = field(it.name, false);
+        AlertDialog d = new AlertDialog.Builder(act).setTitle("שם הפריט").setView(wrap(ed))
+                .setPositiveButton("שמור", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface di, int w) {
+                        String s = ed.getText().toString().trim();
+                        if (!s.isEmpty()) { it.name = s; changed(); }
+                    }})
+                .setNegativeButton("ביטול", null).create();
+        keyboard(d);
+        d.show();
+    }
+
+    /** הוספה (in == null) או עריכה של מידע. במידע של המשתמש — גם שם התא, עם הצעות. */
+    private void editInfo(final Info in, final Info.Kind kind, String name) {
+        LinearLayout box = new LinearLayout(act);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(8), dp(20), 0);
+        final AutoCompleteTextView nameField;
+        if (kind == Info.Kind.USER) {
+            nameField = new AutoCompleteTextView(act);
+            nameField.setSingleLine(true);
+            nameField.setHint("שם (למשל הגדרה, דוגמה)");
+            nameField.setText(name);
+            nameField.setTextDirection(View.TEXT_DIRECTION_RTL);
+            nameField.setThreshold(0);
+            nameField.setAdapter(new ArrayAdapter<>(act, android.R.layout.simple_dropdown_item_1line, Edit.userInfoNames(p)));
+            nameField.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                public void onFocusChange(View v, boolean f) { if (f && nameField.getText().length() == 0) nameField.showDropDown(); }});
+            box.addView(nameField);
+        } else nameField = null;
+        final EditText textField = field(in == null ? "" : in.text, true);
+        textField.setHint(kind == Info.Kind.USER ? "התוכן" : "התכונה");
+        box.addView(textField);
+        String title = in != null ? "עריכה" : kind == Info.Kind.ESSENTIAL ? "תכונה עצמית חדשה"
+                : kind == Info.Kind.INCIDENTAL ? "תכונה מקרית חדשה" : "מידע חדש";
+        AlertDialog.Builder b = new AlertDialog.Builder(act).setTitle(title).setView(box)
+                .setPositiveButton("שמור", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface di, int w) {
+                        String t = textField.getText().toString().trim();
+                        String n = nameField == null ? "" : nameField.getText().toString().trim();
+                        if (t.isEmpty()) return;
+                        if (in == null) Edit.addInfo(it, kind, n, t);
+                        else {
+                            in.text = t;
+                            if (kind == Info.Kind.USER && !n.equals(in.name)) {
+                                it.infos.remove(in);
+                                Info moved = Edit.addInfo(it, kind, n, t);
+                                it.infos.set(it.infos.indexOf(moved), in);
+                                in.name = n;
+                            }
+                        }
+                        changed();
+                    }})
+                .setNegativeButton("ביטול", null);
+        if (in != null) {
+            if (kind == Info.Kind.USER) {
+                b.setNeutralButton("מחק", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface di, int w) { it.infos.remove(in); changed(); }});
+            } else {
+                final Info.Kind other = kind == Info.Kind.ESSENTIAL ? Info.Kind.INCIDENTAL : Info.Kind.ESSENTIAL;
+                b.setNeutralButton(kind == Info.Kind.ESSENTIAL ? "העבר למקריות" : "העבר לעצמיות",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface di, int w) {
+                                String t = textField.getText().toString().trim();
+                                if (!t.isEmpty()) in.text = t;
+                                Edit.setKind(it, in, other);
+                                changed();
+                            }});
+            }
+        }
+        final AlertDialog d = b.create();
+        if (in != null && kind != Info.Kind.USER) {
+            // הכפתור השלישי תפוס ב"העבר", לכן המחיקה כקישור בתוך החלון
+            TextView del = text("מחק את התכונה", 14, 0xFFA32D2D, false);
+            del.setPadding(0, dp(10), 0, dp(4));
+            del.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+                it.infos.remove(in); d.dismiss(); changed(); }});
+            box.addView(del);
+        }
+        keyboard(d);
+        d.show();
+    }
+
+    private void addTag() {
+        final AutoCompleteTextView f = new AutoCompleteTextView(act);
+        f.setSingleLine(true);
+        f.setHint("שם התגית");
+        f.setTextDirection(View.TEXT_DIRECTION_RTL);
+        List<String> names = new ArrayList<>();
+        for (Tag t : p.tags) if (!it.tagIds.contains(t.id)) names.add(t.name);
+        f.setThreshold(0);
+        f.setAdapter(new ArrayAdapter<>(act, android.R.layout.simple_dropdown_item_1line, names));
+        f.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            public void onFocusChange(View v, boolean has) { if (has) f.showDropDown(); }});
+        AlertDialog d = new AlertDialog.Builder(act).setTitle("תגית" + (names.isEmpty() ? " חדשה" : " (קיימת או חדשה)"))
+                .setView(wrap(f))
+                .setPositiveButton("הוסף", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface di, int w) {
+                        String s = f.getText().toString().trim();
+                        if (!s.isEmpty()) { Edit.addTag(p, it, s); changed(); }
+                    }})
+                .setNegativeButton("ביטול", null).create();
+        keyboard(d);
+        d.show();
+    }
+
+    private void tagMenu(final Tag t) {
+        int use = Edit.tagUse(p, t.id);
+        String[] items = {"הסר מהפריט הזה", "שנה שם (בכל " + use + " הפריטים)"};
+        new AlertDialog.Builder(act).setTitle("# " + t.name)
+                .setItems(items, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface di, int w) {
+                        if (w == 0) { Edit.removeTag(it, t.id); changed(); return; }
+                        final EditText ed = field(t.name, false);
+                        AlertDialog d = new AlertDialog.Builder(act).setTitle("שם חדש לתגית")
+                                .setMessage("אם כבר יש תגית בשם הזה, שתיהן יתאחדו.")
+                                .setView(wrap(ed))
+                                .setPositiveButton("שמור", new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface di2, int w2) {
+                                        String s = ed.getText().toString().trim();
+                                        if (!s.isEmpty()) { Edit.renameTag(p, t, s); changed(); }
+                                    }})
+                                .setNegativeButton("ביטול", null).create();
+                        keyboard(d);
+                        d.show();
+                    }})
+                .show();
+    }
+
+    // ---------------- עזר ----------------
+
+    private EditText field(String initial, boolean multi) {
+        EditText ed = new EditText(act);
+        ed.setText(initial);
+        ed.setTextDirection(View.TEXT_DIRECTION_RTL);
+        if (multi) {
+            ed.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+            ed.setMinLines(2);
+            ed.setMaxLines(8);
+        } else {
+            ed.setSingleLine(true);
+            ed.setSelectAllOnFocus(true);
+        }
+        return ed;
+    }
+
+    private View wrap(View v) {
+        LinearLayout box = new LinearLayout(act);
+        box.setPadding(dp(20), dp(8), dp(20), 0);
+        box.addView(v, new LinearLayout.LayoutParams(-1, -2));
+        return box;
+    }
+
+    private static void keyboard(AlertDialog d) {
+        if (d.getWindow() != null) d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+    }
+
+}

@@ -285,6 +285,11 @@ public class MapView extends View {
                 sl.draw(c);
                 c.restore();
             }
+            if (!n.isDivision() && (!n.item.infos.isEmpty() || !n.item.tagIds.isEmpty())) {
+                // נקודה קטנה: יש לפריט מידע נלווה (נחבא מתחתיו; נפתח ב"ערוך")
+                fill.setColor((textColor & 0x00FFFFFF) | 0xC0000000);
+                c.drawCircle(n.x + 7 * dens, n.y + n.h - 7 * dens, 2.6f * dens, fill);
+            }
             if (!n.mark.isEmpty()) {
                 markPaint.setColor(n.isDivision() ? textColor : (textColor & 0x00FFFFFF) | 0xB0000000);
                 markPaint.setTextAlign(Paint.Align.RIGHT);

@@ -119,4 +119,91 @@ public final class Edit {
         d.children.add(j, it);
         return true;
     }
+
+    // ---------------- מידע נלווה ותגיות ----------------
+
+    /** הוספת תגית לפריט לפי שם (תגית קיימת, או חדשה). מחזיר את התגית. */
+    public static Model.Tag addTag(Project p, Item it, String name) {
+        Model.Tag t = p.obtainTag(name.trim());
+        if (!it.tagIds.contains(t.id)) it.tagIds.add(t.id);
+        return t;
+    }
+
+    public static void removeTag(Item it, String tagId) { it.tagIds.remove(tagId); }
+
+    /**
+     * שינוי שם תגית — חל על כל הפריטים. אם כבר יש תגית בשם החדש, שתיהן מתאחדות:
+     * כל הפריטים (והתגיות) שהיו עם הישנה עוברים לקיימת, והישנה נמחקת. מחזיר את התגית שנשארה.
+     */
+    public static Model.Tag renameTag(Project p, Model.Tag t, String name) {
+        name = name.trim();
+        Model.Tag other = p.tagByName(name);
+        if (other == null || other == t) { t.name = name; return t; }
+        for (Item r : p.roots) replaceTag(r, t.id, other.id);
+        for (Model.Tag x : p.tags) replaceId(x.tagIds, t.id, other.id);
+        for (String id : t.tagIds) if (!other.tagIds.contains(id) && !id.equals(other.id)) other.tagIds.add(id);
+        p.tags.remove(t);
+        return other;
+    }
+
+    private static void replaceTag(Item it, String from, String to) {
+        replaceId(it.tagIds, from, to);
+        for (Division d : it.divisions) for (Item c : d.children) replaceTag(c, from, to);
+    }
+
+    private static void replaceId(java.util.List<String> ids, String from, String to) {
+        int i = ids.indexOf(from);
+        if (i < 0) return;
+        if (ids.contains(to)) ids.remove(i); else ids.set(i, to);
+    }
+
+    /** כמה פריטים נושאים את התגית. */
+    public static int tagUse(Project p, String tagId) {
+        int n = 0;
+        for (Item r : p.roots) n += tagUse(r, tagId);
+        return n;
+    }
+
+    private static int tagUse(Item it, String tagId) {
+        int n = it.tagIds.contains(tagId) ? 1 : 0;
+        for (Division d : it.divisions) for (Item c : d.children) n += tagUse(c, tagId);
+        return n;
+    }
+
+    /** שמות המידע שהמשתמש המציא, בכל הפרויקט (להצעה כשמוסיפים), ובראשם הנפוצים. */
+    public static java.util.List<String> userInfoNames(Project p) {
+        java.util.LinkedHashSet<String> s = new java.util.LinkedHashSet<>();
+        s.add("הגדרה");
+        s.add("דוגמה");
+        s.add("הערה");
+        for (Item r : p.roots) collectNames(r, s);
+        return new java.util.ArrayList<>(s);
+    }
+
+    private static void collectNames(Item it, java.util.Set<String> s) {
+        for (Info in : it.infos) if (in.kind == Info.Kind.USER && !in.name.isEmpty()) s.add(in.name);
+        for (Division d : it.divisions) for (Item c : d.children) collectNames(c, s);
+    }
+
+    /** הוספת מידע: אחרי האחרון מאותו סוג (ואותו שם), כדי שהקבוצות יישארו יחד. */
+    public static Info addInfo(Item it, Info.Kind k, String name, String text) {
+        Info n = new Info(k, name, text);
+        int at = -1;
+        for (int i = 0; i < it.infos.size(); i++) {
+            Info x = it.infos.get(i);
+            if (x.kind == k && (k != Info.Kind.USER || x.name.equals(n.name))) at = i;
+        }
+        it.infos.add(at < 0 ? it.infos.size() : at + 1, n);
+        return n;
+    }
+
+    /** העברת תכונה בין עצמית למקרית (או שינוי סוג), למקום המתאים. */
+    public static void setKind(Item it, Info in, Info.Kind k) {
+        if (in.kind == k) return;
+        it.infos.remove(in);
+        Info moved = addInfo(it, k, k == Info.Kind.USER ? in.name : "", in.text);
+        it.infos.set(it.infos.indexOf(moved), in);
+        in.kind = k;
+        if (k != Info.Kind.USER) in.name = "";
+    }
 }

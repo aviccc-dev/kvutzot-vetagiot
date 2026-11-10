@@ -314,6 +314,40 @@ public class ModelTest {
         eq(TextLines.countItems(ed2), TextLines.countItems(ed), "אחרי עריכה: אותו מספר פריטים");
         check(noOverlap(MapLayout.build(ed2, true, fake, 30, 12)), "אחרי עריכה: אין חפיפות");
 
+        // --- מידע ותגיות ---
+        Project ip = OpmlIO.read(file(dir, "משולש.xml"));
+        Item iRoot = ip.mainRoot();
+        Item iKid = iRoot.divisions.get(0).children.get(1);
+        Model.Tag geo = Edit.addTag(ip, iKid, "גאומטריה");
+        eq(geo.id, "t1", "תגית קיימת לפי שם");
+        Edit.addTag(ip, iKid, "גאומטריה");
+        eq(iKid.tagIds.size(), 1, "אותה תגית לא נוספת פעמיים");
+        Model.Tag fresh = Edit.addTag(ip, iKid, "  חדשה ");
+        eq(fresh.name, "חדשה", "תגית חדשה בלי רווחים");
+        eq(Edit.tagUse(ip, geo.id), 2, "שימוש בתגית");
+        Edit.renameTag(ip, geo, "הנדסה");
+        eq(ip.tag(iRoot.tagIds.get(0)).name, "הנדסה", "שינוי שם חל על כולם");
+        Model.Tag kept = Edit.renameTag(ip, fresh, "הנדסה");
+        eq(kept, geo, "שינוי לשם קיים מאחד");
+        check(ip.tag(fresh.id) == null, "התגית שאוחדה נמחקה");
+        eq(iKid.tagIds.size(), 1, "בלי כפילות אחרי איחוד");
+        Edit.removeTag(iKid, geo.id);
+        eq(Edit.tagUse(ip, geo.id), 1, "הסרה מפריט אחד");
+        check(Edit.userInfoNames(ip).contains("הגדרה") && Edit.userInfoNames(ip).get(0).equals("הגדרה"), "שמות מידע מוצעים");
+        Info d4 = Edit.addInfo(iRoot, Info.Kind.USER, "הגדרה", "הגדרה רביעית");
+        eq(iRoot.infos.indexOf(d4), 3, "הגדרה חדשה אחרי ההגדרות");
+        Info ex3 = Edit.addInfo(iRoot, Info.Kind.USER, "דוגמה", "משולש בטבע");
+        eq(iRoot.infos.indexOf(ex3), iRoot.infos.size() - 1, "דוגמה בסוף הדוגמאות");
+        Info ess = iRoot.infos(Info.Kind.ESSENTIAL).get(0);
+        Edit.setKind(iRoot, ess, Info.Kind.INCIDENTAL);
+        eq(iRoot.infos(Info.Kind.ESSENTIAL).size(), 2, "עצמית עברה");
+        eq(iRoot.infos(Info.Kind.INCIDENTAL).size(), 6, "למקרית");
+        check(iRoot.infos(Info.Kind.INCIDENTAL).get(5) == ess, "בסוף המקריות, אותו אובייקט");
+        Project ip2 = roundTrip(OpmlIO.write(ip), "אחרי עריכת מידע");
+        eq(ip2.mainRoot().infos.size(), iRoot.infos.size(), "מידע נשמר");
+        Item noTags = new Item("x");
+        eq(Edit.tagUse(ip2, "zz"), 0, "תגית שלא קיימת");
+
         // --- מספור עברי ---
         int[] n = {1, 2, 9, 10, 11, 15, 16, 19, 20, 22, 100, 123, 400, 500};
         String[] h = {"א", "ב", "ט", "י", "י\"א", "ט\"ו", "ט\"ז", "י\"ט", "כ", "כ\"ב", "ק", "קכ\"ג", "ת", "ת\"ק"};

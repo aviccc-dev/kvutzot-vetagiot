@@ -595,7 +595,10 @@ public class Main extends Activity implements MapView.Host {
                         if (c != null) { last[0] = c; changed(c, null); }
                     }});
                 break;
-            case MapView.A_EDIT: onEditNode(n); break;
+            case MapView.A_EDIT:
+                if (n.isDivision()) onEditNode(n);
+                else new ItemWindow(this, project, it, new Runnable() { public void run() { changed(it, null); }}).show();
+                break;
             case MapView.A_COLLAPSE:
                 it.collapsed = !it.collapsed;
                 changed(it, null);
