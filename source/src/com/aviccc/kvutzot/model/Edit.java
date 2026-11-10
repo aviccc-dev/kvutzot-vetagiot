@@ -225,4 +225,32 @@ public final class Edit {
         a.name = name.trim();
         p.syncAspects();
     }
+
+    /** "הצג עד רמה": פריטים בעומק קטן מ-level — פתוחים; בעומק level ומעלה — מכווצים. מחזיר כמה השתנו. */
+    public static int showToLevel(Project p, int level) {
+        int[] n = {0};
+        for (Item r : p.roots) toLevel(r, 0, level, n);
+        return n[0];
+    }
+
+    private static void toLevel(Item it, int depth, int level, int[] n) {
+        if (it.childCount() > 0) {
+            boolean c = depth >= level;
+            if (it.collapsed != c) { it.collapsed = c; n[0]++; }
+        }
+        for (Division d : it.divisions) for (Item c : d.children) toLevel(c, depth + 1, level, n);
+    }
+
+    /** העומק הגדול ביותר במפה. */
+    public static int maxDepth(Project p) {
+        int m = 0;
+        for (Item r : p.roots) m = Math.max(m, depth(r));
+        return m;
+    }
+
+    private static int depth(Item it) {
+        int m = 0;
+        for (Division d : it.divisions) for (Item c : d.children) m = Math.max(m, 1 + depth(c));
+        return m;
+    }
 }

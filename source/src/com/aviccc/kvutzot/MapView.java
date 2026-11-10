@@ -87,6 +87,10 @@ public class MapView extends View {
     private MapLayout layout;
     private final Map<MapLayout.Node, StaticLayout> texts = new HashMap<>();
     private final Map<MapLayout.Node, Float> markW = new HashMap<>();
+    /** צבעים מחושבים מראש לכל צומת: מילוי, מסגרת, טקסט, עובי. */
+    private final Map<MapLayout.Node, float[]> look = new HashMap<>();
+    /** פריסות טקסט שמורות לפי התווית — כך שינוי אחד לא בונה מחדש את כל הטקסטים. */
+    private final Map<String, StaticLayout> slCache = new HashMap<>();
     private float scale = 1f, tx, ty;
     private boolean needFit = true;
     private final ScaleGestureDetector scaler;
@@ -125,7 +129,7 @@ public class MapView extends View {
         selPaint.setColor(0xFFEF9F27);
         scaler = new ScaleGestureDetector(c, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override public boolean onScale(ScaleGestureDetector d) {
-                float ns = Math.max(.25f, Math.min(4f, scale * d.getScaleFactor()));
+                float ns = Math.max(com.aviccc.kvutzot.model.Zoom.MIN, Math.min(com.aviccc.kvutzot.model.Zoom.MAX, scale * d.getScaleFactor()));
                 float f = ns / scale;
                 tx = d.getFocusX() - (d.getFocusX() - tx) * f;
                 ty = d.getFocusY() - (d.getFocusY() - ty) * f;
@@ -214,13 +218,20 @@ public class MapView extends View {
     public void setProject(Project p, boolean vertical, boolean refit) {
         texts.clear();
         markW.clear();
+        look.clear();
+        if (slCache.size() > 4000) slCache.clear();
         layout = MapLayout.build(p, vertical, new MapLayout.Measurer() {
             public float[] measure(MapLayout.Node n) {
                 TextPaint tp = n.isDivision() ? labelPaint : textPaint;
                 String t = label(n);
-                float want = Math.min(maxW, (float) Math.ceil(Layout.getDesiredWidth(t, tp)));
-                StaticLayout sl = new StaticLayout(t, tp, Math.max(1, (int) Math.ceil(want)),
-                        Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
+                String key = (n.isDivision() ? "D" : "I") + t;
+                StaticLayout sl = slCache.get(key);
+                if (sl == null) {
+                    float want = Math.min(maxW, (float) Math.ceil(Layout.getDesiredWidth(t, tp)));
+                    sl = new StaticLayout(t, tp, Math.max(1, (int) Math.ceil(want)),
+                            Layout.Alignment.ALIGN_CENTER, 1f, 0f, false);
+                    slCache.put(key, sl);
+                }
                 texts.put(n, sl);
                 float mw = n.mark.isEmpty() ? 0 : markPaint.measureText(n.mark) + 5 * dens;
                 markW.put(n, mw);
@@ -228,6 +239,17 @@ public class MapView extends View {
                 return new float[]{sl.getWidth() + 2 * pad + mw, sl.getHeight() + 2 * vp};
             }
         }, 26 * dens, 10 * dens);
+        for (MapLayout.Node n : layout.nodes) {
+            int depth = n.isDivision() ? n.depth - 1 : n.depth;
+            int f, s, tc;
+            float sw;
+            if (n.isDivision()) { f = 0xFFFFFFFF; s = Palette.border(n.hue, depth); tc = s; sw = 1.2f * dens; }
+            else {
+                f = Palette.fill(n.hue, depth); s = Palette.border(n.hue, depth); tc = Palette.text(n.hue, depth);
+                sw = n.loose ? 1.2f * dens : Palette.borderWidth(depth, dens);
+            }
+            look.put(n, new float[]{Float.intBitsToFloat(f), Float.intBitsToFloat(s), Float.intBitsToFloat(tc), sw});
+        }
         if (refit) needFit = true;
         invalidate();
     }
@@ -241,7 +263,7 @@ public class MapView extends View {
     public void fit() {
         if (layout == null || getWidth() == 0) return;
         float w = layout.width + 2 * margin, h = layout.height + 2 * margin;
-        scale = Math.max(.25f, Math.min(1f, Math.min(getWidth() / w, getHeight() / h)));
+        scale = Math.max(com.aviccc.kvutzot.model.Zoom.MIN, Math.min(1f, Math.min(getWidth() / w, getHeight() / h)));
         tx = (getWidth() - w * scale) / 2;
         ty = layout.vertical ? 0 : (getHeight() - h * scale) / 2;
         if (ty < 0) ty = 0;
@@ -271,8 +293,18 @@ public class MapView extends View {
         c.translate(tx, ty);
         c.scale(scale, scale);
         c.translate(margin, margin);
+        // רק מה שבמסך (ביחידות המפה), עם שוליים
+        float slack = 40 * dens;
+        float vx0 = -tx / scale - margin - slack, vy0 = -ty / scale - margin - slack;
+        float vx1 = (getWidth() - tx) / scale - margin + slack, vy1 = (getHeight() - ty) / scale - margin + slack;
+        // בהקטנה גדולה הטקסט לא קריא — מציירים רק תיבות
+        boolean showText = textPaint.getTextSize() * scale >= 5.5f;
+        boolean fine = scale >= 0.35f;
         for (MapLayout.Node n : layout.nodes)
             for (MapLayout.Node k : n.children) {
+                float x0 = Math.min(n.x, k.x), x1 = Math.max(n.x + n.w, k.x + k.w);
+                float y0 = Math.min(n.y, k.y), y1 = Math.max(n.y + n.h, k.y + k.h);
+                if (x1 < vx0 || x0 > vx1 || y1 < vy0 || y0 > vy1) continue;
                 float[] e = layout.edge(n, k);
                 path.reset();
                 path.moveTo(e[0], e[1]);
@@ -281,24 +313,18 @@ public class MapView extends View {
             }
         float rad = 7 * dens;
         for (MapLayout.Node n : layout.nodes) {
-            int depth = n.isDivision() ? n.depth - 1 : n.depth;
+            if (n.x + n.w < vx0 || n.x > vx1 || n.y + n.h < vy0 || n.y > vy1) continue;
+            float[] lk = look.get(n);
+            if (lk == null) continue;
+            int textColor = Float.floatToRawIntBits(lk[2]);
             r.set(n.x, n.y, n.x + n.w, n.y + n.h);
-            int textColor;
-            if (n.isDivision()) {
-                fill.setColor(0xFFFFFFFF);
-                stroke.setColor(Palette.border(n.hue, depth));
-                stroke.setStrokeWidth(1.2f * dens);
-                stroke.setPathEffect(dash);
-                textColor = Palette.border(n.hue, depth);
-            } else {
-                fill.setColor(Palette.fill(n.hue, depth));
-                stroke.setColor(Palette.border(n.hue, depth));
-                stroke.setStrokeWidth(n.loose ? 1.2f * dens : Palette.borderWidth(depth, dens));
-                stroke.setPathEffect(n.loose ? dash : null);
-                textColor = Palette.text(n.hue, depth);
-            }
+            fill.setColor(Float.floatToRawIntBits(lk[0]));
             c.drawRoundRect(r, rad, rad, fill);
+            stroke.setColor(Float.floatToRawIntBits(lk[1]));
+            stroke.setStrokeWidth(lk[3]);
+            stroke.setPathEffect(fine && (n.isDivision() || n.loose) ? dash : null);
             c.drawRoundRect(r, rad, rad, stroke);
+            if (!showText) continue;
             StaticLayout sl = texts.get(n);
             Float mwObj = markW.get(n);
             float mw = mwObj == null ? 0 : mwObj;
@@ -312,6 +338,7 @@ public class MapView extends View {
                 sl.draw(c);
                 c.restore();
             }
+            if (!fine) continue;
             if (!n.isDivision() && (!n.item.infos.isEmpty() || !n.item.tagIds.isEmpty())) {
                 // נקודה קטנה: יש לפריט מידע נלווה (נחבא מתחתיו; נפתח ב"ערוך")
                 fill.setColor((textColor & 0x00FFFFFF) | 0xC0000000);

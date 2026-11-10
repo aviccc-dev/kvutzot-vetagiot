@@ -10,7 +10,7 @@ import java.util.List;
 public final class Zoom {
     private Zoom() {}
 
-    public static final float MIN = 0.25f, MAX = 4f;
+    public static final float MIN = 0.05f, MAX = 4f;
     private static final float EPS = 0.001f;
 
     /** צעד תקין: בין 0.05 ל-2. */

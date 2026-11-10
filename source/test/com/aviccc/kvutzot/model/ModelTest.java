@@ -500,7 +500,8 @@ public class ModelTest {
         // --- סקאלת ההגדלה ---
         eq(Zoom.values(0.5f).toString(), "[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]", "סקאלה בחצאים");
         eq(Zoom.values(0.25f).size(), 16, "סקאלה ברבעים");
-        eq(Zoom.values(0.1f).get(0), 0.3f, "צעד 0.1 מתחיל ב-0.3 (מעל המינימום)");
+        eq(Zoom.values(0.1f).get(0), 0.1f, "צעד 0.1 מתחיל ב-0.1");
+        eq(Zoom.values(0.05f).get(0), 0.05f, "הקטנה עד 0.05");
         eq(Zoom.next(1f, 0.5f, 1), 1.5f, "+ מ-1");
         eq(Zoom.next(1f, 0.5f, -1), 0.5f, "− מ-1");
         eq(Zoom.next(1.3f, 0.5f, 1), 1.5f, "+ מערך באמצע");
@@ -514,6 +515,18 @@ public class ModelTest {
         eq(Zoom.format(1.333f), "1.33", "תצוגה מעוגלת");
         eq(Zoom.clampStep(0f), 0.5f, "צעד אפס → חצי");
         eq(Zoom.clampStep(9f), 2f, "צעד גדול מדי");
+
+        // --- הצג עד רמה ---
+        Project lv = OpmlIO.read(file(dir, "צעצועים.xml"));
+        eq(Edit.maxDepth(lv), 2, "עומק הצעצועים");
+        Edit.showToLevel(lv, 1);
+        check(!lv.mainRoot().collapsed, "רמה 1: השורש פתוח");
+        check(lv.mainRoot().divisions.get(1).children.get(0).collapsed, "רמה 1: פלסטיק מכווץ");
+        eq(TextLines.build(lv).size(), 9, "רמה 1: שורש, שתי חלוקות, שישה בנים");
+        eq(Edit.showToLevel(lv, 9), 1, "פתח הכול: השתנה אחד");
+        check(!lv.mainRoot().divisions.get(1).children.get(0).collapsed, "פתח הכול");
+        Edit.showToLevel(lv, 0);
+        eq(TextLines.build(lv).size(), 1, "רמה 0: רק השורש");
 
         // --- מספור עברי ---
         int[] n = {1, 2, 9, 10, 11, 15, 16, 19, 20, 22, 100, 123, 400, 500};

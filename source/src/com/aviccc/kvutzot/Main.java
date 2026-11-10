@@ -45,7 +45,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3, REQ_EXPORT = 4, REQ_BRAIN = 5;
     private static final int M_OPEN = 1, M_NEW = 2, M_SAVE = 3, M_SAVE_AS = 4, M_RELOAD = 5,
             M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8, M_EXPORT = 9,
-            M_VIEW = 10, M_DIR = 11, M_FIT = 12, M_LOOSE = 13, M_SETTINGS = 14, M_SHOW = 15, M_SORT = 16, M_TABS = 17, M_CLOSE = 18, M_BRAIN = 19, M_TITLE = 20;
+            M_VIEW = 10, M_DIR = 11, M_FIT = 12, M_LOOSE = 13, M_SETTINGS = 14, M_SHOW = 15, M_SORT = 16, M_TABS = 17, M_CLOSE = 18, M_BRAIN = 19, M_TITLE = 20, M_LEVEL = 21;
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
     private SharedPreferences prefs;
@@ -92,6 +92,9 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private ScrollView textScroll;
     private MapView map;
     private boolean showMap, vertical;
+    /** מה שמוצג כרגע במפה; הטקסט והמפה נבנים רק כשהם על המסך (מהירות בקובץ גדול). */
+    private Project shownP;
+    private boolean textStale = true, mapStale = true, refitPending;
     /** יש שינויים שלא נשמרו. */
     private boolean dirty;
     private boolean autosave;
@@ -206,6 +209,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             return;
         }
         boolean m = showMap && project != null;
+        if (project != null && shownP != null) {
+            if (m && mapStale) { mapStale = false; map.setProject(shownP, vertical, refitPending); refitPending = false; }
+            if (!m && textStale) { textStale = false; buildText(shownP); }
+        }
         map.setVisibility(m ? View.VISIBLE : View.GONE);
         if (zoomBar != null) zoomBar.setVisibility(m ? View.VISIBLE : View.GONE);
         textScroll.setVisibility(m ? View.GONE : View.VISIBLE);
@@ -230,6 +237,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.add(0, M_CLOSE, 0, "סגור את הטאב");
         m.add(0, M_DIR, 1, "כיוון המפה");
         m.add(0, M_FIT, 1, "התאם למסך");
+        m.add(0, M_LEVEL, 1, "הצג עד רמה…");
         m.add(0, M_NEW, 1, "מפה חדשה");
         m.add(0, M_TITLE, 1, "שנה כותרת");
         m.add(0, M_SAVE, 2, "שמור");
@@ -255,6 +263,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.findItem(M_CLOSE).setVisible(cur != null);
         m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap && part == 2);
         m.findItem(M_FIT).setVisible(project != null && showMap && part == 2);
+        m.findItem(M_LEVEL).setVisible(project != null && viewMode == 0 && part == 2);
         m.findItem(M_LOOSE).setVisible(project != null && viewMode == 0 && part == 2);
         return true;
     }
@@ -290,6 +299,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 invalidateOptionsMenu();
                 return true;
             case M_FIT: map.fit(); return true;
+            case M_LEVEL: showToLevel(); return true;
             case M_SHOW: chooseView(); return true;
             case M_SORT:
                 viewSort = viewSort == Views.Sort.MAP ? Views.Sort.NAME : Views.Sort.MAP;
@@ -691,6 +701,16 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 + (note == null ? "" : " · " + note));
         stash();
         rebuildStrips();
+        map.setReadOnly(viewResult != null);
+        shownP = p;
+        textStale = true;
+        mapStale = true;
+        refitPending |= refit;
+        applyView();
+    }
+
+    /** בניית תצוגת הטקסט — רק כשהיא על המסך. */
+    private void buildText(Project p) {
         int indent = dp(22);
         int grey = Color.rgb(136, 135, 128);
         int blue = Color.rgb(24, 95, 165);
@@ -733,9 +753,21 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     Spanned.SPAN_PARAGRAPH);
         }
         body.setText(sb);
-        map.setReadOnly(viewResult != null);
-        map.setProject(p, vertical, refit);
-        applyView();
+    }
+
+    /** "הצג עד רמה": מכווץ כל מה שמתחת לרמה שנבחרה (אפשר לפתוח שוב ענף ענף, או "הכול"). */
+    private void showToLevel() {
+        final int max = Edit.maxDepth(project);
+        final String[] names = new String[max + 1];
+        for (int k = 0; k < max; k++) names[k] = k == 0 ? "רק השורש" : "עד רמה " + k;
+        names[max] = "הכול פתוח";
+        new AlertDialog.Builder(this).setTitle("הצג עד רמה")
+                .setItems(names, new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        int n = Edit.showToLevel(project, w == max ? Integer.MAX_VALUE : w);
+                        refitPending = true;
+                        if (n > 0) changedAny(true); else render(null, true);
+                    }}).show();
     }
 
     private static void span(SpannableStringBuilder sb, Object what, int s, int e) {
