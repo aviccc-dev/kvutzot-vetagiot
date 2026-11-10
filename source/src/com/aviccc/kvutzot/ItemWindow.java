@@ -222,7 +222,7 @@ public class ItemWindow {
             nameField.setAdapter(new ArrayAdapter<>(act, android.R.layout.simple_dropdown_item_1line, Edit.userInfoNames(p)));
             nameField.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                 public void onFocusChange(View v, boolean f) { if (f && nameField.getText().length() == 0) nameField.showDropDown(); }});
-            box.addView(nameField);
+            box.addView(listBox(nameField));
         } else nameField = null;
         final EditText textField = field(in == null ? "" : in.text, true);
         textField.setHint(kind == Info.Kind.USER ? "התוכן" : "התכונה");
@@ -289,7 +289,7 @@ public class ItemWindow {
         f.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             public void onFocusChange(View v, boolean has) { if (has) f.showDropDown(); }});
         AlertDialog d = new AlertDialog.Builder(act).setTitle("תגית" + (names.isEmpty() ? " חדשה" : " (קיימת או חדשה)"))
-                .setView(wrap(f))
+                .setView(wrap(names.isEmpty() ? f : listBox(f)))
                 .setPositiveButton("הוסף", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface di, int w) {
                         String s = f.getText().toString().trim();
@@ -338,6 +338,38 @@ public class ItemWindow {
             ed.setSelectAllOnFocus(true);
         }
         return ed;
+    }
+
+    /**
+     * שדה עם רשימה: מסגרת עדינה וחץ קטן ▾, כדי שרואים שיש שם רשימה. נגיעה בחץ פותחת אותה.
+     */
+    private View listBox(final AutoCompleteTextView f) {
+        LinearLayout row = new LinearLayout(act);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
+        frame.setColor(0xFFFFFFFF);
+        frame.setStroke(Math.max(1, dp(0.8f)), 0xFFB4B2A9);
+        frame.setCornerRadius(dp(6));
+        row.setBackground(frame);
+        row.setPadding(dp(8), 0, dp(4), 0);
+        f.setBackground(null);
+        f.setPadding(0, dp(10), 0, dp(10));
+        android.graphics.drawable.GradientDrawable drop = new android.graphics.drawable.GradientDrawable();
+        drop.setColor(0xFFFFFFFF);
+        drop.setStroke(Math.max(1, dp(0.8f)), 0xFFB4B2A9);
+        drop.setCornerRadius(dp(6));
+        f.setDropDownBackgroundDrawable(drop);
+        row.addView(f, new LinearLayout.LayoutParams(0, -2, 1f));
+        TextView arrow = text("▾", 16, 0xFF888780, false);
+        arrow.setPadding(dp(10), dp(6), dp(6), dp(6));
+        arrow.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+            f.requestFocus();
+            if (f.isPopupShowing()) f.dismissDropDown(); else { f.setText(f.getText()); f.showDropDown(); }
+        }});
+        row.addView(arrow);
+        return row;
     }
 
     private View wrap(View v) {
