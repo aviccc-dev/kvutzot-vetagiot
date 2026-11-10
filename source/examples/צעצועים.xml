@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>צעצועים בגן</title>
+    <kv version="1" absolute="no"/>
+  </head>
+  <body>
+    <outline text="צעצועים">
+      <outline kvDivision="yes" text="לפי צבע">
+        <outline text="לבן"/>
+        <outline text="שחור"/>
+        <outline text="צבעוני"/>
+      </outline>
+      <outline kvDivision="yes" text="לפי חומר">
+        <outline text="פלסטיק">
+          <outline kvDivision="yes" text="לפי קשיחות">
+            <outline text="קשיח"/>
+            <outline text="רך"/>
+          </outline>
+          <outline kvDivision="yes" text="לפי מקור">
+            <outline text="ממוחזר"/>
+            <outline text="חדש"/>
+          </outline>
+        </outline>
+        <outline text="עץ"/>
+        <outline text="בד"/>
+      </outline>
+    </outline>
+  </body>
+</opml>

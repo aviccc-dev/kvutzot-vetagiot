@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>משולש</title>
+    <kv version="1" absolute="no"/>
+    <kvTags>
+      <kvTag id="t1" name="גאומטריה"/>
+      <kvTag id="t2" name="צורות"/>
+      <kvTag id="t3" name="מתמטיקה"/>
+      <kvTag id="t4" name="שרטוט"/>
+      <kvTag id="t5" name="בנייה"/>
+    </kvTags>
+  </head>
+  <body>
+    <outline text="משולש" kvTags="t1 t2 t3 t4 t5">
+      <kvInfo kind="user" name="הגדרה">שטח סגור בעל שלוש צלעות מחוברות בקצותיהם בלבד</kvInfo>
+      <kvInfo kind="user" name="הגדרה">צורה מצולעת שסך זויותיה 180 מעלות (אולי)</kvInfo>
+      <kvInfo kind="user" name="הגדרה">שלוש נקודות שאינן על ישר אחד, מחוברות בקטעים (השלמה של Claude)</kvInfo>
+      <kvInfo kind="essential">סך הזוויות 180</kvInfo>
+      <kvInfo kind="essential">סימטריה חלקית (מוכרחת בסוג הכולל)</kvInfo>
+      <kvInfo kind="essential">שלוש צלעות, זוויות וקודקודים</kvInfo>
+      <kvInfo kind="incidental">גודל</kvInfo>
+      <kvInfo kind="incidental">צבע</kvInfo>
+      <kvInfo kind="incidental">כיוון</kvInfo>
+      <kvInfo kind="incidental">מיקום</kvInfo>
+      <kvInfo kind="incidental">חומר</kvInfo>
+      <kvInfo kind="user" name="דוגמה">צורת אוזן המן</kvInfo>
+      <kvInfo kind="user" name="דוגמה">גג, תמרור, סרגל משולש</kvInfo>
+      <outline kvDivision="yes" text="לפי הצלעות">
+        <outline text="שווה צלעות">
+          <kvInfo kind="user" name="הערה">במקור: "שווה בכל חלקיו", אולי אותו דבר</kvInfo>
+          <kvInfo kind="incidental">סימטריה חלקית (אפשרית במינים)</kvInfo>
+        </outline>
+        <outline text="שווה שוקיים">
+          <kvInfo kind="incidental">סימטריה חלקית (אפשרית במינים)</kvInfo>
+        </outline>
+        <outline text="שונה צלעות">
+          <kvInfo kind="incidental">סימטריה חלקית (אפשרית במינים)</kvInfo>
+        </outline>
+      </outline>
+      <outline kvDivision="yes" text="לפי הזוויות">
+        <outline text="ישר זוית"/>
+        <outline text="חד זוויות"/>
+        <outline text="קהה זוויות"/>
+      </outline>
+    </outline>
+    <outline text="צורות דו־מימדיות (הורה או תגית? פתוח)" kvLoose="yes"/>
+    <outline text="גובה, תיכון, חוצה זווית" kvLoose="yes"/>
+    <outline text="היקף ושטח" kvLoose="yes"/>
+    <outline text="פיתגורס" kvLoose="yes"/>
+    <outline text="חפיפה ודמיון" kvLoose="yes"/>
+  </body>
+</opml>
