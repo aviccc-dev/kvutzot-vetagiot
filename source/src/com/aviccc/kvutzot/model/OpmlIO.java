@@ -20,10 +20,27 @@ public final class OpmlIO {
 
     public static final String YES = "yes";
 
+    /**
+     * שורת הפתיחה של קובץ המפה (10.11.2026). Dropbox מנקה את התגים מכל קובץ שמתחיל ב-"<",
+     * ולכן הקובץ מתחיל בשורת טקסט רגילה; אחריה XML תקני. מחיקת השורה נותנת OPML תקני.
+     */
+    public static final String HEADER = "קבוצות ותגיות · קובץ מפה";
+
+    /** מסיר שורת פתיחה שאינה XML (אם יש), ומחזיר את ה-XML עצמו. */
+    public static String stripHeader(String text) {
+        String s = text;
+        if (s.length() > 0 && s.charAt(0) == '\uFEFF') s = s.substring(1);
+        int k = 0;
+        while (k < s.length() && Character.isWhitespace(s.charAt(k))) k++;
+        if (k >= s.length() || s.charAt(k) == '<') return s;
+        int nl = s.indexOf('\n', k);
+        return nl < 0 ? "" : s.substring(nl + 1);
+    }
+
     // ---------------- קריאה ----------------
 
     public static Project read(String text) throws Xml.ParseException {
-        Xml.Node root = Xml.parse(text);
+        Xml.Node root = Xml.parse(stripHeader(text));
         if (!root.name.equals("opml")) throw new Xml.ParseException("השורש אינו opml", 0);
         Project p = new Project();
         Xml.Node head = root.child("head");
@@ -123,7 +140,13 @@ public final class OpmlIO {
 
     // ---------------- כתיבה ----------------
 
+    /** קובץ המפה: שורת פתיחה ואחריה XML. */
     public static String write(Project p) {
+        return HEADER + "\n" + writeOpml(p);
+    }
+
+    /** OPML תקני בלבד, בלי שורת פתיחה: לייצוא לתוכנות אחרות. */
+    public static String writeOpml(Project p) {
         Xml.Node root = new Xml.Node("opml");
         root.attrs.put("version", "2.0");
         Xml.Node head = new Xml.Node("head");

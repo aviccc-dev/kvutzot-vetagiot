@@ -35,9 +35,9 @@ import java.nio.charset.Charset;
 
 /** גרסה 0.1: פתיחת קובץ, תצוגת טקסט, שמירה, וזיהוי שינוי מבחוץ. */
 public class Main extends Activity {
-    private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3;
+    private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3, REQ_EXPORT = 4;
     private static final int M_OPEN = 1, M_NEW = 2, M_SAVE = 3, M_SAVE_AS = 4, M_RELOAD = 5,
-            M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8;
+            M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8, M_EXPORT = 9;
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
     private SharedPreferences prefs;
@@ -108,6 +108,7 @@ public class Main extends Activity {
         m.add(0, M_SAVE, 2, "שמור");
         m.add(0, M_SAVE_AS, 3, "שמור עותק בשם");
         m.add(0, M_RELOAD, 4, "טען מחדש");
+        m.add(0, M_EXPORT, 4, "ייצוא ל-OPML (לתוכנות אחרות)");
         m.add(0, M_EX_TRI, 5, "דוגמה: משולש");
         m.add(0, M_EX_TOYS, 6, "דוגמה: צעצועים");
         m.add(0, M_ABOUT, 7, "אודות");
@@ -119,6 +120,7 @@ public class Main extends Activity {
         m.findItem(M_SAVE).setEnabled(uri != null && project != null);
         m.findItem(M_SAVE_AS).setEnabled(project != null);
         m.findItem(M_RELOAD).setEnabled(uri != null);
+        m.findItem(M_EXPORT).setEnabled(project != null);
         return true;
     }
 
@@ -135,6 +137,7 @@ public class Main extends Activity {
             case M_NEW: create(REQ_CREATE, "מפה חדשה.xml"); return true;
             case M_SAVE_AS: create(REQ_SAVE_AS, (project.title.isEmpty() ? "מפה" : project.title) + ".xml"); return true;
             case M_SAVE: save(); return true;
+            case M_EXPORT: create(REQ_EXPORT, (project.title.isEmpty() ? "מפה" : project.title) + ".opml"); return true;
             case M_RELOAD: load(uri, false); return true;
             case M_EX_TRI: example("triangle.xml", "משולש"); return true;
             case M_EX_TOYS: example("toys.xml", "צעצועים"); return true;
@@ -181,6 +184,15 @@ public class Main extends Activity {
             writeThenLoad(u, OpmlIO.write(p));
         } else if (req == REQ_SAVE_AS) {
             writeThenLoad(u, OpmlIO.write(project));
+        } else if (req == REQ_EXPORT) {
+            final Uri out = u;
+            final String text = OpmlIO.writeOpml(project);
+            new Thread(new Runnable() { public void run() {
+                try {
+                    writeText(out, text);
+                    runOnUiThread(new Runnable() { public void run() { status.setText("יוצא ל-OPML: " + displayName(out)); }});
+                } catch (Exception e) { fail("הייצוא נכשל", e); }
+            }}).start();
         }
     }
 

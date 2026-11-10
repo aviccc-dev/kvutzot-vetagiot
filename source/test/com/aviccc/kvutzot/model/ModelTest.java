@@ -175,6 +175,20 @@ public class ModelTest {
         eq(S.size(), 1, "מכווץ: רק השורש");
         eq(S.get(0).hidden, 3, "מכווץ: שלושה מוסתרים");
 
+        // --- שורת פתיחה ---
+        String full = OpmlIO.write(p);
+        check(full.startsWith(OpmlIO.HEADER + "\n<?xml"), "הקובץ מתחיל בשורת פתיחה ואחריה XML");
+        String opml = OpmlIO.writeOpml(p);
+        check(opml.startsWith("<?xml"), "ייצוא OPML בלי שורת פתיחה");
+        eq(full, OpmlIO.HEADER + "\n" + opml, "ההבדל הוא רק שורת הפתיחה");
+        eq(OpmlIO.write(OpmlIO.read(opml)), full, "קריאת OPML בלי שורת פתיחה");
+        eq(OpmlIO.write(OpmlIO.read("\uFEFF" + full)), full, "שורת פתיחה עם BOM");
+        eq(OpmlIO.write(OpmlIO.read("כל טקסט אחר\r\n" + opml)), full, "שורת פתיחה אחרת ו-CRLF");
+        eq(OpmlIO.write(OpmlIO.read("\n\n  " + opml)), full, "רווחים לפני ה-XML");
+        boolean thrownH = false;
+        try { OpmlIO.read("רק שורת פתיחה"); } catch (Xml.ParseException ex) { thrownH = true; }
+        check(thrownH, "שורת פתיחה בלי XML נדחית");
+
         // --- מספור עברי ---
         int[] n = {1, 2, 9, 10, 11, 15, 16, 19, 20, 22, 100, 123, 400, 500};
         String[] h = {"א", "ב", "ט", "י", "י\"א", "ט\"ו", "ט\"ז", "י\"ט", "כ", "כ\"ב", "ק", "קכ\"ג", "ת", "ת\"ק"};
