@@ -1,0 +1,1589 @@
+קבוצות ותגיות · קובץ מפה
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>ספר ההגיון</title>
+    <kv version="1" absolute="no"/>
+    <kvAspects>
+      <kvAspect id="b1" name="שתי הפעלות"/>
+      <kvAspect id="b2" name="חלקי המקרה"/>
+      <kvAspect id="b3" name="לעליון או אמצעי"/>
+      <kvAspect id="b4" name="רחוק וקרוב"/>
+      <kvAspect id="b5" name="לפי הוראתו"/>
+      <kvAspect id="b6" name="לפי הענינים הנרמזים בם"/>
+      <kvAspect id="b7" name="עצמי ומקרי"/>
+      <kvAspect id="b8" name="עקרי וטפל"/>
+      <kvAspect id="b9" name="שקולים ובלתי שקולים"/>
+      <kvAspect id="b10" name="שתפות מכרח או בלתי מכרח"/>
+      <kvAspect id="b11" name="טבעית ורצונית"/>
+      <kvAspect id="b12" name="מולידה, מקימת ומפסדת"/>
+      <kvAspect id="b13" name="רחוקה, קרובה וסמוכה"/>
+      <kvAspect id="b14" name="אחרון ואמצעי"/>
+      <kvAspect id="b15" name="לכל ארבע הסבות יש מסבב"/>
+      <kvAspect id="b16" name="נושא ועסק"/>
+      <kvAspect id="b17" name="מחלט ומגבל"/>
+      <kvAspect id="b18" name="מיחד ובלתי מיחד"/>
+      <kvAspect id="b19" name="תוכיי ונסמך"/>
+      <kvAspect id="b20" name="שלם ובלתי שלם"/>
+      <kvAspect id="b21" name="קודם ונמשך"/>
+      <kvAspect id="b22" name="בכח ובפעל"/>
+      <kvAspect id="b23" name="חלקי הגדר"/>
+      <kvAspect id="b24" name="פשוט ומרכב"/>
+      <kvAspect id="b25" name="מיני ההפכיים"/>
+      <kvAspect id="b26" name="גמור ובלתי גמור"/>
+      <kvAspect id="b27" name="חלקי המאמרים"/>
+      <kvAspect id="b28" name="הקשר"/>
+      <kvAspect id="b29" name="לפי הכמות"/>
+      <kvAspect id="b30" name="לפי האיכות"/>
+      <kvAspect id="b31" name="סתמיי ותנאיי"/>
+      <kvAspect id="b32" name="אמתי או כוזב"/>
+      <kvAspect id="b33" name="מכרח או אפשרי"/>
+      <kvAspect id="b34" name="מדקדק או לא מדקדק"/>
+      <kvAspect id="b35" name="שנוי המאמר"/>
+      <kvAspect id="b36" name="מיני ההקשים"/>
+      <kvAspect id="b37" name="ההבחנות שבהקש השלם"/>
+      <kvAspect id="b38" name="ההשתמש מהם"/>
+      <kvAspect id="b39" name="סתירת ההקש"/>
+      <kvAspect id="b40" name="ההטעאות"/>
+      <kvAspect id="b41" name="שכליי ומעשיי"/>
+      <kvAspect id="b42" name="ארבע ההבחנות שבוכוח"/>
+    </kvAspects>
+  </head>
+  <body>
+    <outline text="מלאכת ההגיון">
+      <kvInfo kind="user" name="הגדרה">כל עמל השכל והשתדלותו הוא להשיג הדברים לאמתם. אמנם, יש שיקרה לו לטעות בהן ויהיה מה שישיג מהן כוזב, על כן יצטרך לו למוד לדעת להכיר מקומות המכשול שאפשר לו לכשל בם וידע איך ישמר מהם עד שתהיה השגתו אמתית. וכלל הלמוד הזה הוא הנקרא מלאכת ההגיון.</kvInfo>
+      <kvInfo kind="user" name="מקור">פרק א, א</kvInfo>
+      <kvInfo kind="user" name="הערה">החלוקה הראשונה — של המשתמש (10.11.2026): עסק ההגיון, ההגיון עצמו, הסדר. שאר החלוקות — לפי הספר. מה שמסומן "הסקה של Claude" — החלטה שלי על המבנה. שמות הבחינות לקוחים ממילות הספר בחלוקה; כשהספר מחלק באותו זוג מילים במקומות שונים (למשל רחוק וקרוב, עקרי וטפל, פשוט ומרכב) — נתתי שם אחד, כדי שבתצוגת הבחינות ייראה איפה כל בחינה חוזרת. גם "עצמי ומקרי" אוחד: מתחבר (עצמי ומקרי), צורה (עצמית ומקרית), כל (מצד עצמו ומקריי), פועל (מצד עצמו ובמקרה) — הסקה של Claude, אפשר לפצל.</kvInfo>
+      <outline text="עסק ההגיון">
+        <kvInfo kind="user" name="פירוש">עד הנה בארנו עסק ההגיון; עתה נבאר חלוקו למחלקותיו (פרק ד, א)</kvInfo>
+        <kvInfo kind="user" name="מקור">פרקים א–ג</kvInfo>
+        <kvInfo kind="user" name="הערה">הסקה של Claude: סדר הבנים כאן לפי סדר הספר. "ההבחנה" (פרק א, ב–ג) — בראש, כי הספר פותח בה.</kvInfo>
+        <outline text="ההבחנה">
+          <kvInfo kind="user" name="הגדרה">עקר מלאכת השכל בבקשתו ידיעת הדברים הוא ההבחנה עד שיכיר כל דבר ודבר בפני עצמו נבחן ונבדל מכל זולתו.</kvInfo>
+          <kvInfo kind="user" name="פירוש">אמנם בהיות שכלל המציאיות יש בהם מה שדומה האחד לזולתו ויש בהם מה שנבדל האחד מזולתו, על כן לא יגיע השכל לסוף מלאכתו עד שישתלם בשתי הפעלות, שהם: הדמיון וההבדל.</kvInfo>
+          <kvInfo kind="user" name="פירוש">בכל אחד משתי הפעלות יכול לפל הטעות אם ידמה מה שאינו דומה, או יבדיל מה שלא נבדל. על כן לשתיהן צריך למוד ואמון וחקים מסדרים, שיעמידוהו בנתיב הישר ולא ישגה ממנו, עד שישיג תכליתו על נכון.</kvInfo>
+          <kvInfo kind="user" name="מקור">פרק א, ב–ג</kvInfo>
+          <outline kvDivision="yes" text="שתי הפעלות" kvAspect="b1">
+            <outline text="הדמיון">
+              <kvInfo kind="user" name="מקור">פרק א, ב</kvInfo>
+            </outline>
+            <outline text="ההבדל">
+              <kvInfo kind="user" name="מקור">פרק א, ב</kvInfo>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="כלל המציאיות">
+          <kvInfo kind="user" name="הגדרה">כלל המציאיות יתחלק לשני חלקים. הראשון: מרגש או מוחש; והשני: משכל.</kvInfo>
+          <kvInfo kind="user" name="מקור">פרק א, ד</kvInfo>
+          <outline text="המרגש (המוחש)">
+            <kvInfo kind="user" name="הגדרה">המרגש הוא שמשג מן אחד החושים</kvInfo>
+            <kvInfo kind="user" name="דוגמה">המוחש הוא, דרך משל, האבן והעץ, שרואים אותו בחוש</kvInfo>
+            <kvInfo kind="user" name="מקור">פרק א, ד</kvInfo>
+          </outline>
+          <outline text="המשכל">
+            <kvInfo kind="user" name="הגדרה">המשכל הוא אשר ידמהו השכל בדמיונו, אך אין מציאותו כן חוץ ממנו, ויחלק גם הוא לשנים, האחד מפרד והאחד מדמה.</kvInfo>
+            <kvInfo kind="user" name="דוגמה">והמשכל - כגון החכמה, הזכרון, הגבורה, שהם דברים שמשכילים ומצירים אותם בשכל, אך אין החוש רואה אותם.</kvInfo>
+            <kvInfo kind="user" name="מקור">פרק א, ד</kvInfo>
+            <outline text="המפרד">
+              <kvInfo kind="user" name="הגדרה">המפרד הוא - שמה שאינו משג מן החושים אלא בחבור עם זולתו, יפרידהו השכל בדמיונו ויקחהו לבדו.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">המראה, דהינו הלבן והשחרות ושאר הגונים אין החוש רואה אותם לבדם אלא נתונים באחד מן הגופים, אך השכל מציר הלבן היותו ענין אחד נוסף על הגוף שהוא בתוכו, ונקרא שמפרידו בדמיונו מן הגוף שהוא נתון בו וזהו המפרד</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק א, ה</kvInfo>
+            </outline>
+            <outline text="המדמה">
+              <kvInfo kind="user" name="הגדרה">המדמה הוא - אשר אינו משג מן החושים כלל לא לבדו ולא בחבור אלא השכל הוא אשר ידמה אותו, ויתחלק גם הוא לשנים, הראשון משג והשני בדוי.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק א, ה</kvInfo>
+              <outline text="המשג">
+                <kvInfo kind="user" name="הגדרה">המשג הוא הדבר שאף על פי שאין מציאותו הוה במה שמוחש, ראוי למצא לפי ההדרגה, ונמשך המוחש אחריו בסדר</kvInfo>
+                <kvInfo kind="user" name="פירוש">המשג הוא - שממה שאנו רואים בחוש אנחנו דנים על מציאות שאין אנו רואים.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">אנו רואים שיש בני אדם והם חיים, בהמות וגם הם חיים, עופות וגם הם כך, נאמר שיש מין אחד של בריאה בין הבריאות שנקרא מין הבעלי חיים, ואין המין הזה דבר הוה ממש זולת אלה הפרטים שלו שזכרנו</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק א, ו</kvInfo>
+              </outline>
+              <outline text="הבדוי">
+                <kvInfo kind="user" name="הגדרה">והבדוי הוא אשר איננו לא הוה ולא ראוי ולא המוחש נמשך אחריו בסדר.</kvInfo>
+                <kvInfo kind="user" name="פירוש">מה שאין כן הבדוי, שהוא דמיון לבד, ואין דבר במוחש שנדון ממנו היות הבדוי ההוא.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק א, ו</kvInfo>
+              </outline>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="המשגים">
+          <kvInfo kind="user" name="הגדרה">כל משג הוא או עצם או מקרה.</kvInfo>
+          <kvInfo kind="user" name="פירוש">בין המשגים המוחשים והמשכלים שנתבארו למעלה.</kvInfo>
+          <kvInfo kind="user" name="פירוש">אלה העשרה כללי ענינים שזכרנו - אחד עצם ותשעה מקרים - תחתיהם נכללים כל עניני המציאות למדרגותיהם.</kvInfo>
+          <kvInfo kind="user" name="מקור">פרק ב, א–ב; פרק ג, כג</kvInfo>
+          <outline text="עצם">
+            <kvInfo kind="user" name="הגדרה">עצם - הוא הדבר הממשיי שעמידתו בעצמו ולא באחר, ובו עומדים המקרים המתחברים לו.</kvInfo>
+            <kvInfo kind="user" name="דוגמה">עצם האבן, העץ, הבעל־חיים וכל הנמצאים רוחנים וגשמים.</kvInfo>
+            <kvInfo kind="user" name="מקור">פרק ב, ג</kvInfo>
+          </outline>
+          <outline text="מקרה">
+            <kvInfo kind="user" name="הגדרה">מקרה - הוא ענין ימצא בעצם ועומד בו, ולא יעמד זולת עצם.</kvInfo>
+            <kvInfo kind="user" name="דוגמה">המראה שזכרנו למעלה, היפי, החכמה שאינם נמצאים בפני עצמם, אלא נתונים באחד מן העצמים.</kvInfo>
+            <kvInfo kind="user" name="כלל">מציאות המקרה הוא התחבר לעצם. (פרושו: כי הנה המקרה אינו אלא ענין היות בעצם, בחינה אחת או בחינות רבות נוספות על היותו עצם.)</kvInfo>
+            <kvInfo kind="user" name="כלל">המקרה תלוי בעצם בין בהויה בין במציאות.</kvInfo>
+            <kvInfo kind="user" name="כלל">מקרה מבלתי עצם נמנע.</kvInfo>
+            <kvInfo kind="user" name="כלל">המקרה לא יתגלגל מנושא לנושא או מעצם לעצם.</kvInfo>
+            <kvInfo kind="user" name="פירוש">אשר היות הבחינה ההיא נמצאת בעצם זהו המקרה שקרה לעצם.</kvInfo>
+            <kvInfo kind="user" name="מקור">פרק ב, ד; פרק ג</kvInfo>
+            <outline kvDivision="yes" text="חלקי המקרה" kvAspect="b2">
+              <outline text="כמות">
+                <kvInfo kind="user" name="הגדרה">כמות הוא מקרה ישער בו הדבר ובעבורו ישאל כמה, ויתחלק לשני חלקים: האחד - המדה שקראוה כמות דבק. והשני - המספר שקראוהו כמות נפרד.</kvInfo>
+                <kvInfo kind="user" name="פירוש">כי רבוי החלקים והדבקם זה לזה עושים גוף בעל שעור שיוכל למדד, וזה מה שכונו באמרם: כמות דבק. ורבוים בפרוד זה מזה מוליד המספר, וזה מה שכונו בקראם אותו: כמות נפרד.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, ג</kvInfo>
+                <outline text="המדה (כמות דבק)">
+                  <kvInfo kind="user" name="מקור">פרק ג, ג</kvInfo>
+                </outline>
+                <outline text="המספר (כמות נפרד)">
+                  <kvInfo kind="user" name="מקור">פרק ג, ג</kvInfo>
+                </outline>
+              </outline>
+              <outline text="איכות">
+                <kvInfo kind="user" name="הגדרה">איכות - מקרה, בו יאמר על הדבר מה ואיך, יתחלק לארבעה מינים: הקנין וההכנה הטבעית. התכונה והצורה.</kvInfo>
+                <kvInfo kind="user" name="כלל">באיכות שיך פחות ויתר.</kvInfo>
+                <kvInfo kind="user" name="כלל">בין האיכיות יש הפכיות. (דרך משל: חם וקר.)</kvInfo>
+                <kvInfo kind="user" name="כלל">מצד האיכות יאמר בדברים דומים ולא דומים.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, ד</kvInfo>
+                <outline text="הקנין (באיכות)">
+                  <kvInfo kind="user" name="הגדרה">הקנין הוא איכות אחד באדם, שעל ידו הוא ראוי לאיזה פעלות. ויתחלק לשלשה מינים: עיוני, מעשיי ומלאכותיי.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ג, ה</kvInfo>
+                  <outline text="העיוני">
+                    <kvInfo kind="user" name="הגדרה">העיוני הוא מה שענינו ידיעה והשגה, ומיניו שלשה: הטבע, ומה שאחר הטבע, והתכונות.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, ו</kvInfo>
+                    <outline text="הטבע">
+                      <kvInfo kind="user" name="הגדרה">הטבע הוא ידיעת הדברים הטבעיים בבחינת טבעיים ומשג מהחושים</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ג, ז</kvInfo>
+                    </outline>
+                    <outline text="מה שאחר הטבע">
+                      <kvInfo kind="user" name="הגדרה">מה שאחר הטבע - ידיעת הדברים שלמעלה מכל החושים ולא משגים מהם.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ג, ז</kvInfo>
+                    </outline>
+                    <outline text="התכונות">
+                      <kvInfo kind="user" name="הגדרה">התכונות - נכללים בהם חכמת הגלגלים, התשברת, ההנדסה, המבט, הנגון, וכיוצא.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ג, ז</kvInfo>
+                    </outline>
+                  </outline>
+                  <outline text="המעשיי">
+                    <kvInfo kind="user" name="הגדרה">המעשיי הוא ידיעת תקון מעשה, ומתחלק לשלשה מינים, והם: המוסר, המדינות, והפרנסה.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, ח</kvInfo>
+                    <outline text="המוסר">
+                      <kvInfo kind="user" name="מקור">פרק ג, ח</kvInfo>
+                    </outline>
+                    <outline text="המדינות">
+                      <kvInfo kind="user" name="מקור">פרק ג, ח</kvInfo>
+                    </outline>
+                    <outline text="הפרנסה">
+                      <kvInfo kind="user" name="מקור">פרק ג, ח</kvInfo>
+                    </outline>
+                  </outline>
+                  <outline text="המלאכתיי">
+                    <kvInfo kind="user" name="הגדרה">המלאכתיי הוא ידיעת מלאכה אחת, ומתחלק לשנים: מלאכות חפשיות. והשני - הלא חפשיות.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, ט</kvInfo>
+                    <outline text="המלאכות החפשיות">
+                      <kvInfo kind="user" name="הגדרה">החפשיות הם הראויות לשרים ונכבדים, והם שלשה: דקדוק, הלצה, הגיון.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ג, י</kvInfo>
+                      <outline text="דקדוק">
+                        <kvInfo kind="user" name="מקור">פרק ג, י</kvInfo>
+                      </outline>
+                      <outline text="הלצה">
+                        <kvInfo kind="user" name="מקור">פרק ג, י</kvInfo>
+                      </outline>
+                      <outline text="הגיון">
+                        <kvInfo kind="user" name="מקור">פרק ג, י</kvInfo>
+                      </outline>
+                    </outline>
+                    <outline text="המלאכות הלא חפשיות">
+                      <kvInfo kind="user" name="הגדרה">הלא החפשיות הן הבלתי ראויות לשרים ונכבדים</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">כגון: התפירה, הבנין, האריגה וכיוצא.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ג, י</kvInfo>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="ההכנה הטבעית">
+                  <kvInfo kind="user" name="הגדרה">ההכנה הטבעית הנמצא בנושא מצד טבעו</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">כגון: חדוד השכל והזכרון, חזק הגוף ובריאותו, קלות התנועה.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ג, יא</kvInfo>
+                </outline>
+                <outline text="התכונה">
+                  <kvInfo kind="user" name="הגדרה">התכונה היא מה שבתכן הדבר ומזגו, ותתחלק לשנים: האחד - ראשונית, והשני - שנית.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ג, יב</kvInfo>
+                  <outline text="התכונה הראשונית">
+                    <kvInfo kind="user" name="הגדרה">הראשונית מתחלק לארבעה, והם: החם והקר, הלחות והיבש</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, יג</kvInfo>
+                  </outline>
+                  <outline text="התכונה השנית">
+                    <kvInfo kind="user" name="דוגמה">והשנית - כגון: הקשי והרך, הקלות והכבד, וכיוצא.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, יג</kvInfo>
+                  </outline>
+                </outline>
+                <outline text="הצורה (באיכות)">
+                  <kvInfo kind="user" name="הגדרה">הצורה היא צורת הדבר שבה נראה ומצטיר בשכל, ומתחלקת לשתים: האחת - טבעית, והשניה - מלאכתית.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ג, יד</kvInfo>
+                  <outline text="הצורה הטבעית">
+                    <kvInfo kind="user" name="דוגמה">הטבעית - צורת האדם, צורת הסוס, וכן שאר המינים</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, טו</kvInfo>
+                  </outline>
+                  <outline text="הצורה המלאכתית">
+                    <kvInfo kind="user" name="הגדרה">המלאכתית - צורת הנעשה בידי אדם.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, טו</kvInfo>
+                  </outline>
+                </outline>
+              </outline>
+              <outline text="פעלה">
+                <kvInfo kind="user" name="הגדרה">פעלה היא התעוררות העצם או גלוי ויציאת כח הפועל שבעצם. (או תאמר: המשך המסבב מן הסבה הפועלת, וכמו שנכתוב לקמן).</kvInfo>
+                <kvInfo kind="user" name="דוגמה">החמום הוא המשך החם מהאש</kvInfo>
+                <kvInfo kind="user" name="כלל">כל פועל ברצון פועל לתכלית מה.</kvInfo>
+                <kvInfo kind="user" name="כלל">בפעלות יש פחות ויתר.</kvInfo>
+                <kvInfo kind="user" name="כלל">בפעלה שיך הפכיות. (דרך משל: מחמם - מקרר.)</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, טז</kvInfo>
+              </outline>
+              <outline text="הפעל">
+                <kvInfo kind="user" name="הגדרה">ההפעל הוא רשם הפעלה.</kvInfo>
+                <kvInfo kind="user" name="כלל">בהפעל יש פחות ויתר.</kvInfo>
+                <kvInfo kind="user" name="כלל">בהפעל שיך הפכיות.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, יז</kvInfo>
+              </outline>
+              <outline text="יחס">
+                <kvInfo kind="user" name="הגדרה">יחס הוא מין קשר בין שני דברים, בעבורו יאמר באחד מהם שהוא של חברו.</kvInfo>
+                <kvInfo kind="user" name="פירוש">כגון אב שהוא ענין מתיחס אצל בן ובן הוא ענין מתיחס אצל אב. כי אין אב אלא שיש לו בן ואין בן אלא שיש לו אב.</kvInfo>
+                <kvInfo kind="user" name="כלל">מקרה היחס גובר ברבויו בכל המקרים.</kvInfo>
+                <kvInfo kind="user" name="כלל">שני המתיחסים שוים בהכרח בהעדר ובמציאות. (פרושו: בהמצא אחד, מציאות השני מכרח. וכן בהעדר האחד, מכרח בטול השני.)</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, יח</kvInfo>
+              </outline>
+              <outline text="זמן">
+                <kvInfo kind="user" name="הגדרה">זמן - מקרה זמניי בעצם, דהינו: שעור מרחקו מן התחלה או הסוף.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, יט</kvInfo>
+              </outline>
+              <outline text="מצב">
+                <kvInfo kind="user" name="הגדרה">מצב - מקרה מצבי בעצם.</kvInfo>
+                <kvInfo kind="user" name="פירוש">אפן המצא חלקי העצם במקום - זהו הנקרא מצב, כגון העמידה, הישיבה, הנטיה, וכיוצא.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, כא</kvInfo>
+              </outline>
+              <outline text="קנין">
+                <kvInfo kind="user" name="הגדרה">קנין - מקרה מורה מין קניה נקנית בעצם. או הלבשה עליו.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">המלבושים שעל האדם, או המדות הקנויות בנפשו - הענוה, הנדיבות, וכיוצא.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, כב</kvInfo>
+              </outline>
+              <outline text="אנה">
+                <kvInfo kind="user" name="הגדרה">אנה - מקרה מקומי בעצם, דהינו: החלק מן העולם שממלא ממנו.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, כ</kvInfo>
+              </outline>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="הנדרשים בעשרה הענינים">
+          <kvInfo kind="user" name="הגדרה">והנדרשים בעשרה הענינים שזכרנו - שנים, והם: הפרטים והכוללים.</kvInfo>
+          <kvInfo kind="user" name="מקור">פרק ג, כד</kvInfo>
+          <outline text="הפרטים">
+            <kvInfo kind="user" name="הגדרה">הפרטים הם הנמצאים כל אחד בפני עצמו, כגון: איש מן האנשים, עוף מן העופות, אילן מן האילנות, וכיוצא בזה, ונקראים אישים.</kvInfo>
+            <kvInfo kind="user" name="מקור">פרק ג, כה</kvInfo>
+          </outline>
+          <outline text="הכוללים">
+            <kvInfo kind="user" name="הגדרה">הכוללים - שנים, ראשון: כוללי המציאות, והשני: משיגיהם.</kvInfo>
+            <kvInfo kind="user" name="מקור">פרק ג, כו</kvInfo>
+            <outline text="כוללי המציאות">
+              <kvInfo kind="user" name="הגדרה">כוללי המציאות גם הם שנים, הראשון - סוג, והשני - מין.</kvInfo>
+              <kvInfo kind="user" name="פירוש">הסוג והמין ענינם אחד, והוא כלל כולל פרטים מצד שתוף שהם משתפים בענין אחד. וההפרש שבין הסוג והמין שמה שכולל יותר - יקרא סוג, ומה שאינו כולל אלא מקצת ממה שנכלל בסוג - יקרא מין.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק ג, כז–כח</kvInfo>
+              <outline text="סוג">
+                <kvInfo kind="user" name="הגדרה">מה שכולל יותר - יקרא סוג</kvInfo>
+                <kvInfo kind="user" name="דוגמה">בעלי חיים הוא סוג, כי נכללים בזה החיות והעופות, הדגים ובני אדם מצד השתוף שיש ביניהם בענין החיות, שכלם חיים.</kvInfo>
+                <kvInfo kind="user" name="כלל">הסוג גדול מכל מין ומין שתחתיו. (פרושו: כי הסוג הוא מה שכולל מינים הרבה.)</kvInfo>
+                <kvInfo kind="user" name="כלל">הסוג אינו מתפרד ממיניו. (פרושו: כי אין הסוג אלא החק הכללי השוה למיניו, ונמצא שאי אפשר לשום מין להיות בלא החק הזה.)</kvInfo>
+                <kvInfo kind="user" name="כלל">מה שיקרה לסוג יקרה לכל מין.</kvInfo>
+                <kvInfo kind="user" name="כלל">כשינח סוג ינחו בהכרח מינים, ובהעדר הסוג נעדרים כלם.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, כח–לא</kvInfo>
+                <outline kvDivision="yes" text="לעליון או אמצעי" kvAspect="b3">
+                  <outline text="סוג עליון">
+                    <kvInfo kind="user" name="הגדרה">סוג העליון הוא מה שאין סוג אחר עליו, פרושו: שכולל יותר ממנו</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, ל</kvInfo>
+                  </outline>
+                  <outline text="סוג אמצעי">
+                    <kvInfo kind="user" name="הגדרה">האמצעי הוא שיש סוג כולל ממנו שלגביו יקרא סוג האמצעי - מין, ולגבי המין שתחתיו יקרא סוג.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, ל</kvInfo>
+                  </outline>
+                </outline>
+                <outline kvDivision="yes" text="רחוק וקרוב" kvAspect="b4">
+                  <outline text="סוג רחוק">
+                    <kvInfo kind="user" name="הגדרה">סוג רחוק הוא - שרחוק מן המין</kvInfo>
+                    <kvInfo kind="user" name="פירוש">סוג הסוג הוא רחוק מן המין, כי יש מדרגה אחרת בינו למין.</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">התרנגל הוא מין ממיני העופות, עוף הוא סוג למיני העופות, בעלי חיים הוא סוג הסוג לתרנגל ונקרא סוג רחוק, ועוף נקרא סוג קרוב.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, לא</kvInfo>
+                  </outline>
+                  <outline text="סוג קרוב">
+                    <kvInfo kind="user" name="הגדרה">וקרוב - שקרוב לו.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ג, לא</kvInfo>
+                  </outline>
+                </outline>
+              </outline>
+              <outline text="מין">
+                <kvInfo kind="user" name="הגדרה">ומה שאינו כולל אלא מקצת ממה שנכלל בסוג - יקרא מין.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">כלל בני האדם יקרא מין, כי גם הוא כולל כל אישי בני האדם, דהינו: ראובן, שמעון וכו', ואינו כולל החיות והעופות והדגים, שנכללו בשם בעלי חיים.</kvInfo>
+                <kvInfo kind="user" name="כלל">המין נולד מהגבל הסוג על ידי איזה הבדלים שבהם נבחן מין ממין אחר. (דרך משל: מסוג הבעלי חיים יולד מין האדם בחבר אליו הבדל הדבור, ונאמר: בעל חי מדבר.)</kvInfo>
+                <kvInfo kind="user" name="כלל">המין מאחר בטבע אל סוגו.</kvInfo>
+                <kvInfo kind="user" name="כלל">כשינח מין בהכרח ינח הסוג, ובהעדר מין אחד אין העדר הסוג מכרח.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, כח</kvInfo>
+              </outline>
+            </outline>
+            <outline text="משיגי הכוללים">
+              <kvInfo kind="user" name="הגדרה">משיגי הכוללים שלשה: הבדל, סגלה ומקרה.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק ג, לב</kvInfo>
+              <outline text="הבדל">
+                <kvInfo kind="user" name="הגדרה">הבדל הוא ענין עצמיי שבו יבחנו זה מזה שנים שיש להם שתוף בסוג או במין. נמצא הסוג והמין מודיעים מעצמות הנמצא מה שישתף בו עם זולתו, וההבדל מודיע ממנו מה שיבדל מזולתו.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">האדם והבהמה משתפים בחיות, והבדל האדם מן הבהמה הוא הדבור. ונקרא האדם בעל חי מדבר, והבהמה - בעל חי בלתי מדבר.</kvInfo>
+                <kvInfo kind="user" name="כלל">ההבדל הוא ענין עצמי מיחד בסוג או במינו, ונמצא בו ברבו ובכל זמן. (דרך משל: הדבור הוא עצמי למין האדם שזולתו לא היה אדם, ונמצא ברב המין ובכל זמן.)</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, לג</kvInfo>
+              </outline>
+              <outline text="סגלה">
+                <kvInfo kind="user" name="הגדרה">הסגלה הוא הבדל בלתי עצמיי, דהינו שמודיע מהנמצא מה שנבחן בו מזולתו, אך אינו מעצמותו.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">השחוק למין האדם, כי אינו נמצא אלא בו, אך אינו מעצמותו, כי אין היותו אדם תלוי בזה, שבלא זה היה אדם.</kvInfo>
+                <kvInfo kind="user" name="כלל">הסגלה מיחדת במין או בסוג, ונמצא ברבו ובכל זמן, ואינה עצמית בו.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, לד</kvInfo>
+              </outline>
+              <outline text="מקרה (במשיגי הכוללים)">
+                <kvInfo kind="user" name="הגדרה">המקרה הוא ענין בנמצא בלתי מיחד בו ובלתי עצמי לו.</kvInfo>
+                <kvInfo kind="user" name="כלל">המקרה נמצא במעוט הסוג או מין, ולא בכל זמן, ואינו עצמי בו.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ג, לה</kvInfo>
+              </outline>
+            </outline>
+          </outline>
+        </outline>
+      </outline>
+      <outline text="ההגיון עצמו">
+        <kvInfo kind="user" name="הגדרה">עד הנה בארנו עסק ההגיון; עתה נבאר חלוקו למחלקותיו, והם שלשה: הראשון - באור השמות, השני - באור המאמרים, השלישי - ההקשים.</kvInfo>
+        <kvInfo kind="user" name="פירוש">כי פעלות השכל שלשה. הראשון - השגת הנושאים המזדמנים לפניו כמו שמזדמנים. דרך משל: האבן, העץ, הברזל, וכיוצא.</kvInfo>
+        <kvInfo kind="user" name="פירוש">השני - חבר אל נושא מה יחיב בו או ישולל ממנו עד שיבנה מזה המאמר.</kvInfo>
+        <kvInfo kind="user" name="פירוש">השלישי הוא - חבר מאמר אל מאמר והוליד מהם שלישי.</kvInfo>
+        <kvInfo kind="user" name="פירוש">לפעלה הראשונה משתמש מן השמות, לשני - מן המאמרים, לשלישי - מן ההקשים.</kvInfo>
+        <kvInfo kind="user" name="מקור">פרק ד, א</kvInfo>
+        <outline text="השמות">
+          <kvInfo kind="user" name="הגדרה">השם הוא מורה על אחד מהעצמים או אחד מן המקרים ויתחלק לפי הוראתו ולפי ענינו.</kvInfo>
+          <kvInfo kind="user" name="פירוש">כי יש מן השמות שיורו על ענין בדרך פשוט, ויש שיורו בדרך דמיון, ויש שיורו בדרך הסכמה, וכמו שאכתב לפנים. ומצד זה יבחנו השמות לפי הוראתן. אמנם עוד יבחנו השמות מצד הענינים הנרמזים בם</kvInfo>
+          <kvInfo kind="user" name="מקור">פרק ד, ב–יא; פרקים ה–טז</kvInfo>
+          <outline kvDivision="yes" text="לפי הוראתו" kvAspect="b5">
+            <outline text="מיחד">
+              <kvInfo kind="user" name="הגדרה">המיחד הוא - שהוא לבדו מורה על ענין אחד לבד</kvInfo>
+              <kvInfo kind="user" name="דוגמה">שם העצם, כגון: אברהם, משה, ירושלים.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">שם היחס, כגון: עברי, מצרי, וכיוצא.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">שם המספר: אחד, שנים.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק ד, ג</kvInfo>
+            </outline>
+            <outline text="נרדף">
+              <kvInfo kind="user" name="הגדרה">הנרדף הוא - שיש שמות רבים מורים על ענין אחד, כל אחד מהם נקרא נרדף.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">לחם ופת.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק ד, ג</kvInfo>
+            </outline>
+            <outline text="משתף">
+              <kvInfo kind="user" name="הגדרה">המשתף הוא שם אחד שמורה על ענינים רבים ומתחלק לשנים: למשתף מחלט ומשתף מתיחס.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק ד, ד–ה</kvInfo>
+              <outline text="משתף מחלט">
+                <kvInfo kind="user" name="הגדרה">משתף מוחלט - הוא שמורה על שני ענינים שאין ביניהם שום יחס ודמיון.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">סף שרוצה לומר - כלי, ורוצה לומר - מזוזה.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ד, ה</kvInfo>
+              </outline>
+              <outline text="משתף מתיחס">
+                <kvInfo kind="user" name="הגדרה">משתף מתיחס - שמורה על שני ענינים שיש ביניהם איזה יחס ודמיון, ויתחלק לארבעה: כולל, משאל, מעתק, מודע.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ד, ו–ח</kvInfo>
+                <outline text="כולל">
+                  <kvInfo kind="user" name="הגדרה">הכולל הוא שם שיורה על ענינים רבים, כל אחד מהם ראוי להם זה השם, כמו שראוי לחברו בשוה, מצד היותם כלם ענפים משרש אחד, והינו המינים שתחת הסוג, והאישים שתחת המין.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">ראובן, שמעון, לוי - כל אחד מהם יקרא אדם, מפני היותם אישים ממין האדם, ונקרא שם אדם - שם כולל.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ד, ו</kvInfo>
+                </outline>
+                <outline text="משאל">
+                  <kvInfo kind="user" name="הגדרה">המשאל הוא שם שיורה על ענין אחד בהוראה ראשונה, ועל ענין אחר בהוראה שניה, מפני שיש לו דמיון מה עם הענין הראשון.</kvInfo>
+                  <kvInfo kind="user" name="פירוש">הוראה ראשונה נקראת מה שמשתמשים מהמלה בלשון על הרוב, והוראה שנית - מה שמשתמשים ממנה לפעמים.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">אש, הוראה ראשונה שלו היא על העצם השורף הידוע, ובהוראה שנית יורה על מי שהוא מהיר הרבה בתנועתו ואינו שוקט</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ד, ז</kvInfo>
+                </outline>
+                <outline text="מעתק">
+                  <kvInfo kind="user" name="הגדרה">המעתק הוא שם שיורה על שני ענינים בשוה מפני דמיון שביניהם, עד שלא נוכל לומר על שום אחד מהם היות הוראה שניה בו.</kvInfo>
+                  <kvInfo kind="user" name="פירוש">שכבר נהגו כמו כן בלשון שיורה על שני הענינים בשוה.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">הגדר, כך יובן על הגדר הבניניי העשוי סביב השדות, כמו שיובן על באור השלם והציור האמתי אצל ההגיונים.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ד, ח</kvInfo>
+                </outline>
+                <outline text="מודע">
+                  <kvInfo kind="user" name="הגדרה">המודע הוא שם שנאמר על רבים בשוה, וביחוד על אחד, להיות הענין ההוא חזק בו מהאחרים. והדבר מודע לכל, שהכונה בשם ההוא על ענין הפרטי ההוא.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">הגבור סתם יאמר על שמשון, אף על פי ששם זה שיך לכל גבור, לפי שהפליג בגבורה; משורר נאמר על דוד, אף על פי שיש משוררים רבים, לפי שהפליג בשיר.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ד, ח</kvInfo>
+                </outline>
+              </outline>
+            </outline>
+          </outline>
+          <outline kvDivision="yes" text="לפי הענינים הנרמזים בם" kvAspect="b6">
+            <outline text="השמות הדבוריים">
+              <kvInfo kind="user" name="הגדרה">הדבוריים הם המשמשים לדבור, להזכיר בם המדבר מה שבמחשבתו מן הענינים הנמצאים</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק ד, לפני יא</kvInfo>
+            </outline>
+            <outline text="השמות הלמודיים">
+              <kvInfo kind="user" name="הגדרה">הלמודיים הם המיחדים לחכמות או למלאכות שעל ידיהם מגיעים לתכלית המכון בחכמות או מלאכות ההם, והם כ"ב מינים, כמיני החכמות והמלאכות.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק ד, לפני יא</kvInfo>
+              <outline text="השמות המשמשים להגיון">
+                <kvInfo kind="user" name="הגדרה">השמות המשמשים להגיון הם אחד ועשרים, ואלה הם: סבה ומסבב, נושא ומתחבר, כל וחלק, גזרה ונגזר, גדר ונגדר, בנין ונבנה, חלוק ונחלק, נערכים, בלתי שוים, הפכיים, עדות ומועד, סוג ומין.</kvInfo>
+                <kvInfo kind="user" name="פירוש">כי אלה הם השמות שבהם נגיע לתכלית המכון בהגיון, שהוא לדעת הדברים לאמתם בכל ההבחנות שיש להבחין בהם.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק ד, יא</kvInfo>
+                <kvInfo kind="user" name="הערה">הסקה של Claude: ההפכיים — לפי הספר הם מין מ"בלתי שוים" (פרק יד, א), ולכן הם שם תחת בלתי שוים, ולא כאן בנפרד.</kvInfo>
+                <outline text="סבה">
+                  <kvInfo kind="user" name="הגדרה">הסבה היא הדבר שמכחו נמצא המסבב.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">זריחת השמש ואור היום הוים בזמן אחד. אמנם, בהיות שמציאות אור היום תלוי במציאות זריחת השמש, נקרא לה קודמת, ולאור היום - מאחר בטבע.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">אש שחמם את הברזל, אף אם יכלה האש לא יסור החמום מהברזל, אך לא יולד ממנו חמום אחר.</kvInfo>
+                  <kvInfo kind="user" name="כלל">הסבה קודמת למסבבה תמיד לפחות קדימה טבעית. (פרושו, כי הקדימות הן שתים, קדימה זמנית וקדימה טבעית.)</kvInfo>
+                  <kvInfo kind="user" name="כלל">אין דבר נמצא בלא סבה שתמציאהו.</kvInfo>
+                  <kvInfo kind="user" name="כלל">אין בסבות המשך לאין תכלית. (פרושו, כי הסבה העליונה הוא הבורא, יתברך שמו, אשר אין סבה למעלה ממנו.)</kvInfo>
+                  <kvInfo kind="user" name="כלל">אם תנח סבה בפועל ינח המסבב גם כן, אך בהסרתה לא יוסר אלא המסבב, העתיד, לא העבר.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ד, יב–יג; פרקים ה–ו</kvInfo>
+                  <outline text="הסבה החיצונה">
+                    <kvInfo kind="user" name="הגדרה">החיצונה היא שחוץ לעצם המסבב. ותחלק גם כן לשנים, לפועל ותכלית.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ד, יג</kvInfo>
+                    <outline text="הפועל">
+                      <kvInfo kind="user" name="הגדרה">הפועל הוא שעל ידו הנמצא הוה, ומיניו שנים: פועל מצד עצמו ופועל במקרה.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ד, יד–כט</kvInfo>
+                      <kvInfo kind="user" name="הערה">החלוקה לרחוקה, קרובה וסמוכה — "עוד מתחלקת בכל שאר הסבות" (פרק ד, כו). הסקה של Claude: שמתיה כאן, במקום שהספר מביא אותה.</kvInfo>
+                      <outline kvDivision="yes" text="עצמי ומקרי" kvAspect="b7">
+                        <outline text="פועל מצד עצמו">
+                          <kvInfo kind="user" name="הגדרה">הפועל מצד עצמו הוא הפועל בטבעו או ברצונו, ויתחלק לעקר וטפל.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, טו–כב</kvInfo>
+                          <outline kvDivision="yes" text="עקרי וטפל" kvAspect="b8">
+                            <outline text="הפועל העקרי">
+                              <kvInfo kind="user" name="הגדרה">העקרי - שעקר תלית המסבב בו, ויתחלק לפועל לבדו ופועל בחברה או בשתפות.</kvInfo>
+                              <kvInfo kind="user" name="דוגמה">עקר הנהגת העם במלך תחתיו השרים והשוטרים.</kvInfo>
+                              <kvInfo kind="user" name="מקור">פרק ד, טז–כ</kvInfo>
+                              <outline text="פועל לבד">
+                                <kvInfo kind="user" name="הגדרה">הפועל לבד שממציא המסבב לבדו מבלי שיהיה אחר שוה לו בהמצאה זאת.</kvInfo>
+                                <kvInfo kind="user" name="פירוש">כי לא ירחיק הפועל לבדו הסבה הכליית. שנבאר לקמן בסיעתא דשמיא, שאינה משתוה לה בהמצאת המסבב, אלא תחתיה היא במדרגה, אך ישלל שיהיה אחר שוה לו בהמצאת המסבב במדרגה אחת.</kvInfo>
+                                <kvInfo kind="user" name="מקור">פרק ד, יז</kvInfo>
+                              </outline>
+                              <outline text="פועל בחברה">
+                                <kvInfo kind="user" name="הגדרה">הפועל בחברה הוא אשר יסיע אחר בהמצאת המסבב, בשווי אליו. ויכולים המשתפים להיות שקולים ובלתי שקולים.</kvInfo>
+                                <kvInfo kind="user" name="מקור">פרק ד, יח–כ</kvInfo>
+                                <outline kvDivision="yes" text="שקולים ובלתי שקולים" kvAspect="b9">
+                                  <outline text="שקולים">
+                                    <kvInfo kind="user" name="הגדרה">השקולים הם שחלק כל אחד מהם שקול בהמצאת המסבב</kvInfo>
+                                    <kvInfo kind="user" name="מקור">פרק ד, יט</kvInfo>
+                                  </outline>
+                                  <outline text="בלתי שקולים">
+                                    <kvInfo kind="user" name="הגדרה">והבלתי שקולים - שאין כל אחד מהם שקול.</kvInfo>
+                                    <kvInfo kind="user" name="מקור">פרק ד, יט</kvInfo>
+                                  </outline>
+                                </outline>
+                                <outline kvDivision="yes" text="שתפות מכרח או בלתי מכרח" kvAspect="b10">
+                                  <outline text="שתפות מכרח">
+                                    <kvInfo kind="user" name="הגדרה">שתפות מכרח הוא כשאין אחד מהם לבדו יכול להמציא מסבבו</kvInfo>
+                                    <kvInfo kind="user" name="מקור">פרק ד, כ</kvInfo>
+                                  </outline>
+                                  <outline text="שתפות בלתי מכרח">
+                                    <kvInfo kind="user" name="הגדרה">ובלתי מכרח - שיש כח באחד מהם להמציא מסבבו.</kvInfo>
+                                    <kvInfo kind="user" name="מקור">פרק ד, כ</kvInfo>
+                                  </outline>
+                                </outline>
+                              </outline>
+                            </outline>
+                            <outline text="הסבה הטפלה">
+                              <kvInfo kind="user" name="הגדרה">הסבה הטפלה היא שכחה בהמצאת המסבב אינו עקרי, ותחלק למעוררת וכליית.</kvInfo>
+                              <kvInfo kind="user" name="מקור">פרק ד, כא–כב</kvInfo>
+                              <outline text="המעוררת">
+                                <kvInfo kind="user" name="הגדרה">המעוררת היא שמעוררת העקרי לשיפעל.</kvInfo>
+                                <kvInfo kind="user" name="דוגמה">תאות הרוח היא המעוררת את הסוחר לטרח בסחורתו</kvInfo>
+                                <kvInfo kind="user" name="מקור">פרק ד, כב</kvInfo>
+                              </outline>
+                              <outline text="הכליית">
+                                <kvInfo kind="user" name="הגדרה">הכליית - שמשמשת לפועלת להמציא מסבבה.</kvInfo>
+                                <kvInfo kind="user" name="דוגמה">הגרזן לחוצב.</kvInfo>
+                                <kvInfo kind="user" name="מקור">פרק ד, כב</kvInfo>
+                              </outline>
+                            </outline>
+                          </outline>
+                        </outline>
+                        <outline text="פועל במקרה">
+                          <kvInfo kind="user" name="הגדרה">הסבה הפועלת במקרה היא, שאין המסבב נולד ממנה לא מטבע ולא מרצון, ותמצא בין בסבות הטבעיות בין בבחיריות.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כז–כט</kvInfo>
+                          <outline kvDivision="yes" text="טבעית ורצונית" kvAspect="b11">
+                            <outline text="פועלת במקרה בטבעיות">
+                              <kvInfo kind="user" name="הגדרה">פועלת במקרה בטבעיות היא שפועלת לא מצד טבעה אלא מצד מקרה שקרה לה.</kvInfo>
+                              <kvInfo kind="user" name="דוגמה">הניר הלבן מיגע הראיה מצד מקרה הלבן שבו.</kvInfo>
+                              <kvInfo kind="user" name="מקור">פרק ד, כח</kvInfo>
+                            </outline>
+                            <outline text="פועלת במקרה בבחיריות">
+                              <kvInfo kind="user" name="הגדרה">המקרית בבחיריות היא שפועלת שלא בכונה או בשגגה.</kvInfo>
+                              <kvInfo kind="user" name="מקור">פרק ד, כט</kvInfo>
+                            </outline>
+                          </outline>
+                        </outline>
+                      </outline>
+                      <outline kvDivision="yes" text="מולידה, מקימת ומפסדת" kvAspect="b12">
+                        <outline text="המולידה">
+                          <kvInfo kind="user" name="הגדרה">המולידה היא שמחדשת וממציאה המסבב</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כד</kvInfo>
+                        </outline>
+                        <outline text="המקימת">
+                          <kvInfo kind="user" name="הגדרה">המקימת - שמתמדת אותו</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כד</kvInfo>
+                        </outline>
+                        <outline text="המפסדת">
+                          <kvInfo kind="user" name="הגדרה">והמפסדת - שמבטלתו.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כד</kvInfo>
+                        </outline>
+                      </outline>
+                      <outline kvDivision="yes" text="טבעית ורצונית" kvAspect="b11">
+                        <outline text="הטבעית">
+                          <kvInfo kind="user" name="הגדרה">הטבעית היא שפועלת מחמת טבעה בהכרח</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">שרפת האש פעלה טבעית שאי אפשר לו זולתה</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כה</kvInfo>
+                        </outline>
+                        <outline text="הרצונית (הבחיריית)">
+                          <kvInfo kind="user" name="הגדרה">הרצונית - שפועלת מחמת עצה ובחירה, מה שאינה מכרחת.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">כתיבת האדם - רצונית.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כה</kvInfo>
+                        </outline>
+                      </outline>
+                      <outline kvDivision="yes" text="רחוקה, קרובה וסמוכה" kvAspect="b13">
+                        <outline text="הסבה הרחוקה">
+                          <kvInfo kind="user" name="הגדרה">בין הרחוקה והמסבב - אמצעיות הרבה</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">אברהם הוא סבה רחוקה לראובן</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כו</kvInfo>
+                        </outline>
+                        <outline text="הסבה הקרובה">
+                          <kvInfo kind="user" name="הגדרה">בין הקרובה למסבב אחד</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">יצחק - סבה קרובה</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כו</kvInfo>
+                        </outline>
+                        <outline text="הסבה הסמוכה">
+                          <kvInfo kind="user" name="הגדרה">בין הסמוכה והמסבב ולא כלום.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">יעקב - סבה סמוכה.</kvInfo>
+                          <kvInfo kind="user" name="כלל">כשתנח הסבה הסמוכה בפועל, מכרח שימצא המסבב בפועל, מה שאין כן ברחוקה ולא בקרובה.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ד, כו</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                    <outline text="התכלית">
+                      <kvInfo kind="user" name="הגדרה">התכליתית, והיא - שבעבורה סובב המסבב או נעשה הדבר</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">שנים מאריכין בתפלתן, אחד לשם שמים ואחד לגנב דעת הבריות שיאמינו לו; זה עושה מצוה רבה, וזה - אשם אשמה רבה.</kvInfo>
+                      <kvInfo kind="user" name="כלל">התכלית מניע את הפועל לפעל.</kvInfo>
+                      <kvInfo kind="user" name="כלל">בדבר אחד יכולים למצא תכליות רבים.</kvInfo>
+                      <kvInfo kind="user" name="כלל">התכליות משנים הפעלות. (פרושו. כי פעלה אחת נעשית מפועל אחד לתכלית אחד ומפועל אחר לתכלית אחר יחשבו לפעלות שונות)</kvInfo>
+                      <kvInfo kind="user" name="כלל">התכלית קודם לאמצעיים שלו במחשבה, מה שאין כן במעשה.</kvInfo>
+                      <kvInfo kind="user" name="כלל">כשהתכלית הוה, כלתה הפעלה שנעשית להגיע אליו.</kvInfo>
+                      <kvInfo kind="user" name="כלל">מי שרוצה באמת בתכלית, צריך שירצה באמצעיים. (פרושו, כי השגת התכלית בלי אמצעיים אי אפשר.)</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ה</kvInfo>
+                      <outline kvDivision="yes" text="עקרי וטפל" kvAspect="b8">
+                        <outline text="התכלית העקרי">
+                          <kvInfo kind="user" name="הגדרה">העקרי הוא הכונה הראשונה של הפועל</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ה, א</kvInfo>
+                        </outline>
+                        <outline text="התכלית הטפל">
+                          <kvInfo kind="user" name="הגדרה">הטפל הוא הכונה אשר לו מלבד הראשונה, במדרגה שניה אליה.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ה, א</kvInfo>
+                        </outline>
+                      </outline>
+                      <outline kvDivision="yes" text="אחרון ואמצעי" kvAspect="b14">
+                        <outline text="התכלית האחרון">
+                          <kvInfo kind="user" name="הגדרה">האחרון כמשמעו - שדי לפועל בו</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ה, ב</kvInfo>
+                        </outline>
+                        <outline text="התכלית האמצעי">
+                          <kvInfo kind="user" name="הגדרה">האמצעי - שהוא תכלית לדבר אחד, אך יהיה אמצעי להגיע עוד אל תכלית אחר שכון לו הפועל.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">תכלית חכמת הרפואה הוא לדעת החלאים למיניהם בסבותיהם, אמנם התכלית האחרון הוא לרפא את החולים.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ה, ב</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                  </outline>
+                  <outline text="הסבה הפנימית">
+                    <kvInfo kind="user" name="הגדרה">הפנימית, הנכנסת במציאות המסובב עצמו, ומתחלק לשנים: חמר וצורה.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק ו, א</kvInfo>
+                    <outline text="החמר">
+                      <kvInfo kind="user" name="הגדרה">החמר הוא מה שממנו נעשה המסבב, ויתחלק לרחוק וקרוב</kvInfo>
+                      <kvInfo kind="user" name="כלל">החמר קודם לצורה בטבע. (פרושו, כי אי אפשר לצורה למצא אלא בחמר.)</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ו, ב</kvInfo>
+                      <outline kvDivision="yes" text="רחוק וקרוב" kvAspect="b4">
+                        <outline text="החמר הרחוק">
+                          <kvInfo kind="user" name="הגדרה">הרחוק הוא - מה שממנו נעשה המסבב בחברת חמר אחר קרוב ממנו</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">החמר הרחוק באדם - העפר, כי לא מעפר מיד נוצר הולד, אלא שראשית ענינו הוא עפר.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ו, ב</kvInfo>
+                        </outline>
+                        <outline text="החמר הקרוב">
+                          <kvInfo kind="user" name="הגדרה">הקרוב - אותו שממנו נעשה המסבב בלא חמר באמצע.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">חמר הקרוב הוא בשר ודם ושאר הרכבותיו.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ו, ב</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                    <outline text="הצורה">
+                      <kvInfo kind="user" name="הגדרה">הצורה היא - מה שבו המסבב הוא מה שהוא, ותתחלק לעצמית ומדקדקת, ולמקרית או בלתי־מדקדקת</kvInfo>
+                      <kvInfo kind="user" name="כלל">הצורה נכבדת תמיד מהחמר. (פרושו, כי בה תלוי כל אמתת ענין הנמצא, מה שאין כן בחמר.)</kvInfo>
+                      <kvInfo kind="user" name="כלל">הצורה העצמית אינה משגת מהחוש.</kvInfo>
+                      <kvInfo kind="user" name="כלל">פעלות הנמצא תלויות בצורה שלו.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ו, ג–ד</kvInfo>
+                      <outline kvDivision="yes" text="עצמי ומקרי" kvAspect="b7">
+                        <outline text="הצורה העצמית (המדקדקת)">
+                          <kvInfo kind="user" name="הגדרה">העצמית היא - מה שעושה המסבב מה שהוא באמתת ענינו ומבדילו משאר כל הנמצאים.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">צורת האדם הוא הכח המדבר, שכולל השכל והרצון, שבזה הוא מה שנבדל בעצם.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ו, ג</kvInfo>
+                        </outline>
+                        <outline text="הצורה הבלתי מדקדקת (המקרית)">
+                          <kvInfo kind="user" name="הגדרה">הבלתי מדקדקת היא כלל איזה מקרים מיחדים לאיזה נמצא שנצירהו בהם, כשאין צורתו העצמית נודעת.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">הכלב הוא שיש לו כח הנבוח, ואין זה עקר ענינו של הכלב.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ו, ד</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="מסבב">
+                  <kvInfo kind="user" name="הגדרה">המסבב, והוא מה שנולד מכח הסבה.</kvInfo>
+                  <kvInfo kind="user" name="כלל">המסבב לא יהיה לו כח יותר מסבתו.</kvInfo>
+                  <kvInfo kind="user" name="כלל">כמהות הסבה כך מהות המסבב.</kvInfo>
+                  <kvInfo kind="user" name="כלל">הדבר שבעבורו - אחר הוא מה שהוא, כל שכן שהוא עצמו יהיה כן. (דרך משל: אם הספרים הנחמדים בעבור החכמה הנחקקת בהם, כל שכן שתהיה נחמדת החכמה עצמה.)</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ז</kvInfo>
+                  <outline kvDivision="yes" text="לכל ארבע הסבות יש מסבב" kvAspect="b15">
+                    <outline text="הפעול">
+                      <kvInfo kind="user" name="הגדרה">מסבב הפועלת הוא הפעול</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ז, ב</kvInfo>
+                    </outline>
+                    <outline text="הנגזר (מסבב התכליתית)">
+                      <kvInfo kind="user" name="הגדרה">מסבב התכליתית הוא הנגזר</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ז, ב</kvInfo>
+                    </outline>
+                    <outline text="המציר">
+                      <kvInfo kind="user" name="הגדרה">מסבב הצוריית הוא המציר</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ז, ב</kvInfo>
+                    </outline>
+                    <outline text="מסבב החמרית">
+                      <kvInfo kind="user" name="הגדרה">מסבב החמרית הוא החמר.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ז, ב</kvInfo>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="נושא">
+                  <kvInfo kind="user" name="הגדרה">הנושא הוא הדבר שיתחבר אליו מה, ויתחלק לנושא ועסק.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ח</kvInfo>
+                  <outline kvDivision="yes" text="נושא ועסק" kvAspect="b16">
+                    <outline text="נושא (שיקבל בו)">
+                      <kvInfo kind="user" name="הגדרה">הנושא הוא שיקבל בו, או עליו, מה.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">האש לחם.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ח, א</kvInfo>
+                    </outline>
+                    <outline text="עסק">
+                      <kvInfo kind="user" name="הגדרה">עסק - שעליו יעסק עוסק.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">המראה - עסק לראות.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ח, א</kvInfo>
+                    </outline>
+                  </outline>
+                  <outline kvDivision="yes" text="מחלט ומגבל" kvAspect="b17">
+                    <outline text="נושא מחלט">
+                      <kvInfo kind="user" name="הגדרה">המחלט הוא שיתחבר לו מתחבר בלי שום גבול ותנאי.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">האש שמתחבר לו החם בהחלט.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ח, ב</kvInfo>
+                    </outline>
+                    <outline text="נושא מגבל">
+                      <kvInfo kind="user" name="הגדרה">המגבל - שיתחבר לו המתחבר לפי ענין אחד או הבחנה אחד.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">הכושי נושא ללבן לא בבחינת כלו. אלא בבחינת אחד מחלקיו, דהינו השנים.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ח, ב</kvInfo>
+                    </outline>
+                  </outline>
+                  <outline kvDivision="yes" text="מיחד ובלתי מיחד" kvAspect="b18">
+                    <outline text="נושא מיחד">
+                      <kvInfo kind="user" name="הגדרה">המיחד הוא שמתיחד למקרהו, שלא ימצאו זה בלא זה.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">החם והאש לא ימצאו זה בלי זה.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ח, ג</kvInfo>
+                    </outline>
+                    <outline text="נושא בלתי מיחד">
+                      <kvInfo kind="user" name="הגדרה">הבלתי מיחד הוא שאינו מיחד עם מקרהו, אלא ימצא המקרה ההוא גם בזולתו.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">הבעל חי והיות נראה, כי כל בעל חי נראה, אך יש נראה שאינו בעל חי.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ח, ג</kvInfo>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="מתחבר">
+                  <kvInfo kind="user" name="הגדרה">המתחבר הוא מה שמתחבר אל נושא, ומתחלק לתוכיי ונסמך.</kvInfo>
+                  <kvInfo kind="user" name="כלל">המקרה אשר הוא מיחד למין אחד אי אפשר שיתיחס למין אחר בלתי דומה לו. (דרך משל: הדעה מיחדת למין האדם, לא תתיחס לאבנים.)</kvInfo>
+                  <kvInfo kind="user" name="כלל">המקרה המיחד השלם לא יפרד מנושאו אפילו רגע אחד.</kvInfo>
+                  <kvInfo kind="user" name="כלל">אי אפשר לציר נושא עם שלילת המקרה המיחד השלם שלו.</kvInfo>
+                  <kvInfo kind="user" name="כלל">המתחבר יאמר בנושא בחבור, לא בהחלט.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק ט</kvInfo>
+                  <outline kvDivision="yes" text="תוכיי ונסמך" kvAspect="b19">
+                    <outline text="התוכיי">
+                      <kvInfo kind="user" name="הגדרה">התוכיי הוא שמתחבר בתוך נושא ולא יוכל להיות בלתו, ומתחלק למיחד ובלתי מיחד.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ט, ב–ה</kvInfo>
+                      <outline kvDivision="yes" text="מיחד ובלתי מיחד" kvAspect="b18">
+                        <outline text="התוכיי המיחד">
+                          <kvInfo kind="user" name="הגדרה">המיחד הוא שלא ימצא אלא בנושאים ממין אחד, ויתחלק לשלם ובלתי שלם.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ט, ב–ד</kvInfo>
+                          <outline kvDivision="yes" text="שלם ובלתי שלם" kvAspect="b20">
+                            <outline text="המיחד השלם">
+                              <kvInfo kind="user" name="הגדרה">המיחד השלם הוא הנמצא בכל נושאו ובכל זמן, ולא בזולתו.</kvInfo>
+                              <kvInfo kind="user" name="דוגמה">ההרגש לבעל חי.</kvInfo>
+                              <kvInfo kind="user" name="מקור">פרק ט, ג</kvInfo>
+                            </outline>
+                            <outline text="המיחד הבלתי שלם">
+                              <kvInfo kind="user" name="הגדרה">הבלתי שלם הוא הנמצא בנושא אחד ביחוד.</kvInfo>
+                              <kvInfo kind="user" name="פירוש">לא בזולתו, אך לא בכלו, או לא בכל עת.</kvInfo>
+                              <kvInfo kind="user" name="דוגמה">השחוק הוא מיחד לאדם, כי לא נמצא לזולתו, אך אינו באדם בכל עת.</kvInfo>
+                              <kvInfo kind="user" name="מקור">פרק ט, ד</kvInfo>
+                            </outline>
+                          </outline>
+                        </outline>
+                        <outline text="התוכיי הבלתי מיחד">
+                          <kvInfo kind="user" name="הגדרה">הבלתי מיחד הוא שימצא לנושאים ממינים שונים.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">ההעתק ממקום שימצא לאדם וימצא גם כן לבעלי חיים וגם לדוממים.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ט, ה</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                    <outline text="הנסמך">
+                      <kvInfo kind="user" name="הגדרה">הנסמך מתחלק לנצב ומהלך.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ט, ו</kvInfo>
+                      <outline text="הנצב">
+                        <kvInfo kind="user" name="הגדרה">הנצב - או חונה על הנושא עצמו, או נמצא יחד עמו, או סובב ומגביל אותו.</kvInfo>
+                        <kvInfo kind="user" name="דוגמה">הלבוש חונה על הגוף: עם לדת משה נמצא יחד מלוי הבית אורה; הזמן מגביל הפעלה שנעשית ביום פלוני בשעה פלונית.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק ט, ו</kvInfo>
+                      </outline>
+                      <outline text="המהלך">
+                        <kvInfo kind="user" name="הגדרה">המהלך מקדים לנושא, או בא אחריו, על כן יתחלק לקודם ונמשך.</kvInfo>
+                        <kvInfo kind="user" name="דוגמה">האביב קודם לקיץ, והאסיף בא אחריו.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק ט, ו</kvInfo>
+                        <outline kvDivision="yes" text="קודם ונמשך" kvAspect="b21">
+                          <outline text="קודם">
+                            <kvInfo kind="user" name="מקור">פרק ט, ו</kvInfo>
+                          </outline>
+                          <outline text="נמשך">
+                            <kvInfo kind="user" name="מקור">פרק ט, ו</kvInfo>
+                          </outline>
+                        </outline>
+                      </outline>
+                    </outline>
+                  </outline>
+                  <outline kvDivision="yes" text="עצמי ומקרי" kvAspect="b7">
+                    <outline text="המתחבר העצמי">
+                      <kvInfo kind="user" name="הגדרה">העצמי הוא מיחד לנושא לפי צורתו העצמית ונמצא בו על הרב</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">החם לאש.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ט, ח</kvInfo>
+                    </outline>
+                    <outline text="המתחבר המקרי">
+                      <kvInfo kind="user" name="הגדרה">המקרי הוא - שאינו מיחד לו ואינו נמצא בו אלא במעוטו.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">הלבן לבגד.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ט, ח</kvInfo>
+                    </outline>
+                  </outline>
+                  <outline kvDivision="yes" text="בכח ובפעל" kvAspect="b22">
+                    <outline text="המציאות בכח">
+                      <kvInfo kind="user" name="הגדרה">המציאות בכח הוא כל זמן שהנשוא בנושא בהכנה לבד, ואינו במעשה</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">האדם יש בכחו להיותו כותב אף בשעה שאינו כותב</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ט, י–יא</kvInfo>
+                      <outline kvDivision="yes" text="רחוק וקרוב" kvAspect="b4">
+                        <outline text="כח רחוק">
+                          <kvInfo kind="user" name="הגדרה">הרחוק הוא שחסרות לו מדרגות רבות להיות נמצא בפעל</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ט, יא</kvInfo>
+                        </outline>
+                        <outline text="כח קרוב">
+                          <kvInfo kind="user" name="הגדרה">הקרוב הוא - שאין חסר לו כי אם מדרגת צאתו לפעל.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק ט, יא</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                    <outline text="המציאות בפעל">
+                      <kvInfo kind="user" name="הגדרה">בפעל - כשהגיע למעשה.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">ובשעה שהוא כותב נקרא: כותב בפעל.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק ט, י</kvInfo>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="כל">
+                  <kvInfo kind="user" name="הגדרה">כל הוא מה שמחבר מחלקים שמהם נבנה, ויתחלק לכל מצד עצמו וכל מקריי.</kvInfo>
+                  <kvInfo kind="user" name="כלל">יש הפרש בין הכל לחלקיו, ואפילו לכלם ביחד בהיותם חלקים. (דרך משל: אם תסדר כל איברי הבהמה זה אצל זה, לא יקראו בהמה, אלא חלקי בהמה.)</kvInfo>
+                  <kvInfo kind="user" name="כלל">הכל לגבי חלקיו הוא יותר שלם, והחלקים לגבי הכל - יותר חסרים.</kvInfo>
+                  <kvInfo kind="user" name="כלל">כשינח הכל, ינחו החלקים בהכרח; אך בשלל הכל, לא תכרח שלילת החלקים.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק י, א–ו</kvInfo>
+                  <outline kvDivision="yes" text="עצמי ומקרי" kvAspect="b7">
+                    <outline text="כל מצד עצמו">
+                      <kvInfo kind="user" name="הגדרה">כל מצד עצמו הוא מה שיש בו חלקים ממש שבונים אותו, ויתחלק למרכב, או עצמי, ובנוי.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק י, ב</kvInfo>
+                      <outline text="הכל המרכב (העצמי)">
+                        <kvInfo kind="user" name="הגדרה">המרכב או עצמי הוא - שחלקיו עצמיים בו, דהינו חמר וצורה.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק י, ג</kvInfo>
+                      </outline>
+                      <outline text="הכל הבנוי">
+                        <kvInfo kind="user" name="הגדרה">הבנוי הוא - שיש חלקים בניניים שמחבורם הוא נבנה, ויתחלק למתדמה ובלתי מתדמה.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק י, ד–ה</kvInfo>
+                        <outline text="המתדמה">
+                          <kvInfo kind="user" name="הגדרה">המתדמה הוא - שכל חלק ממנו מתדמה לכל בשם ובטבע.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">האש.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק י, ה</kvInfo>
+                        </outline>
+                        <outline text="הבלתי מתדמה">
+                          <kvInfo kind="user" name="הגדרה">הבלתי מתדמה הוא - שאין כל חלק ממנו מתדמה אל הכל בשם ובטבע.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">האדם או הבית שאין כל חלק נקרא אדם או בית.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק י, ה</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                    <outline text="הכל המקריי">
+                      <kvInfo kind="user" name="הגדרה">הכל המקריי - שאינו כל עצמי אלא בדרך מקרה.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">הנושא הנחלק בנשואיו.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק י, ו</kvInfo>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="חלק">
+                  <kvInfo kind="user" name="הגדרה">החלק הוא מה שממנו יבנה הכל בחברת שנים או יותר, וחלוקיו כחלוקי הכל.</kvInfo>
+                  <kvInfo kind="user" name="כלל">כל חלק לגבי הכל הוא חסר.</kvInfo>
+                  <kvInfo kind="user" name="כלל">לא כל מה שיש לכל יש לכל חלק.</kvInfo>
+                  <kvInfo kind="user" name="כלל">מה שיש לחלק מצד עצמו יש לכל מצד אותו החלק שבו.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק י, ז</kvInfo>
+                </outline>
+                <outline text="גזרה">
+                  <kvInfo kind="user" name="הגדרה">הגזרה היא פרוש המלה ומקורה.</kvInfo>
+                  <kvInfo kind="user" name="פירוש">גזרות המלות נקחות מן הסבות, מן המסבבים. מן הנושאים, ומן המתחברים, ומן ההפכיים.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">אדם - מן האדמה נח מן המנוחה.</kvInfo>
+                  <kvInfo kind="user" name="כלל">לא כל המלות יבקש להם גזרה. (פרושו, כי יש מלות ראשונות והן שאינן נגזרות ממלה אחרת. דרך משל: אש, מים, לחם.)</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יא, א–ב</kvInfo>
+                </outline>
+                <outline text="נגזר">
+                  <kvInfo kind="user" name="הגדרה">נגזר הוא הנבנה לפי הגזרה.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יא, ג</kvInfo>
+                </outline>
+                <outline text="בנין">
+                  <kvInfo kind="user" name="הגדרה">הבנין הוא מה שנבנית המלה על יסוד ענינה הראשון.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">שם דבר, שם התאר ומקור - כלם נבנים על יסוד הפעל, דהינו זכרון, זכרן, זכור - כלם מיני בנין על היסוד זכר.</kvInfo>
+                  <kvInfo kind="user" name="כלל">כשינחו אחד מדרכי הבנין, ינחו האחרים.</kvInfo>
+                  <kvInfo kind="user" name="כלל">מה ששיך לאחד מדרכי הבנין, שיך לכלם. (דרך משל: אם החסד נחמד, החסיד יהיה נחמד.)</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יא, ד–ו</kvInfo>
+                </outline>
+                <outline text="נבנה (המלות הנבנות)">
+                  <kvInfo kind="user" name="הגדרה">המלות הנבנות מתחלקות לדבקות ומחלטות.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יא, ה–ו</kvInfo>
+                  <outline text="המלות הדבקות">
+                    <kvInfo kind="user" name="הגדרה">הדבקות הם שמורות על צורה אחת בנושא, והינו התאר.</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">חכם, נבון, וכיוצא.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יא, ו</kvInfo>
+                  </outline>
+                  <outline text="המלות המחלטות">
+                    <kvInfo kind="user" name="הגדרה">והמחלטות - שמורות על ענין אחד בלבד, בלי שיזכר עמו נושאו.</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">חכמה, תבונה.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יא, ו</kvInfo>
+                  </outline>
+                </outline>
+                <outline text="גדר">
+                  <kvInfo kind="user" name="הגדרה">גדר הוא באור שלם של הדבר הנגדר.</kvInfo>
+                  <kvInfo kind="user" name="פירוש">בגדר יש להבחין החלקים, החיוב והמין.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">גדר האדם - בעל חי מדבר; בעל חי - סוג שבו משתוה עם הבלתי מדברים, מדבר - הוא ההבדל שנבדל בו מהם.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">אם נגדר האדם: בעל חי ההולך על שתי רגליו, הנה יכנסו בזה העופות</kvInfo>
+                  <kvInfo kind="user" name="כלל">למה שיקים או ישולל הגדר, יקים או ישולל הנגדר; וכן להפך.</kvInfo>
+                  <kvInfo kind="user" name="כלל">מה ששיך או לא שיך בגדר, שיך או לא שיך בנגדר.</kvInfo>
+                  <kvInfo kind="user" name="חיוב">חיובי הגדר שנים. האחד, שמלותיו תהיינה ראויות ומבארות; השני, שהגדר יהיה למדת הנגדר, שלא יאמר פחות ממה שהוא ולא יותר ממה שהוא. (פרושו, שלא יכנס בו זולתו ולא יחסר ממנו.)</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יב, א–ה</kvInfo>
+                  <outline kvDivision="yes" text="חלקי הגדר" kvAspect="b23">
+                    <outline text="הסוג (בגדר)">
+                      <kvInfo kind="user" name="הגדרה">בסוג משתוה הנגדר לזולתו</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יב, ג</kvInfo>
+                    </outline>
+                    <outline text="ההבדל (בגדר)">
+                      <kvInfo kind="user" name="הגדרה">ובהבדל - נבחן מכל זולתו.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יב, ג</kvInfo>
+                    </outline>
+                  </outline>
+                  <outline kvDivision="yes" text="שלם ובלתי שלם" kvAspect="b20">
+                    <outline text="הגדר השלם">
+                      <kvInfo kind="user" name="הגדרה">השלם הוא הנבנה מסוג והבדל.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יב, ה</kvInfo>
+                    </outline>
+                    <outline text="הגדר הבלתי שלם">
+                      <kvInfo kind="user" name="הגדרה">הבלתי שלם הוא, שמבאר הנגדר מצד מה שאינו עקר בו, כגון: המסבב, החלקים, החברה, וכיוצא.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">אם נגדר היין: המשקה המשכר, או אם נגדר התמר: האילן אשר בו לולבים וחריות ותמרים, או אם נגדר הלהבה: הדבר אשר העשן קודם לו.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יב, ה</kvInfo>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="נגדר">
+                  <kvInfo kind="user" name="מקור">פרק יב</kvInfo>
+                  <kvInfo kind="user" name="הערה">הספר אינו מגדיר את הנגדר בנפרד; הוא נזכר בכללי הגדר.</kvInfo>
+                </outline>
+                <outline text="חלוק">
+                  <kvInfo kind="user" name="הגדרה">חלוק הוא באר את הכל והבחינו בחלקיו, ויתחלק לעקרי ובלתי עקרי.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">אדם ובהמה הם חלקי המרגיש בלתי מתדמים, אך אדם ובעל חי אינם בלתי מתדמים, כי האדם הוא בעל חי גם כן.</kvInfo>
+                  <kvInfo kind="user" name="כלל">החלוק צריך שיהיה לחלקים קרובים. (פרושו, שלא תחלק הסוג לאישים שיש כמה מינים בין הסוג וביניהם, אלא למינים שבאים מיד אחריו בהדרגה.)</kvInfo>
+                  <kvInfo kind="user" name="כלל">החלוק צריך שיהיה למעט החלקים כל מה שאפשר.</kvInfo>
+                  <kvInfo kind="user" name="חיוב">חיובי החלוק העקרי שנים: ראשון, שלא יפחתו ולא יוסיפו החלקים על המתחלק: שני, שיהיו החלקים מתדמים עם הכל ובלתי מתדמים ביניהם.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יב, ו–ח</kvInfo>
+                  <outline text="החלוק העקרי">
+                    <kvInfo kind="user" name="הגדרה">העקרי הוא התחלק הכל בחלקים עקרים</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יב, ז</kvInfo>
+                  </outline>
+                  <outline text="החלוק הבלתי עקרי">
+                    <kvInfo kind="user" name="הגדרה">והבלתי עקרי - לחלקים בלתי עקרים, והינו הכל מצד עצמו ובמקרה הנ"ל.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יב, ז</kvInfo>
+                  </outline>
+                </outline>
+                <outline text="נחלק">
+                  <kvInfo kind="user" name="הגדרה">הנחלק - הבחנותיו כהבחנות החלוק.</kvInfo>
+                  <kvInfo kind="user" name="כלל">מה שנרצה לחלק צריך שיוסר ממנו תחלה כל הספקות ושתופי הלשון.</kvInfo>
+                  <kvInfo kind="user" name="כלל">מה שנחלק כהגן מכרח שיש לו חלקים.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יב, ט</kvInfo>
+                </outline>
+                <outline text="נערכים">
+                  <kvInfo kind="user" name="הגדרה">הנערכים מתדמים או בסוג, או במין, או במקרים, בסוג - מתדמים המינים, במין - האישים, במקרים - מי שיש להם מהות אחת או כמות אחת, ומתחלקים לשוים ודומים.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יג</kvInfo>
+                  <outline text="השוים">
+                    <kvInfo kind="user" name="הגדרה">השוים הם שמשתוים בכמות איכותם.</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">אם נאמר: כל כך נאהב החסד כמו המשפט, הכונה בזה שכל כך טעם יש בחסד שיהיה נאהב כמו שיש במשפט</kvInfo>
+                    <kvInfo kind="user" name="כלל">מה שנופל באחד מן השוים נופל בחברו. (פרושו: זה צריך שיובן במה שנופל באחד מהם מצד הבחנה שיש בו, שבה הוא משתוה לחברו.)</kvInfo>
+                    <kvInfo kind="user" name="כלל">מה ששיך בו אחד מן השוים. גם חברו יהיה שיך בו.</kvInfo>
+                    <kvInfo kind="user" name="כלל">שנים שמשתוים אל שלישי, משתוים ביניהם.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יג, ב</kvInfo>
+                  </outline>
+                  <outline text="הדומים">
+                    <kvInfo kind="user" name="הגדרה">הדומים הם או דומים באיכות, או בפעלה והפעל.</kvInfo>
+                    <kvInfo kind="user" name="כלל">כל שנים דומים צריך שיהיו גם כן בלתי דומים. (פרושו, כי הדמיון אינו היותם אחד, אלא היותם שנים, שיהיה דמיון ביניהם.)</kvInfo>
+                    <kvInfo kind="user" name="כלל">מה שנופל באחד מן הדומים בבחינת מה שמתדמה, נופל גם בחברו.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יג, ג–ד</kvInfo>
+                    <outline kvDivision="yes" text="פשוט ומרכב" kvAspect="b24">
+                      <outline text="הדמיון הפשוט">
+                        <kvInfo kind="user" name="הגדרה">הפשוט - בין שנים</kvInfo>
+                        <kvInfo kind="user" name="דוגמה">האדם והעשב דומים בחלשה, ואין כאן אלא שני נושאים</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק יג, ד</kvInfo>
+                      </outline>
+                      <outline text="הדמיון המרכב">
+                        <kvInfo kind="user" name="הגדרה">המרכב - בין ארבעה.</kvInfo>
+                        <kvInfo kind="user" name="דוגמה">השר בעמו כחובל באניתו, והינו לענין ההשקפה וההנהגה, ואין הדמיון משתלם אלא בארבעה נושאים: שר וחובל, עם ואניה.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק יג, ד</kvInfo>
+                      </outline>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="בלתי שוים">
+                  <kvInfo kind="user" name="הגדרה">הבלתי שוים הם אותם, שמה שיש באחד אינו בחברו, ונחלקים למשנים והפכיים.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יד</kvInfo>
+                  <outline text="משנים">
+                    <kvInfo kind="user" name="הגדרה">המשנים הם המתפרשים אחד מחברו בלא התנגדות חזק, ונחלקים לנערכים ומחלטים.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יד, ב</kvInfo>
+                    <outline text="נערכים (במשנים)">
+                      <kvInfo kind="user" name="הגדרה">הנערכים הם שיש הפרש בערכם זה לזה, ונחלקים לחלוקים ומבדלים.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יד, ג</kvInfo>
+                      <outline text="חלוקים">
+                        <kvInfo kind="user" name="הגדרה">החלוקים הם שחלוקים בכמות איכותם, והם יתרים או פחותים.</kvInfo>
+                        <kvInfo kind="user" name="פירוש">עוד צריך להבחין בין היות הדבר פחות או יתר ובין היותו יותר אפשרי, או לא כל כך אפשרי.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק יד, ד–ה</kvInfo>
+                        <outline text="יתרים">
+                          <kvInfo kind="user" name="דוגמה">אם האדון, ברוך הוא, בורא יש מאין, כל שכן שיכול לקים את היש.</kvInfo>
+                          <kvInfo kind="user" name="כלל">מי שיפל בו היתר, יפל בו הפחות.</kvInfo>
+                          <kvInfo kind="user" name="כלל">מה שלא יפל ביתר, לא יפל בפחות בשמירת היחס.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק יד, ד</kvInfo>
+                        </outline>
+                        <outline text="פחותים">
+                          <kvInfo kind="user" name="כלל">מי שלא יפל בו פחות, לא יפל בו יתר.</kvInfo>
+                          <kvInfo kind="user" name="כלל">מה שמחיב בפחות, כל שכן ביתר.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק יד, ד</kvInfo>
+                        </outline>
+                      </outline>
+                      <outline text="מבדלים">
+                        <kvInfo kind="user" name="הגדרה">המבדלים הם הנערכים המתפרשים זה מזה באיכותם ובפעלה והפעל.</kvInfo>
+                        <kvInfo kind="user" name="דוגמה">מצרים אינה כשכם. האדם אינו כחומה.</kvInfo>
+                        <kvInfo kind="user" name="כלל">מה שנופל באחד מהם, אינו נופל בחברו בבחינת מה שהוא מבדל ממנו.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק יד, ו</kvInfo>
+                      </outline>
+                    </outline>
+                    <outline text="מחלטים">
+                      <kvInfo kind="user" name="הגדרה">המחלטים הם מה שנשלל מן איזה נושא פרטי בלא ערך.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">איזה אדם אינו לבן.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יד, ז</kvInfo>
+                    </outline>
+                  </outline>
+                  <outline text="הפכיים">
+                    <kvInfo kind="user" name="הגדרה">ההפכיים הם שמתפרשים זה מזה בהתנגדות חזק שאי אפשר ליחדם.</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">שחרות ולבן.</kvInfo>
+                    <kvInfo kind="user" name="כלל">במה שיקים אחד מן ההפכיים, ישולל חברו.</kvInfo>
+                    <kvInfo kind="user" name="כלל">במה שישולל אחד מן ההפכיים, אינו מכרח שיקים חברו אם לא יהיו הפכיים בלתי מתמצעים.</kvInfo>
+                    <kvInfo kind="user" name="כלל">ההפכיות צריך שיבחן לפי ההבדל, לא לפי השתוף.</kvInfo>
+                    <kvInfo kind="user" name="סגלה">סגלת ההפכיים שלא ימצאו בנושא אחד, בבחינה אחת, בחלק אחד, בזמן אחד. (פרושו, כי בחסרון אחד מאלה התנאים יוכלו למצא.)</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק טו</kvInfo>
+                    <outline kvDivision="yes" text="מיני ההפכיים" kvAspect="b25">
+                      <outline text="נגדיים">
+                        <kvInfo kind="user" name="הגדרה">הנגדיים הם שאחד מקים ואחד שולל.</kvInfo>
+                        <kvInfo kind="user" name="דוגמה">הולך, לא הולך.</kvInfo>
+                        <kvInfo kind="user" name="כלל">הנגדיים אין להם אמצעי. (פרושו, כי אין בין שלילה לקיום, אמצעי.)</kvInfo>
+                        <kvInfo kind="user" name="כלל">בהניח אחד מן הנגדיים, בהכרח ישולל השני.</kvInfo>
+                        <kvInfo kind="user" name="כלל">הנשוא של המאמר הנגדיי לא יתכן עם נושאו לעולם.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק טו, ה</kvInfo>
+                      </outline>
+                      <outline text="מעדירים (שוללים)">
+                        <kvInfo kind="user" name="הגדרה">המעדירים הם המורים על קנין והעדרו, ויתחלקו לגמורים ובלתי גמורים.</kvInfo>
+                        <kvInfo kind="user" name="כלל">הקנין טוב מן ההעדר.</kvInfo>
+                        <kvInfo kind="user" name="כלל">הקנין וההעדר סובבים על נושא אחד.</kvInfo>
+                        <kvInfo kind="user" name="כלל">מי ששיך בו הקנין, שיך בו ההעדר, ומי שאין הקנין שיך בו - אין ההעדר שיך בו.</kvInfo>
+                        <kvInfo kind="user" name="כלל">כשינח אחד מהם, ישולל חברו בהכרח.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק טו, ו–ח</kvInfo>
+                        <outline kvDivision="yes" text="גמור ובלתי גמור" kvAspect="b26">
+                          <outline text="מעדירים גמורים">
+                            <kvInfo kind="user" name="הגדרה">הגמורים - המעדירים אפילו הכח.</kvInfo>
+                            <kvInfo kind="user" name="דוגמה">העורון במי שנקרו שתי עיניו.</kvInfo>
+                            <kvInfo kind="user" name="מקור">פרק טו, ז</kvInfo>
+                          </outline>
+                          <outline text="מעדירים בלתי גמורים">
+                            <kvInfo kind="user" name="הגדרה">הבלתי גמורים הם שמעדירים פועל הקנין, אך הכח נשאר בנושא.</kvInfo>
+                            <kvInfo kind="user" name="מקור">פרק טו, ח</kvInfo>
+                          </outline>
+                        </outline>
+                      </outline>
+                      <outline text="נבחנים">
+                        <kvInfo kind="user" name="הגדרה">הנבחנים הם המינים החלוקים שתחת סוג אחד, או אישים תחת מין אחד.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק טו, ט</kvInfo>
+                      </outline>
+                      <outline text="מתנגדים">
+                        <kvInfo kind="user" name="הגדרה">המתנגדים הם שבאיכותם או בפעלתם מתנגדים זה לזה.</kvInfo>
+                        <kvInfo kind="user" name="דוגמה">החם והקר</kvInfo>
+                        <kvInfo kind="user" name="כלל">אם מתנגד אחד ינצח לגמרי, יבטל את חברו לגמרי.</kvInfo>
+                        <kvInfo kind="user" name="כלל">המתנגדים - שניהם מקימים ולא שוללים.</kvInfo>
+                        <kvInfo kind="user" name="כלל">המתנגדים - סבותיהם ומסבביהם, סגלותיהם ונושאיהם כלם מתנגדים.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק טו, י–יא</kvInfo>
+                        <outline text="מתמצעים">
+                          <kvInfo kind="user" name="הגדרה">המתמצעים - שיש ביניהם אמצעי</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">החם והקר יש ביניהם הפושר</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק טו, יא</kvInfo>
+                        </outline>
+                        <outline text="לא מתמצעים">
+                          <kvInfo kind="user" name="הגדרה">הלא־מתמצעים - שאין ביניהם אמצעי.</kvInfo>
+                          <kvInfo kind="user" name="דוגמה">היום והלילה - אין ביניהם אמצע.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק טו, יא</kvInfo>
+                        </outline>
+                      </outline>
+                      <outline text="מצטרפים">
+                        <kvInfo kind="user" name="הגדרה">המצטרפים הם המתיחסים שאי אפשר לאחד להיות בלא חברו, והם הפכיים זה לזה.</kvInfo>
+                        <kvInfo kind="user" name="דוגמה">האב הפך הבן, והבן הפך האב.</kvInfo>
+                        <kvInfo kind="user" name="כלל">ידיעת המצטרפים אחד, כי אין אחד בלא חברו.</kvInfo>
+                        <kvInfo kind="user" name="כלל">המצטרפים בבחינת הצטרפם הם כמו סבה זה לזה.</kvInfo>
+                        <kvInfo kind="user" name="כלל">בהעדר אחד יעדר חברו.</kvInfo>
+                        <kvInfo kind="user" name="כלל">במה שיקים האחד ישולל חברו.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק טו, יב</kvInfo>
+                      </outline>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="עדות ומועד">
+                  <kvInfo kind="user" name="הגדרה">עדות ומועד הוא קיום דבר מחוץ ממנו, ויתחלק לאלקי ואנושי.</kvInfo>
+                  <kvInfo kind="user" name="כלל">כעד כך כח העדות. (פרושו: כערך העד וחשיבותו, כך כח העדות שלו לשנאמין בה.)</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק טז</kvInfo>
+                  <outline text="העדות האלקי">
+                    <kvInfo kind="user" name="הגדרה">האלקי - שדברי האל, יתברך, מקימים אותו.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק טז, ב</kvInfo>
+                  </outline>
+                  <outline text="העדות האנושי">
+                    <kvInfo kind="user" name="הגדרה">האנושי - שאדם מקימו, ויתחלק למרבה ומיחד.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק טז, ג</kvInfo>
+                    <outline text="עדות מרבה">
+                      <kvInfo kind="user" name="הגדרה">המרבה - שהרבה מעידים עליו</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק טז, ג</kvInfo>
+                    </outline>
+                    <outline text="עדות מיחד">
+                      <kvInfo kind="user" name="הגדרה">המיחד - שאחד מעיד עליו.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק טז, ג</kvInfo>
+                    </outline>
+                  </outline>
+                </outline>
+                <outline text="סוג ומין">
+                  <kvInfo kind="user" name="מקור">פרק ד, יא</kvInfo>
+                  <kvInfo kind="user" name="הערה">מבוארים בעסק ההגיון ← הנדרשים בעשרה הענינים ← הכוללים ← כוללי המציאות. (הסקה של Claude: לא העתקתי, כדי לא לכפול.)</kvInfo>
+                </outline>
+              </outline>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="המאמרים">
+          <kvInfo kind="user" name="הגדרה">המאמר הוא חבור דברים, יקים בו דבר בדבר. או ישולל דבר מדבר.</kvInfo>
+          <kvInfo kind="user" name="דוגמה">הלחם הוא לבן, - קים הלבן בלחם; הלחם אינו שחור, - שלל השחרות ממנו.</kvInfo>
+          <kvInfo kind="user" name="מקור">פרקים יז–יט</kvInfo>
+          <kvInfo kind="user" name="הערה">"שנוי המאמר שנים: האחד חלוף והאחר נגוד" (פרק יח, א). הסקה של Claude: שמתי זאת כחלוקה שנייה של המאמר.</kvInfo>
+          <outline kvDivision="yes" text="פשוט ומרכב" kvAspect="b24">
+            <outline text="המאמר הפשוט">
+              <kvInfo kind="user" name="הגדרה">הפשוט הוא המאמר שיקים או ישלל דבר מה. וארבע הבחנות יש להבחין בו, והם: החלקים, הקשר, המין והמקרים.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק יז, ג–כ</kvInfo>
+              <kvInfo kind="user" name="הערה">הסקה של Claude: "המקרים" שבארבע ההבחנות — הספר אינו מפרט אותם בשם זה; ייתכן שהם אמתי/כוזב, מכרח/אפשרי, מדקדק/לא מדקדק (פרק יז, יז–כ).</kvInfo>
+              <outline kvDivision="yes" text="חלקי המאמרים" kvAspect="b27">
+                <outline text="נושא (במאמר)">
+                  <kvInfo kind="user" name="הגדרה">הנושא הוא שיקים בו הדבר המקים, או ישולל המשולל.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">הלחם הוא לבן. לחם - נושא</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, ה</kvInfo>
+                </outline>
+                <outline text="נשוא">
+                  <kvInfo kind="user" name="הגדרה">הנשוא הוא אשר יקים או ישולל בנושא.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">לבן - נשוא.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, ו</kvInfo>
+                </outline>
+              </outline>
+              <outline kvDivision="yes" text="הקשר" kvAspect="b28">
+                <outline text="קשר מפרש">
+                  <kvInfo kind="user" name="הגדרה">המפרש, שתהיה מלת הוא או מה שיורה עליה בין הנושא והנשוא</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">הלחם הוא לבן</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, ז</kvInfo>
+                </outline>
+                <outline text="קשר נעלם">
+                  <kvInfo kind="user" name="הגדרה">והנעלם - שיהיה הנשוא פועל.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">ראובן אכל, - יובן בו, ראובן פעל פעלת האכילה.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, ז</kvInfo>
+                </outline>
+              </outline>
+              <outline kvDivision="yes" text="לפי הכמות" kvAspect="b29">
+                <outline text="מאמר כללי">
+                  <kvInfo kind="user" name="הגדרה">הכללי הוא, שנושאו כולל כל שמענינו, ויאמר הנשוא בכלם.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">כל בעל חי מרגיש</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, ט</kvInfo>
+                </outline>
+                <outline text="מאמר חלקיי">
+                  <kvInfo kind="user" name="הגדרה">החלקיי הוא, שנושאו כולל קצת ממה שמענינו, שבהם יאמר הנשוא.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">קצת בעלי חיים מדברים.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, י</kvInfo>
+                </outline>
+                <outline text="מאמר אישיי">
+                  <kvInfo kind="user" name="הגדרה">האישיי, שנושאו איש.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">ירושלים היא עיר יפה.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יא</kvInfo>
+                </outline>
+              </outline>
+              <outline kvDivision="yes" text="לפי האיכות" kvAspect="b30">
+                <outline text="מאמר מחיב">
+                  <kvInfo kind="user" name="הגדרה">המחיב הוא שיחיב הנשוא לנושא</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יב</kvInfo>
+                </outline>
+                <outline text="מאמר שולל">
+                  <kvInfo kind="user" name="הגדרה">השולל ישללהו ממנו.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יב</kvInfo>
+                </outline>
+              </outline>
+              <outline kvDivision="yes" text="סתמיי ותנאיי" kvAspect="b31">
+                <outline text="מאמר סתמיי">
+                  <kvInfo kind="user" name="הגדרה">סתמיי הוא, שיחיב או ישלל בלי שום תנאי</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יד</kvInfo>
+                </outline>
+                <outline text="מאמר תנאיי">
+                  <kvInfo kind="user" name="הגדרה">תנאיי - שיהיה תנאי עם החיוב או השלילה, ויתחלק לראשון ושני.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יד</kvInfo>
+                  <outline text="התנאיי הראשון">
+                    <kvInfo kind="user" name="הגדרה">התנאיי הראשון הוא, שיהיה בו אחד מארבעה. והם: הכרח, מניעה אפשרות, שקול.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יז, טו</kvInfo>
+                    <outline text="הכרח">
+                      <kvInfo kind="user" name="דוגמה">האש מכרח שישרף</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יז, טו</kvInfo>
+                    </outline>
+                    <outline text="מניעה">
+                      <kvInfo kind="user" name="דוגמה">החלק נמנע שיהיה ככל</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יז, טו</kvInfo>
+                    </outline>
+                    <outline text="אפשרות">
+                      <kvInfo kind="user" name="דוגמה">האדם אפשר שיחיה הרבה</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יז, טו</kvInfo>
+                    </outline>
+                    <outline text="שקול">
+                      <kvInfo kind="user" name="דוגמה">האדם שקול לשישב או לא ישב.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יז, טו</kvInfo>
+                    </outline>
+                  </outline>
+                  <outline text="התנאיי השני">
+                    <kvInfo kind="user" name="הגדרה">התנאיי השני יתחלק לשלשה מינים: תנאיי ממעט, תנאיי מוציא, תנאיי מגביל.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יז, טז</kvInfo>
+                    <outline text="תנאיי ממעט">
+                      <kvInfo kind="user" name="הגדרה">ממעט הוא, שממעט מהנושא או הנשוא כל זולתם, ונעשה במלת בלבד, או לבדו, וכיוצא בהם.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">האדם לבדו מדבר.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יז, טז</kvInfo>
+                    </outline>
+                    <outline text="תנאיי מוציא">
+                      <kvInfo kind="user" name="הגדרה">מוציא הוא, שמוציא מן הנושא או מן הנשוא מה. וזה במלת חוץ וכיוצא בו</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">כל שתיקה טובה חוץ מדברי תורה.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יז, טז</kvInfo>
+                    </outline>
+                    <outline text="תנאיי מגביל">
+                      <kvInfo kind="user" name="הגדרה">מגביל הוא, שמגביל הנשוא בנושא באיזה בחינה, ונעשה במלת לפי, או בערך, או לגבי, וכיוצא.</kvInfo>
+                      <kvInfo kind="user" name="דוגמה">האדם הוא שפל בערך המלאכים.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק יז, טז</kvInfo>
+                    </outline>
+                  </outline>
+                </outline>
+              </outline>
+              <outline kvDivision="yes" text="אמתי או כוזב" kvAspect="b32">
+                <outline text="מאמר אמתי">
+                  <kvInfo kind="user" name="הגדרה">האמתי הוא, שיגיד הדבר כמות שהוא</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יז</kvInfo>
+                </outline>
+                <outline text="מאמר כוזב">
+                  <kvInfo kind="user" name="הגדרה">כוזב - שיגיד כמות שאינו.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יז</kvInfo>
+                </outline>
+              </outline>
+              <outline kvDivision="yes" text="מכרח או אפשרי" kvAspect="b33">
+                <outline text="מאמר מכרח">
+                  <kvInfo kind="user" name="הגדרה">המכרח הוא שיהיה אמת שאי אפשר להיות כזב, או כזב שאי אפשר להיות אמת.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">החי מכרח שירגיש.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יח</kvInfo>
+                </outline>
+                <outline text="מאמר אפשרי">
+                  <kvInfo kind="user" name="הגדרה">האפשרי שהוא אמת ויכול להיות שקר, או להפך.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">האדם אפשר שיחיה הרבה.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, יט</kvInfo>
+                </outline>
+              </outline>
+              <outline kvDivision="yes" text="מדקדק או לא מדקדק" kvAspect="b34">
+                <outline text="מאמר מדקדק">
+                  <kvInfo kind="user" name="הגדרה">מדקדק - מאמר שיורה במלותיו כפי הוראתם בדקדוק</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, כ</kvInfo>
+                </outline>
+                <outline text="מאמר לא מדקדק">
+                  <kvInfo kind="user" name="הגדרה">ולא מדקדק הוא - שיורה במלותיו שלא כפי הוראתם בדקדוק.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">אם תאמר על גבור אחד: זה האיש הוא אריה, - לא תבין אריה ממש, אלא לבו כלב אריה.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יז, כ</kvInfo>
+                </outline>
+              </outline>
+            </outline>
+            <outline text="המאמר המרכב">
+              <kvInfo kind="user" name="הגדרה">המאמר המרכב הוא שענינו מרכב, ויתחלק לחמשה מינים: תנאיי, מחבר, מחלק, מבדיל, מתיחס.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק יט</kvInfo>
+              <outline text="המרכב התנאיי">
+                <kvInfo kind="user" name="הגדרה">חלקי התנאיי שנים: קודם ונמשך; החלק שבו התנאי - קודם, השני - נמשך.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">אם תיגע בלמודים תתחכם ודאי. אם תיגע בלימודים - הוא הקודם, תתחכם ודאי - הוא הנמשך.</kvInfo>
+                <kvInfo kind="user" name="חיוב">שכל הקיום או השלילה יהיה תלוי בתנאי.</kvInfo>
+                <kvInfo kind="user" name="חיוב">שיהיה אמת, ולא מצד החלקים בפני עצמם, אלא מצד קשרם התנאיי.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק יט, ב–ג</kvInfo>
+                <outline kvDivision="yes" text="קודם ונמשך" kvAspect="b21">
+                  <outline text="קודם (בתנאיי)">
+                    <kvInfo kind="user" name="מקור">פרק יט, ב</kvInfo>
+                  </outline>
+                  <outline text="נמשך (בתנאיי)">
+                    <kvInfo kind="user" name="מקור">פרק יט, ב</kvInfo>
+                  </outline>
+                </outline>
+              </outline>
+              <outline text="המחבר">
+                <kvInfo kind="user" name="הגדרה">המחבר הוא שיתחברו חלקיו בקשרים אלה במלות: בעוד, אז, לא בלבד, אלא אף.</kvInfo>
+                <kvInfo kind="user" name="פירוש">קיום ושלילת המחבר תלוי בקשר, אך האמת - בכל חלק מן החלקים.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">לא על המדרש בלבד נצטוינו, אלא אף על המעשה.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק יט, ד–ה</kvInfo>
+              </outline>
+              <outline text="המחלק">
+                <kvInfo kind="user" name="הגדרה">המחלק, קשרו: מלת או, ואמתה בהכרח החלוק.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">עתה הוא יום או לילה.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק יט, ו</kvInfo>
+              </outline>
+              <outline text="המבדיל">
+                <kvInfo kind="user" name="הגדרה">המבדיל הוא שמבדיל ענינו, וקשרו: לא, אלא. אף על פי.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">אף על פי שאנו בגלות ארך כזה, מחזיקים בתורתנו, לא עבדות היא התורה, אלא חרות.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק יט, ז</kvInfo>
+              </outline>
+              <outline text="המיחס">
+                <kvInfo kind="user" name="הגדרה">המיחס, שיתיחסו חלקיו זה לזה, וקשריו: כמו כן, וכיוצא.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">כמו המלך כן העם; מקום הזהב שם הכבוד.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק יט, ח</kvInfo>
+              </outline>
+            </outline>
+          </outline>
+          <outline kvDivision="yes" text="שנוי המאמר" kvAspect="b35">
+            <outline text="חלוף המאמר">
+              <kvInfo kind="user" name="הגדרה">חלוף המאמר הוא שום הנושא במקום הנשוא והנשוא במקום הנושא, ויהיה המאמר אמתי. ויש בו שלשה מינים: פשוטי, מקרי והפכיי.</kvInfo>
+              <kvInfo kind="user" name="כלל">חלוף הכללי המחיב - חלקיי מחיב וכללי שולל.</kvInfo>
+              <kvInfo kind="user" name="כלל">חלוף החלקיי המחיב - חלקיי מחיב.</kvInfo>
+              <kvInfo kind="user" name="כלל">חלוף הכללי השולל - כללי שולל.</kvInfo>
+              <kvInfo kind="user" name="כלל">החלקי שולל אין חלוף מכרח לו.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק יח, א–ד</kvInfo>
+              <outline text="חלוף פשוטי">
+                <kvInfo kind="user" name="הגדרה">הפשוט הוא חלוף הנושא בנשוא ונשמר הכמות והאיכות.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">כל אדם הוא בעל חי מדבר; כל בעל חי מדבר הוא אדם.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק יח, ב</kvInfo>
+              </outline>
+              <outline text="חלוף מקרי">
+                <kvInfo kind="user" name="הגדרה">מקרי שישמר האיכות ולא הכמות</kvInfo>
+                <kvInfo kind="user" name="דוגמה">כל מדבר הוא חי; איזה חי הוא מדבר.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק יח, ג</kvInfo>
+              </outline>
+              <outline text="חלוף הפכיי">
+                <kvInfo kind="user" name="הגדרה">הפכיי - שישמר הכמות ולא האיכות.</kvInfo>
+                <kvInfo kind="user" name="דוגמה">כל מדבר הוא בעל חי; כל שאינו בעל חי אינו מדבר.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק יח, ד</kvInfo>
+              </outline>
+            </outline>
+            <outline text="נגוד">
+              <kvInfo kind="user" name="הגדרה">הנגוד הוא מאמר נגדיי למאמר.</kvInfo>
+              <kvInfo kind="user" name="פירוש">שהאחד יקים והאחד ישלל דבר אחד בנושא אחד.</kvInfo>
+              <kvInfo kind="user" name="תנאי">המאמרים הנגדיים צריך שיהיה נושאי שניהם ונשואיהם אחד.</kvInfo>
+              <kvInfo kind="user" name="תנאי">צריך שיובנו בנושא אחד, בבחינה אחת, במקום אחד, בזמן אחד.</kvInfo>
+              <kvInfo kind="user" name="תנאי">הנגדיים צריך שיובנו בהבנה פשוטה בלי שום שתוף.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק יח, ה–ט</kvInfo>
+              <outline kvDivision="yes" text="גמור ובלתי גמור" kvAspect="b26">
+                <outline text="נגוד גמור">
+                  <kvInfo kind="user" name="הגדרה">הגמור הוא, שבהכרח אחד מהם שקר ואחד מהם אמת. ומתחלק לשנים: ראשון ושני.</kvInfo>
+                  <kvInfo kind="user" name="כלל">שני נגדיים גמורים אי־אפשר להיות לא שניהם שקר ולא שניהם אמת.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יח, ח–ט</kvInfo>
+                  <outline text="נגוד גמור ראשון">
+                    <kvInfo kind="user" name="הגדרה">הראשון הוא נגוד בין כללי ופרטי, אחד מחיב ואחד שולל</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">כל אדם לבן, איזה אדם אינו לבן.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יח, ט</kvInfo>
+                  </outline>
+                  <outline text="נגוד גמור שני">
+                    <kvInfo kind="user" name="הגדרה">השני - בין שני אישים.</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">ראובן לבן, ראובן אינו לבן.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק יח, ט</kvInfo>
+                  </outline>
+                </outline>
+                <outline text="נגוד בלתי גמור">
+                  <kvInfo kind="user" name="הגדרה">הבלתי גמור הוא נגוד בין שני כללים.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">כל אדם הוא צדיק; שום אדם אינו צדיק.</kvInfo>
+                  <kvInfo kind="user" name="כלל">שני נגדיים בלתי גמורים אי־אפשר להיות אמת ויכולים להיות שקר.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק יח</kvInfo>
+                </outline>
+              </outline>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="ההקשים">
+          <kvInfo kind="user" name="הגדרה">ההקש הוא הרכבת שתי הקדמות מאמתות והוליד מהם תולדה אמתית.</kvInfo>
+          <kvInfo kind="user" name="פירוש">ההקש הוא הפעלה השלישית שהשכל פועל והוא התבונן דבר מתוך דבר, והינו שמתוך משכל שכבר נתאמת ונודע יוליד ויחדש אחר נמשך בהכרח מן הראשון.</kvInfo>
+          <kvInfo kind="user" name="דוגמה">ידעת שכל אדם הוא בעל חי. כשתדע שראובן נכלל באדם כמין תחת סוגו, תדע שבהכרח גם ראובן יהיה בעל חי.</kvInfo>
+          <kvInfo kind="user" name="כלל">כל ההקשים להיותם אמתים צריך שיהיו מנקים מן ההטעאות</kvInfo>
+          <kvInfo kind="user" name="כלל">התולדה צריכה שתדמה להקדמותיה דמיון עצמי ושלם. ואם אינה דומה להם אלא במקצת. ונבדלת מהם בעקר אמתה - הרי זה הטעאה.</kvInfo>
+          <kvInfo kind="user" name="מקור">פרקים כ–כב</kvInfo>
+          <kvInfo kind="user" name="הערה">הסקה של Claude: "ההשתמש", "סתירת ההקש" ו"ההטעאות" (פרקים כא–כב) — כחלוקות נוספות של ההקש, כל אחת בבחינה שלה.</kvInfo>
+          <outline kvDivision="yes" text="מיני ההקשים" kvAspect="b36">
+            <outline text="ההקש השלם">
+              <kvInfo kind="user" name="הגדרה">ההקש השלם הוא אשר יבאו בו שתי הקדמות המולידות והתולדה שלהם.</kvInfo>
+              <kvInfo kind="user" name="פירוש">ההבחנות שיש להבחין בהקש השלם שלש: הנודע, המבקש והמשוה, וקראום: גדולה, קטנה ותולדה.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">כל אדם חי; ראובן אדם. אם כן הוא בעל חי.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כ, ג–ה</kvInfo>
+              <kvInfo kind="user" name="הערה">השמות "גדולה, קטנה ותולדה" — כפי שבספר, לפי הסדר.</kvInfo>
+              <outline kvDivision="yes" text="ההבחנות שבהקש השלם" kvAspect="b37">
+                <outline text="הנודע (גדולה)">
+                  <kvInfo kind="user" name="הגדרה">הנודע היא ההקדמה אשר ידעת נושאה ונשואה</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">כל אדם בעל חי, - הוא הנודע</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כ, ה</kvInfo>
+                </outline>
+                <outline text="המבקש (קטנה)">
+                  <kvInfo kind="user" name="הגדרה">המבקש הוא הנושא אשר ידעתו ותבקש לדעת נשוא לו</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כ, ה</kvInfo>
+                </outline>
+                <outline text="המשוה (תולדה)">
+                  <kvInfo kind="user" name="הגדרה">והמשוה היא ההקדמה שבה תשוה הנושא המבקש לנושא הנודע, לדון בו על ידי זה הנשוא הנודע.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">וראובן הוא אדם - הוא המשוה שמשוה נושאך, והוא ראובן, אל הנושא הנודע, והוא - אדם.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כ, ה</kvInfo>
+                </outline>
+              </outline>
+            </outline>
+            <outline text="ההקש הבלתי שלם">
+              <kvInfo kind="user" name="הגדרה">הבלתי שלם הוא שיתעלמו בו אחד מן ההקדמות המולידות, ויבנה משנים לבד, ויתחלק לפשוט ומרכב.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כ, ו–ט</kvInfo>
+              <outline kvDivision="yes" text="פשוט ומרכב" kvAspect="b24">
+                <outline text="בלתי שלם פשוט">
+                  <kvInfo kind="user" name="הגדרה">הפשוט הוא שיש לו שני חלקים לבד. הראשון נקרא קודם, והשני - נמשך.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">החכמות מיקרות את האדם, אם כן ראוי שתחמדנה.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כ, ז</kvInfo>
+                </outline>
+                <outline text="בלתי שלם מרכב">
+                  <kvInfo kind="user" name="הגדרה">המרכב יתחלק לשנים</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כ, ח–ט</kvInfo>
+                  <outline text="מרכב ראשון (חפוש)">
+                    <kvInfo kind="user" name="הגדרה">שהקודם שלו מרכב מנושאים רבים ונשוא אחד, ויש מי שקראוהו חפוש.</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">יין ארץ צרפת, ארץ אטליאה, ארץ אשכנז, ארץ ספרד, ארץ תוגרמה - מחמם, אם כן כל יין מחמם.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק כ, ח</kvInfo>
+                  </outline>
+                  <outline text="מרכב שני">
+                    <kvInfo kind="user" name="הגדרה">המרכב השני הוא - שהקודם מרכב מנושאים ונשואים רבים מתחלפים זה אחר זה בהדרגה, שנשוא האחד נעשה נושא בשני.</kvInfo>
+                    <kvInfo kind="user" name="דוגמה">כל אדם בעל חי, כל בעל חי מרגיש, כל מרגיש גוף חי, כל גוף חי מרכב, אם כן כל אדם מרכב.</kvInfo>
+                    <kvInfo kind="user" name="מקור">פרק כ, ט</kvInfo>
+                  </outline>
+                </outline>
+              </outline>
+            </outline>
+            <outline text="ההקש התנאיי">
+              <kvInfo kind="user" name="הגדרה">ההקש התנאיי הוא שתולדתו מנחת בתנאי שתנח בראשונה.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">אם האדם בעל חי - הוא מרגיש; אך האדם ודאי שהוא בעל חי, אם כן הוא מרגיש.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כ, י</kvInfo>
+            </outline>
+            <outline text="ההקש המחלק">
+              <kvInfo kind="user" name="הגדרה">ההקש המחלק - שהקדמתו הראשונה מחלקת במלת "או", וינח אחד מן החלקים, ויכחש השני.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">עכשו הוא יום או לילה. אמנם יום אינו. אם כן הוא לילה.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כ, יא</kvInfo>
+            </outline>
+          </outline>
+          <outline kvDivision="yes" text="ההשתמש מהם" kvAspect="b38">
+            <outline text="לחדש משכל">
+              <kvInfo kind="user" name="הגדרה">כשיגיעו אל שכלך שתי ההקדמות הראשונות, מאליו יתבונן שכלך ויקיש ויוליד התולדה, ואז יצא לך משכל חדש.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">כשראית שעבר לפניך צל אחד, הנה מיד יתברר לך שעבר שם גוף אחד, כי תקיש ותאמר: אין צל אלא במקום שיש גוף, כאן עבר צל, אם כן כאן עבר גוף</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כא, ב</kvInfo>
+            </outline>
+            <outline text="להעמיד גזרה ולאמתה">
+              <kvInfo kind="user" name="הגדרה">האמתת הגזרה יהיה או על ידי הקש ישר, או על ידי הקש החלוף.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כא, ב–ג</kvInfo>
+              <outline text="הקש ישר">
+                <kvInfo kind="user" name="הגדרה">הקש הישר הוא הקש שמהקדמותיו תולד התולדה שנבקש לאמתה.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק כא, ג</kvInfo>
+              </outline>
+              <outline text="הקש החלוף">
+                <kvInfo kind="user" name="הגדרה">הקש החלוף הוא הקש על חלוף הגזרה שנבקש לאמת, שמהקדמותיו תולד תולדה מפרסמת הכזב, ואז נשפט היות גזרתנו אמתית.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק כא, ג</kvInfo>
+              </outline>
+            </outline>
+          </outline>
+          <outline kvDivision="yes" text="סתירת ההקש" kvAspect="b39">
+            <outline text="סתירה לחלוטין">
+              <kvInfo kind="user" name="הגדרה">לחלוטין תהיה הסתירה או בתולדה, או באיזה הקדמה.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כב, ג–ז</kvInfo>
+              <outline text="סתירת התולדה">
+                <kvInfo kind="user" name="הגדרה">התולדה תסתר מצד כל ההקש, או מצד מקצתו.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק כב, ד–ו</kvInfo>
+                <outline text="מצד כל ההקש">
+                  <kvInfo kind="user" name="הגדרה">תסתר התולדה מצד כל ההקש אם סדר ההקש אינו כהגן.</kvInfo>
+                  <kvInfo kind="user" name="פירוש">שלא יהיה יחס להקדמות עם התולדה, או זו עם זו.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">כל אדם מדבר, זה העוף מדבר, אם כן הוא אדם.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כב, ה</kvInfo>
+                </outline>
+                <outline text="מצד מקצת ההקש">
+                  <kvInfo kind="user" name="הגדרה">תסתר התולדה מצד מקצת ההקש, אם נשוא אחד מן ההקדמות אינו מכרח.</kvInfo>
+                  <kvInfo kind="user" name="דוגמה">מתכת הוא או כסף או זהב, הברזל הוא מתכת, אם כן הברזל הוא או כסף או זהב</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כב, ו</kvInfo>
+                </outline>
+              </outline>
+              <outline text="סתירת ההקדמה">
+                <kvInfo kind="user" name="הגדרה">סתירת ההקדמה תהיה אם תהיה ההקדמה כוזבת, דהינו אם יחיב בנושא אחד נשוא שראוי לשלל ממנו, או ישלל מה שראוי לחיב, לפי כללי התארים ההגיונים שנתבארו למעלה.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק כב, ז</kvInfo>
+              </outline>
+            </outline>
+            <outline text="סתירה בבחינה אחת">
+              <kvInfo kind="user" name="הגדרה">סתירה בבחינה אחת הוא, אם יאמר בהקדמה דרך כלל מה שאינו אלא בערך ובבחינה אחת, שאז נודה אותה בבחינה אחת ונכחיש אותה בבחינה אחרת, וזה יהיה בנושא או בנשוא.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">האדם מדבר. האלם הוא אדם, אם כן האלם מדבר.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כב, ח</kvInfo>
+            </outline>
+          </outline>
+          <outline kvDivision="yes" text="ההטעאות" kvAspect="b40">
+            <outline text="השתוף">
+              <kvInfo kind="user" name="הגדרה">השתוף הוא שתוף המלות בהוראתם, שלפעמים לפי הוראה אחת יאות להם נשוא אחד, ולפי הוראה אחרת - לא.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כב, י</kvInfo>
+            </outline>
+            <outline text="הערבוב">
+              <kvInfo kind="user" name="הגדרה">הערבוב הוא שלא יבחן הנשוא באיזה יחס הוא עם נושאו, אם עצמי ואם מקרי, אם בכח ואם בפעל, וכיוצא.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">האדם מדבר. פלוני השותק הוא אדם. אם כן פלוני השותק הוא מדבר, הרי זה הטעאה, כי האדם מדבר בכח אך לא תמיד בפעל.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כב, יא</kvInfo>
+            </outline>
+          </outline>
+        </outline>
+      </outline>
+      <outline text="הסדר">
+        <kvInfo kind="user" name="הגדרה">הסדר, והוא מה שבו נסדרים חלקי הלמוד כהגן, לפי מדרגתם, ויתחלק לכללי ופרטי.</kvInfo>
+        <kvInfo kind="user" name="פירוש">הסדר הוא דרך ישרה שההולך בה יגיע אל תכליתו על נכון, בלי נטות ממנו.</kvInfo>
+        <kvInfo kind="user" name="מקור">פרק כג</kvInfo>
+        <outline text="הסדר הכללי">
+          <kvInfo kind="user" name="הגדרה">הסדר הכללי הוא סדר למוד מן הלמודים, אשר בחקים מיחדים ידריך את האדם לידיעת אחת מן החכמות, או מן המלאכות, בהתהלכו מן הענינים הקודמים והיותר נודעים אל המאחרים ויותר נעלמים.</kvInfo>
+          <kvInfo kind="user" name="פירוש">הקודמים ויותר נודעים הם הכללים.</kvInfo>
+          <kvInfo kind="user" name="דוגמה">בדקדוק הנה תחלה צריך לדבר על האותיות, אחר כך על התבות והנקדות, אחר כך על חלקי הדבור - השמות, הפעלים והמלות, אחר כך על חבורי המאמרים.</kvInfo>
+          <kvInfo kind="user" name="מקור">פרק כג, ב–ד</kvInfo>
+          <outline kvDivision="yes" text="שכליי ומעשיי" kvAspect="b41">
+            <outline text="הסדר השכליי">
+              <kvInfo kind="user" name="הגדרה">שכליי הוא - כשיסדר חלקי אחד מן הלמודים השכליים באפן שמידיעת נושא הלמוד ההוא נלך אל ידיעת סבותיו, ומהם אל ההבחנות הסוגיות, ומהם אל המיניות.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">בחכמת הטבע בתחלה יתבאר גדר הגוף שהוא עסק החכמה ההיא, אחר כך יתבארו הסבות הפנימיות והחיצונות, אחר כך יתבארו המינים כלם</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כג, ג</kvInfo>
+            </outline>
+            <outline text="הסדר המעשיי">
+              <kvInfo kind="user" name="הגדרה">המעשיי הוא - כשיסדר חלקי אחד מן הלמודים המלאכתיים באפן זה, שמידיעת התכלית נבוא אל ידיעת האמצעיים המצטרכים להשיגו.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">בהגיון יתבאר תחלה התכלית, שהוא להבחין הדברים לאמתם, אחר כך יתבארו האמצעיים המגיעים לזה, דהינו התארים, ההגיונים, המאמרים, וההקשים והסדר.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כג, ד</kvInfo>
+            </outline>
+          </outline>
+        </outline>
+        <outline text="הסדר הפרטי">
+          <kvInfo kind="user" name="הגדרה">הפרטי הוא שידריך את האדם אל ידיעת איזה משכל מן המשכלות בפרט, ויתחלק להמצאה והבחנה.</kvInfo>
+          <kvInfo kind="user" name="מקור">פרק כג, ה–כו</kvInfo>
+          <outline text="ההמצאה">
+            <kvInfo kind="user" name="הגדרה">ההמצאה הוא - המצאת הגזרות וההקשים שנתבארו חקותיהם למעלה.</kvInfo>
+            <kvInfo kind="user" name="מקור">פרק כג, ו–כה</kvInfo>
+            <kvInfo kind="user" name="הערה">הסקה של Claude: "הבחנת הגזרה" (ט–כה) — תחת ההמצאה, כי הספר כותב אחריה "עד עתה בארנו ההמצאה" (כו).</kvInfo>
+            <outline text="המצאת הגזרות">
+              <kvInfo kind="user" name="הגדרה">המצאת הגזרות הוא - הבחן בנושא מן הנושאים אחת מן ההבחנות הכ"א שנתבארו למעלה.</kvInfo>
+              <kvInfo kind="user" name="פירוש">כבר בארנו למעלה, איך הכ"א הבחנות אלה הם כלל כל מה שיש לקים או לשלל באיזה נושא שיהיה, ומזה נבנות הגזרות שאינם אלא קיום או שלילת מה בנושא.</kvInfo>
+              <kvInfo kind="user" name="סדר החקירה">1 השם אם הוא מיחד, או משתף, או משאל, וכיוצא משאר מיני השם. 2 הסוג. 3 הסבות כלם. 4 המסבבים היותר רשומים. 5 המתחברים, המיחדים, המשתפים, הקודמים והנמשכים וכל השאר. 6 הגדר. 7 החלוק בחלקים בניניים, אם הנושא כל בניניי. 8 החלוק במינים אם הנושא סוג. 9 הנערכים בכל חלקיהם. 10 המשתנים וההפכיים בכל חלקיהם, שגם ידיעתם מועלת הרבה לברור ידיעת הנושא.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כג, ז</kvInfo>
+            </outline>
+            <outline text="המצאת ההקשים">
+              <kvInfo kind="user" name="הגדרה">המצאת ההקשים הוא המצאת המופתים להאמתת הגזרות, או להכחשתן, ומקורה הכ"א הבחנות שבארנו.</kvInfo>
+              <kvInfo kind="user" name="דוגמה">כל מה שיתיחס אל הבורא יתברך ראוי לכבדו כבוד גדול, התורה מתיחסת לבורא יתברך, אם כן ראוי לכבדה כבוד גדול.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כג, ח</kvInfo>
+            </outline>
+            <outline text="הבחנת הגזרה">
+              <kvInfo kind="user" name="הגדרה">הבחנת הגזרה, לאמתה או להכחישה. תהיה או בפני עצמה, או בוכוח.</kvInfo>
+              <kvInfo kind="user" name="מקור">פרק כג, ט–כה</kvInfo>
+              <outline text="בפני עצמה">
+                <kvInfo kind="user" name="הגדרה">בפני עצמה הוא - שנבחן גזרה אחת לבדנו, בלי מתנגד, על ידי הבחנות הנאותות.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק כג, ט</kvInfo>
+              </outline>
+              <outline text="בוכוח">
+                <kvInfo kind="user" name="הגדרה">בוכוח הוא - כשתאמרנה שתי גזרות שונות או הפכיות ונערך ביניהם מלחמה על ידי הקשים שיעזרו לאחת מהם, או לחברתה, ויהיה ההשתדלות לסתר ההקשים המטעים ולהעמיד האמתיים, עד שתקים הגזרה האמתית, וזה יעשה או בוכוח מדמה או בוכוח גופיי.</kvInfo>
+                <kvInfo kind="user" name="מקור">פרק כג, י–כה</kvInfo>
+                <outline text="הוכוח המדמה">
+                  <kvInfo kind="user" name="הגדרה">הוכוח המדמה הוא - שאיש אחד יעשה פעלת השני, דהינו שיגזר גזרתו באמת, ואחר כך יקשה עליה בהקשים יכזיבוה, אחר כך יסתר ההקשים ההם, ויקים גזרתו ויראה אמתה.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כג, יא</kvInfo>
+                </outline>
+                <outline text="הוכוח הגופיי">
+                  <kvInfo kind="user" name="הגדרה">הוכוח הגופיי הוא - שיהיה בין שני גופים ממש, אחד מניח ואחד מקשה, ויבחנו בזה ארבע הבחנות: ראשונה - הנושא, שניה - האפן, שלישית - המתוכחים, רביעית - התכלית.</kvInfo>
+                  <kvInfo kind="user" name="מקור">פרק כג, יב–כה</kvInfo>
+                  <outline kvDivision="yes" text="ארבע ההבחנות שבוכוח" kvAspect="b42">
+                    <outline text="נושא הוכוח">
+                      <kvInfo kind="user" name="הגדרה">הנושא הוא הענין או גזרה, שעליו ישאו ויתנו המקשה והמשיב.</kvInfo>
+                      <kvInfo kind="user" name="פירוש">המשא ומתן הוכוחי אין ראוי שיהיה אלא בענין שאמתו בלתי מפרסמת, כי במפרסמות אינו אלא מיתר ובענין שידיעתו אפשרית, כי בנמנעי ההשגה המשא ומתן בטל ומיתר ובלתי ראוי; ושיהיה ענין שידיעתו מועלת לאיזה חכמה או מלאכה, שאם לא כן אינו אלא שיחה בטלה.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק כג, יג</kvInfo>
+                    </outline>
+                    <outline text="אפן הוכוח">
+                      <kvInfo kind="user" name="הגדרה">האפן הוא - שיהיה המשא ומתן ברור, בלי הטעאות; שיהיה בישוב ובנחת, בלי בהלה וכעס; שיהיה בדרך קצרה והגיונית.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק כג, יד</kvInfo>
+                    </outline>
+                    <outline text="המתוכחים">
+                      <kvInfo kind="user" name="הגדרה">המתוכחים הם - האחד המניח והוא עצמו המשיב, והשני - המקשה לו.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק כג, טו–כג</kvInfo>
+                      <outline text="המניח (המשיב)">
+                        <kvInfo kind="user" name="הגדרה">המניח צריך שיבאר גזרתו היטב בדרך קצרה, ולא יותר מדאי, ולא יגזר לחיוב אלא מה שיכרח לו על פי הקש אמתי.</kvInfo>
+                        <kvInfo kind="user" name="פירוש">משא המשיב הוא קדם השיבו ובעת השיבו. קדם השיבו - להאזין היטב אל הקשיא ולהבחין ענינה: אם באמת מתנגד הוא להנחתו אם לא, אם בנינה הגיוני אם לא, אם הקדמותיה ותולדתה מכרחות אם לא.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק כג, טז, כג</kvInfo>
+                      </outline>
+                      <outline text="המקשה">
+                        <kvInfo kind="user" name="הגדרה">משא המקשה הוא במה שקדם הקשותו, בעת הקשותו, ואחרי הקשותו.</kvInfo>
+                        <kvInfo kind="user" name="מקור">פרק כג, יז–כב</kvInfo>
+                        <outline text="קדם הקשותו">
+                          <kvInfo kind="user" name="הגדרה">קדם הקשותו הוא - האזן היטב להנחת המניח בכל חלקיה, להבין אותה כהגן, אחר כך דקדק בהם אם יש להתנגד לאחד מהם, אם בדחיה אם בסתירה.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק כג, יח–כ</kvInfo>
+                          <outline text="דחיה">
+                            <kvInfo kind="user" name="הגדרה">בדחיה הוא - כשיעדר ההכרח בגזרתו של המניח, אפילו אם לא יכחישה.</kvInfo>
+                            <kvInfo kind="user" name="מקור">פרק כג, יט</kvInfo>
+                          </outline>
+                          <outline text="סתירה (בוכוח)">
+                            <kvInfo kind="user" name="הגדרה">בסתירה הוא - בהיות גזרתו כוזבת, מכח הקש חזק שיסתר אותה.</kvInfo>
+                            <kvInfo kind="user" name="מקור">פרק כג, כ</kvInfo>
+                          </outline>
+                        </outline>
+                        <outline text="בעת הקשותו">
+                          <kvInfo kind="user" name="הגדרה">בעת הקשותו - שיסדר קשיתו בדרך קצרה והגיונית, לפי מה שהיא, אם דחיה ואם סתירה.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק כג, כא</kvInfo>
+                        </outline>
+                        <outline text="אחרי הקשותו">
+                          <kvInfo kind="user" name="הגדרה">אחרי הקשותו - האזן היטב אל המניח שישיב אל קשיתו, והודות על האמת.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק כג, כב</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                    <outline text="תכלית הוכוח">
+                      <kvInfo kind="user" name="הגדרה">התכלית יתחלק לעקרי וטפל.</kvInfo>
+                      <kvInfo kind="user" name="מקור">פרק כג, כד–כה</kvInfo>
+                      <outline kvDivision="yes" text="עקרי וטפל" kvAspect="b8">
+                        <outline text="התכלית העקרי (בוכוח)">
+                          <kvInfo kind="user" name="הגדרה">העקרי - השגת האמת</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק כג, כה</kvInfo>
+                        </outline>
+                        <outline text="התכלית הטפל (בוכוח)">
+                          <kvInfo kind="user" name="הגדרה">הטפל - חדוד השכל.</kvInfo>
+                          <kvInfo kind="user" name="מקור">פרק כג, כה</kvInfo>
+                        </outline>
+                      </outline>
+                    </outline>
+                  </outline>
+                </outline>
+              </outline>
+            </outline>
+          </outline>
+          <outline text="ההבחנה (בסדר)">
+            <kvInfo kind="user" name="הגדרה">ההבחנה, והיא - הבחן חלקי המאמרים והעמידם על מדרגותיהם ההגיוניות.</kvInfo>
+            <kvInfo kind="user" name="פירוש">אחר שידענו מה נשלל או נחיב באחד מן הנושאים וההקשים המוכיחים אמתת גזרה מן הגזרות, מזה נבנה הדרושים וההגדות במליצה כראוי… אך לבחינת הדרושים - נצטרך לנתחם, ולהבדיל עניני המליצה ודרכי הספור לבד והחלקים ההגיונים לבד</kvInfo>
+            <kvInfo kind="user" name="סדר המעשה">תחלת הכל צריך שתקרא ותשנה ותשלש הדרוש או ההגדה אשר תרצה לנתח, ותתבונן בה היטב עד שתכיר ענינה, אם הוא אחד או יותר, אם הוא פשוט או מחבר.</kvInfo>
+            <kvInfo kind="user" name="מקור">פרק כג, כו</kvInfo>
+          </outline>
+        </outline>
+      </outline>
+    </outline>
+  </body>
+</opml>
