@@ -78,6 +78,8 @@ public class ItemWindow {
         body.addView(name);
         body.addView(text(place(), 13, GREY, false));
 
+        aspects();
+
         // מידע שהמשתמש ממציא, לפי שמות
         Map<String, List<Info>> groups = new LinkedHashMap<>();
         for (Info in : it.infos) if (in.kind == Info.Kind.USER) {
@@ -114,6 +116,119 @@ public class ItemWindow {
         List<Info> inc = it.infos(Info.Kind.INCIDENTAL);
         if (inc.isEmpty()) body.addView(hint("אין."));
         for (final Info in : inc) row(in.text, new Runnable() { public void run() { editInfo(in, in.kind, ""); }});
+    }
+
+    /** האם הפריט הוא בחינה (נפתח מתצוגת הבחינות). */
+    private String aspectIdOfItem() {
+        for (Map.Entry<String, Item> e : p.aspects.entrySet()) if (e.getValue() == it) return e.getKey();
+        return null;
+    }
+
+    /**
+     * בחינות (0.10.4): לפי מה הפריט נחלק מאביו, ולפי מה הוא מחלק את בניו. נגיעה — בחירה או שינוי,
+     * ופתיחת הבחינה עצמה (יש לה מקום למידע כמו לפריט). בבחינה — איפה חילקו לפיה.
+     */
+    private void aspects() {
+        String aid = aspectIdOfItem();
+        if (aid != null) {
+            header("חילקו לפיה", "", new Runnable() { public void run() { }});
+            List<Item> owners = new ArrayList<>();
+            for (Item r : p.allRoots()) owners(r, aid, owners);
+            if (owners.isEmpty()) body.addView(hint("עוד לא חילקו לפיה."));
+            for (final Item o : owners) {
+                Item par = o.parent();
+                row(o.name + (par == null ? "" : "   ·   תחת \"" + par.name + "\""), new Runnable() { public void run() {
+                    new ItemWindow(act, p, o, onChange).show(); }});
+            }
+            return;
+        }
+        header("בחינות", "+ חלוקה", new Runnable() { public void run() {
+            chooseAspect("חלוקה חדשה — לפי איזו בחינה?", "", new Named() { public void done(String s) {
+                Division d = Edit.addSide(it, "");
+                Edit.setAspect(p, d, s);
+                changed();
+            }});
+        }});
+        final Division pd = it.parentDivision;
+        if (pd != null) {
+            sub("נחלק מאביו \"" + it.parent().name + "\" לפי", "", new Runnable() { public void run() { }});
+            row(aspectLabel(pd), new Runnable() { public void run() { aspectMenu(pd); }});
+        }
+        boolean any = false;
+        for (int k = 0; k < it.divisions.size(); k++) {
+            final Division d = it.divisions.get(k);
+            if (d.children.isEmpty() && d.aspectId.isEmpty() && d.basis.isEmpty()) continue;
+            if (!any) sub("מחלק את בניו לפי", "", new Runnable() { public void run() { }});
+            any = true;
+            String side = it.divisions.size() > 1 ? "צד " + com.aviccc.kvutzot.model.Hebrew.number(k + 1) + ": " : "";
+            row(side + aspectLabel(d) + "   ·   " + d.children.size() + " בנים", new Runnable() { public void run() { aspectMenu(d); }});
+        }
+        if (pd == null && !any) body.addView(hint("אין חלוקות."));
+    }
+
+    private static void owners(Item x, String aid, List<Item> out) {
+        for (Division d : x.divisions) {
+            if (aid.equals(d.aspectId) && !out.contains(x)) out.add(x);
+            for (Item c : d.children) owners(c, aid, out);
+        }
+    }
+
+    private String aspectLabel(Division d) {
+        if (!d.aspectId.isEmpty()) {
+            Item a = p.aspect(d.aspectId);
+            if (a != null) return a.name;
+        }
+        return d.basis.isEmpty() ? "(בלי בחינה)" : d.basis;
+    }
+
+    private void aspectMenu(final Division d) {
+        final Item a = d.aspectId.isEmpty() ? null : p.aspect(d.aspectId);
+        List<String> items = new ArrayList<>();
+        items.add(a == null ? "קבע בחינה…" : "שנה בחינה לחלוקה הזאת…");
+        if (a != null) items.add("פתח את הבחינה \"" + a.name + "\" (מידע עליה, ואיפה חילקו לפיה)");
+        if (a != null || !d.basis.isEmpty()) items.add("בלי בחינה");
+        new AlertDialog.Builder(act).setTitle("בחינת החלוקה")
+                .setItems(items.toArray(new String[0]), new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface di, int w) {
+                        if (w == 0) {
+                            chooseAspect("לפי איזו בחינה?", a == null ? d.basis : a.name, new Named() { public void done(String s) {
+                                Edit.setAspect(p, d, s);
+                                changed();
+                            }});
+                        } else if (w == 1 && a != null) {
+                            new ItemWindow(act, p, a, onChange).show();
+                        } else {
+                            Edit.setAspect(p, d, "");
+                            changed();
+                        }
+                    }}).show();
+    }
+
+    private interface Named { void done(String s); }
+
+    private void chooseAspect(String title, String initial, final Named then) {
+        final AutoCompleteTextView f = new AutoCompleteTextView(act);
+        f.setSingleLine(true);
+        f.setHint("שם הבחינה");
+        f.setText(initial);
+        f.setSelection(f.getText().length());
+        f.setTextDirection(View.TEXT_DIRECTION_RTL);
+        List<String> names = new ArrayList<>();
+        for (Item x : p.aspects.values()) if (!names.contains(x.name)) names.add(x.name);
+        f.setThreshold(0);
+        f.setAdapter(new ArrayAdapter<>(act, android.R.layout.simple_dropdown_item_1line, names));
+        f.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            public void onFocusChange(View v, boolean has) { if (has) f.showDropDown(); }});
+        AlertDialog d = new AlertDialog.Builder(act).setTitle(title + (names.isEmpty() ? "" : " (קיימת או חדשה)"))
+                .setView(wrap(names.isEmpty() ? f : listBox(f)))
+                .setPositiveButton("אישור", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface di, int w) {
+                        String s = f.getText().toString().trim();
+                        if (!s.isEmpty()) then.done(s);
+                    }})
+                .setNegativeButton("ביטול", null).create();
+        keyboard(d);
+        d.show();
     }
 
     private String place() {
