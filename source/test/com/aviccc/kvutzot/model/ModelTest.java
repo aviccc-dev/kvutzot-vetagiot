@@ -388,6 +388,46 @@ public class ModelTest {
         for (boolean vert : new boolean[]{true, false})
             check(noOverlap(MapLayout.build(vt.project, vert, fake, 30, 12)), "תצוגת תגיות בלי חפיפות");
 
+        // --- סיעור מוחות ---
+        Brain br = new Brain();
+        br.title = "רעיונות <&> \"כאן\"";
+        Brain.Section bt = br.addSection(Brain.Kind.TEXT);
+        bt.text = "שורה ראשונה\n  שורה עם הזחה\n\nאחרי שורה ריקה <x> & y";
+        Brain.Section bg = br.addSection(Brain.Kind.GRID);
+        eq(bg.grid.size() + "x" + bg.cols(), "5x3", "גיליון התחלתי 5 על 3");
+        bg.grid.get(0).set(0, "א1");
+        bg.grid.get(4).set(2, "ה3\nשתי שורות");
+        bg.addCol(3);
+        bg.addRow(0);
+        eq(bg.grid.size() + "x" + bg.cols(), "6x4", "הוספת שורה ועמודה");
+        eq(bg.grid.get(1).get(0), "א1", "שורה נוספה מעל");
+        check(bg.removeCol(3) && bg.removeRow(0), "מחיקת שורה ועמודה");
+        Brain.Section bn = br.addSection(Brain.Kind.NOTEBOOK);
+        bn.lines.add(new Brain.Line("ראשונה", false));
+        bn.lines.add(new Brain.Line("שנייה, עם פס", true));
+        bn.lines.add(new Brain.Line("שלישית", false));
+        check(bn.moveLine(2, 0) && bn.lines.get(0).text.equals("שלישית"), "הזזת שורה בפנקס");
+        check(!bn.moveLine(0, 9), "הזזה מחוץ לתחום נדחית");
+        String bw = BrainIO.write(br);
+        check(bw.startsWith(BrainIO.HEADER + "\n<?xml"), "שורת פתיחה לסיעור מוחות");
+        check(BrainIO.isBrain(bw) && !BrainIO.isBrain(OpmlIO.write(p)), "זיהוי סוג הקובץ");
+        Brain br2 = BrainIO.read(bw);
+        eq(BrainIO.write(br2), bw, "סיעור מוחות: שמירה חוזרת זהה");
+        eq(br2.title, br.title, "כותרת עם סימנים");
+        eq(br2.sections.size(), 3, "שלושה חלקים");
+        eq(br2.sections.get(0).text, bt.text, "כתבן: שורות, הזחה ושורה ריקה נשמרות");
+        eq(br2.sections.get(1).grid.get(4).get(2), "ה3\nשתי שורות", "משבצת בשתי שורות");
+        eq(br2.sections.get(1).cols(), 3, "מספר עמודות");
+        check(br2.sections.get(2).lines.get(2).struck && !br2.sections.get(2).lines.get(0).struck, "פס נשמר");
+        boolean notBrain = false;
+        try { BrainIO.read(OpmlIO.write(p)); } catch (Xml.ParseException ex) { notBrain = true; }
+        check(notBrain, "קובץ מפה לא נקרא כסיעור מוחות");
+        boolean notMap = false;
+        try { OpmlIO.read(bw); } catch (Xml.ParseException ex) { notMap = true; }
+        check(notMap, "קובץ סיעור מוחות לא נקרא כמפה");
+        Brain ragged = BrainIO.read("<kvBrainstorm><section kind=\"grid\"><row><cell>a</cell></row><row><cell>b</cell><cell>c</cell></row></section></kvBrainstorm>");
+        eq(ragged.sections.get(0).grid.get(0).size(), 2, "שורות קצרות מושלמות לרוחב אחיד");
+
         // --- סקאלת ההגדלה ---
         eq(Zoom.values(0.5f).toString(), "[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]", "סקאלה בחצאים");
         eq(Zoom.values(0.25f).size(), 16, "סקאלה ברבעים");
