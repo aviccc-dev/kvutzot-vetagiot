@@ -11,3 +11,9 @@
 
 ## הבנייה
 באותה שיטה כמו מנהל הקבצים (`aviccc-dev/vfm`): Java פשוט בלי Gradle, אריזה וחתימה בסביבת העבודה של Claude, וקובץ APK שנשלח להתקנה.
+
+### הכנת סביבת הבנייה (10.11.2026)
+- `apt-get install aapt zipalign apksigner dalvik-exchange`
+- `android.jar` של API 30: `git clone --depth 1 --filter=blob:none --sparse https://github.com/Sable/android-platforms` ← `git sparse-checkout set android-30` ← העתקה ל-`/home/claude/tools/android.jar`
+- שם החבילה: `com.aviccc.kvutzot`
+- **מפתח החתימה לא נמצא במאגר.** הוא שמור בפרויקט ב-claude.ai (`claude/מפתח-חתימה.md`, עם הוראות שחזור), ועותק אצל המשתמש. כינוי `kv`, טביעת SHA-256 מתחילה ב-`E1:0C:2E:F3`.
