@@ -52,6 +52,26 @@ public class MapView extends View {
     private boolean pendingReveal;
 
     public void setHost(Host h) { host = h; }
+
+    /** קורא בכל שינוי הגדלה (לתא המספרים). */
+    public interface ZoomListener { void onZoom(float scale); }
+    private ZoomListener zoomListener;
+    public void setZoomListener(ZoomListener l) { zoomListener = l; }
+    public float getZoom() { return scale; }
+
+    private void zoomChanged() { if (zoomListener != null) zoomListener.onZoom(scale); }
+
+    /** הגדלה לערך מסוים, סביב מרכז המסך. */
+    public void setZoom(float z) {
+        z = Math.max(com.aviccc.kvutzot.model.Zoom.MIN, Math.min(com.aviccc.kvutzot.model.Zoom.MAX, z));
+        float cx = getWidth() / 2f, cy = getHeight() / 2f, f = z / scale;
+        tx = cx - (cx - tx) * f;
+        ty = cy - (cy - ty) * f;
+        scale = z;
+        needFit = false;
+        zoomChanged();
+        invalidate();
+    }
     private final float dens;
     private final TextPaint textPaint, labelPaint, markPaint;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -105,6 +125,7 @@ public class MapView extends View {
                 tx = d.getFocusX() - (d.getFocusX() - tx) * f;
                 ty = d.getFocusY() - (d.getFocusY() - ty) * f;
                 scale = ns;
+                zoomChanged();
                 invalidate();
                 return true;
             }
@@ -220,6 +241,7 @@ public class MapView extends View {
         ty = layout.vertical ? 0 : (getHeight() - h * scale) / 2;
         if (ty < 0) ty = 0;
         needFit = false;
+        zoomChanged();
         invalidate();
     }
 

@@ -60,6 +60,9 @@ public class Main extends Activity implements MapView.Host {
     /** יש שינויים שלא נשמרו. */
     private boolean dirty;
     private boolean autosave;
+    private float zoomStep;
+    private LinearLayout zoomBar;
+    private TextView zoomLabel;
     private Item clip;
     private final android.os.Handler handler = new android.os.Handler();
     private final Runnable saver = new Runnable() { public void run() { if (dirty && uri != null) save(); } };
@@ -92,11 +95,17 @@ public class Main extends Activity implements MapView.Host {
         android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
         frame.addView(sv, new android.widget.FrameLayout.LayoutParams(-1, -1));
         frame.addView(map, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        zoomBar = buildZoomBar();
+        android.widget.FrameLayout.LayoutParams zl = new android.widget.FrameLayout.LayoutParams(-2, -2,
+                android.view.Gravity.BOTTOM | android.view.Gravity.LEFT);
+        zl.setMargins(dp(12), 0, 0, dp(14));
+        frame.addView(zoomBar, zl);
         root.addView(frame, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
         showMap = prefs.getBoolean("showMap", true);
         vertical = prefs.getBoolean("vertical", true);
         autosave = prefs.getBoolean("autosave", true);
+        zoomStep = com.aviccc.kvutzot.model.Zoom.clampStep(prefs.getFloat("zoomStep", 0.5f));
         applyView();
 
         String saved = prefs.getString("uri", null);
@@ -126,6 +135,7 @@ public class Main extends Activity implements MapView.Host {
     private void applyView() {
         boolean m = showMap && project != null;
         map.setVisibility(m ? View.VISIBLE : View.GONE);
+        if (zoomBar != null) zoomBar.setVisibility(m ? View.VISIBLE : View.GONE);
         textScroll.setVisibility(m ? View.GONE : View.VISIBLE);
         invalidateOptionsMenu();
     }
@@ -559,20 +569,105 @@ public class Main extends Activity implements MapView.Host {
     }
 
     private void settings() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        box.setPadding(dp(18), dp(8), dp(18), 0);
         final android.widget.CheckBox cb = new android.widget.CheckBox(this);
         cb.setText("שמירה אוטומטית (שתי שניות אחרי כל שינוי, וביציאה מהאפליקציה)");
         cb.setChecked(autosave);
-        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
-        box.setPadding(dp(16), dp(8), dp(16), 0);
         box.addView(cb);
+        TextView zt = new TextView(this);
+        zt.setText("צפיפות סקאלת ההגדלה");
+        zt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        zt.setPadding(0, dp(16), 0, dp(4));
+        box.addView(zt);
+        final android.widget.RadioGroup rg = new android.widget.RadioGroup(this);
+        final android.widget.RadioButton half = new android.widget.RadioButton(this);
+        half.setText("כל חצי (0.5, 1, 1.5, 2…)");
+        half.setId(View.generateViewId());
+        final android.widget.RadioButton quarter = new android.widget.RadioButton(this);
+        quarter.setText("כל רבע (0.25, 0.5, 0.75, 1…)");
+        quarter.setId(View.generateViewId());
+        final android.widget.RadioButton other = new android.widget.RadioButton(this);
+        other.setText("מספר אחר:");
+        other.setId(View.generateViewId());
+        rg.addView(half);
+        rg.addView(quarter);
+        rg.addView(other);
+        box.addView(rg);
+        final android.widget.EditText custom = new android.widget.EditText(this);
+        custom.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        custom.setHint("למשל 0.1");
+        box.addView(custom);
+        if (Math.abs(zoomStep - 0.5f) < 1e-4) rg.check(half.getId());
+        else if (Math.abs(zoomStep - 0.25f) < 1e-4) rg.check(quarter.getId());
+        else { rg.check(other.getId()); custom.setText(com.aviccc.kvutzot.model.Zoom.format(zoomStep)); }
         new AlertDialog.Builder(this).setTitle("הגדרות").setView(box)
                 .setPositiveButton("אישור", new android.content.DialogInterface.OnClickListener() {
                     public void onClick(android.content.DialogInterface d, int w) {
                         autosave = cb.isChecked();
-                        prefs.edit().putBoolean("autosave", autosave).apply();
+                        int c = rg.getCheckedRadioButtonId();
+                        float s = zoomStep;
+                        if (c == half.getId()) s = 0.5f;
+                        else if (c == quarter.getId()) s = 0.25f;
+                        else {
+                            try { s = Float.parseFloat(custom.getText().toString().trim()); }
+                            catch (NumberFormatException e) { /* נשאר כמו שהיה */ }
+                        }
+                        zoomStep = com.aviccc.kvutzot.model.Zoom.clampStep(s);
+                        prefs.edit().putBoolean("autosave", autosave).putFloat("zoomStep", zoomStep).apply();
                         if (project != null) render(null, false);
                     }})
                 .setNegativeButton("ביטול", null).show();
+    }
+
+    /** תא ההגדלה: "−", המספר, "+". נגיעה במספר — רשימת כל הערכים לפי הצפיפות. */
+    private LinearLayout buildZoomBar() {
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(0xF2FFFFFF);
+        bg.setStroke(dp(1), 0xFF185FA5);
+        bg.setCornerRadius(dp(20));
+        bar.setBackground(bg);
+        TextView minus = zoomButton("−");
+        zoomLabel = zoomButton("1");
+        zoomLabel.setMinWidth(dp(56));
+        zoomLabel.setTypeface(Typeface.DEFAULT_BOLD);
+        TextView plus = zoomButton("+");
+        bar.addView(minus);
+        bar.addView(zoomLabel);
+        bar.addView(plus);
+        minus.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+            map.setZoom(com.aviccc.kvutzot.model.Zoom.next(map.getZoom(), zoomStep, -1)); }});
+        plus.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+            map.setZoom(com.aviccc.kvutzot.model.Zoom.next(map.getZoom(), zoomStep, 1)); }});
+        zoomLabel.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+            final java.util.List<Float> vals = com.aviccc.kvutzot.model.Zoom.values(zoomStep);
+            String[] names = new String[vals.size() + 1];
+            for (int i = 0; i < vals.size(); i++) names[i] = com.aviccc.kvutzot.model.Zoom.format(vals.get(i));
+            names[vals.size()] = "התאם למסך";
+            new AlertDialog.Builder(Main.this).setTitle("הגדלה")
+                    .setItems(names, new android.content.DialogInterface.OnClickListener() {
+                        public void onClick(android.content.DialogInterface d, int w) {
+                            if (w == vals.size()) map.fit(); else map.setZoom(vals.get(w));
+                        }}).show();
+        }});
+        map.setZoomListener(new MapView.ZoomListener() { public void onZoom(float s) {
+            zoomLabel.setText(com.aviccc.kvutzot.model.Zoom.format(s)); }});
+        return bar;
+    }
+
+    private TextView zoomButton(String s) {
+        TextView t = new TextView(this);
+        t.setText(s);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        t.setTextColor(0xFF0C447C);
+        t.setGravity(android.view.Gravity.CENTER);
+        t.setPadding(dp(14), dp(8), dp(14), dp(8));
+        return t;
     }
 
     @Override
