@@ -273,6 +273,47 @@ public class ModelTest {
         eq(tl.roots.get(0).hue, 0, "שורש אפור");
         eq(tl.roots.get(0).children.get(0).children.get(0).depth, 1, "עומק בלי לספור תוויות");
 
+        // --- עריכה ---
+        Project ed = OpmlIO.read(file(dir, "משולש.xml"));
+        Item edRoot = ed.mainRoot();
+        Item right = edRoot.divisions.get(1).children.get(0);
+        Item sib = Edit.addSibling(ed, right, "אח חדש");
+        eq(edRoot.divisions.get(1).children.indexOf(sib), 1, "אח מיד אחרי");
+        check(Edit.addSibling(ed, edRoot, "x") == null, "לשורש אין אחים");
+        Item loose1 = ed.looseItems().get(0);
+        Item looseSib = Edit.addSibling(ed, loose1, "תלוש חדש");
+        check(looseSib.loose && ed.roots.indexOf(looseSib) == ed.roots.indexOf(loose1) + 1, "אח לתלוש הוא תלוש אחריו");
+        Item kid = Edit.addChild(right, null, "בן חדש");
+        eq(right.childCount(), 1, "בן חדש");
+        Division side = Edit.addSide(right, "לפי משהו");
+        eq(right.divisions.size(), 2, "צד חדש ליד הבנים הקיימים");
+        eq(side.side(), 2, "הצד החדש הוא ב");
+        Item leaf = right.divisions.get(1).add("עלה");
+        Division s1 = Edit.addSide(leaf, "לפי כלום");
+        eq(leaf.divisions.size(), 1, "צד ראשון בפריט בלי בנים");
+        eq(s1.basis, "לפי כלום", "שם הצד הראשון");
+        Edit.addChild(right, side, "בן בצד ב");
+        eq(side.children.size(), 2, "הוספה לצד שנבחר");
+        Item clip = Edit.copy(edRoot.divisions.get(0).children.get(0));
+        Item pasted = Edit.paste(clip, kid, null);
+        eq(pasted.name, "שווה צלעות", "הדבקה");
+        eq(pasted.infos.size(), 2, "מידע מועתק");
+        check(pasted != clip && pasted.parent() == kid, "מודבק עותק תחת היעד");
+        pasted.infos.get(0).text = "שונה";
+        check(!edRoot.divisions.get(0).children.get(0).infos.get(0).text.equals("שונה"), "העותק נפרד מהמקור");
+        check(Edit.within(pasted, right) && !Edit.within(right, pasted), "בדיקת צאצא");
+        check(!Edit.delete(ed, edRoot), "את המפה הראשית לא מוחקים");
+        int before = TextLines.countItems(ed);
+        check(Edit.delete(ed, kid), "מחיקת ענף");
+        eq(TextLines.countItems(ed), before - 2, "נמחקו הבן והמודבק");
+        check(Edit.move(sib, -1) && edRoot.divisions.get(1).children.indexOf(sib) == 0, "הזזה למעלה");
+        check(!Edit.move(sib, -1), "אין לאן להזיז");
+        check(Edit.deleteDivision(side), "מחיקת צד");
+        eq(right.divisions.size(), 1, "נשאר צד אחד");
+        Project ed2 = roundTrip(OpmlIO.write(ed), "אחרי עריכה");
+        eq(TextLines.countItems(ed2), TextLines.countItems(ed), "אחרי עריכה: אותו מספר פריטים");
+        check(noOverlap(MapLayout.build(ed2, true, fake, 30, 12)), "אחרי עריכה: אין חפיפות");
+
         // --- מספור עברי ---
         int[] n = {1, 2, 9, 10, 11, 15, 16, 19, 20, 22, 100, 123, 400, 500};
         String[] h = {"א", "ב", "ט", "י", "י\"א", "ט\"ו", "ט\"ז", "י\"ט", "כ", "כ\"ב", "ק", "קכ\"ג", "ת", "ת\"ק"};

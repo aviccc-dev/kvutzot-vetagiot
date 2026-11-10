@@ -23,8 +23,35 @@ import com.aviccc.kvutzot.model.Palette;
 import java.util.HashMap;
 import java.util.Map;
 
-/** המפה הגרפית (גרסה 0.2: קריאה בלבד): תיבות, קווים, צבעים; הזזה באצבע, הגדלה בשתי אצבעות. */
+/**
+ * המפה הגרפית: תיבות, קווים, צבעים; הזזה באצבע, הגדלה בשתי אצבעות.
+ * 0.3: נגיעה בוחרת פריט, וסביבו כפתורים; נגיעה כפולה — עריכת שם; לחיצה ארוכה — ענף ותפריט.
+ */
 public class MapView extends View {
+
+    /** מה שהמסך מבקש מהפעילות הראשית. */
+    public interface Host {
+        void onAction(String action, MapLayout.Node node);
+        void onEditNode(MapLayout.Node node);
+        void onBranchMenu(MapLayout.Node node);
+    }
+
+    public static final String A_CHILD = "child", A_SIBLING = "sibling", A_EDIT = "edit",
+            A_COLLAPSE = "collapse", A_MORE = "more";
+
+    private Host host;
+    private com.aviccc.kvutzot.model.Model.Item selItem;
+    private com.aviccc.kvutzot.model.Model.Division selDiv;
+    private boolean branch;
+    private final Paint btnFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint btnStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final TextPaint btnText = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint selPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final java.util.List<RectF> btnRects = new java.util.ArrayList<>();
+    private final java.util.List<String> btnActions = new java.util.ArrayList<>();
+    private boolean pendingReveal;
+
+    public void setHost(Host h) { host = h; }
     private final float dens;
     private final TextPaint textPaint, labelPaint, markPaint;
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -61,6 +88,16 @@ public class MapView extends View {
         maxW = 150 * dens;
         margin = 24 * dens;
         setBackgroundColor(0xFFFFFFFF);
+        btnFill.setColor(0xFFFFFFFF);
+        btnStroke.setStyle(Paint.Style.STROKE);
+        btnStroke.setStrokeWidth(1.2f * dens);
+        btnStroke.setColor(0xFF185FA5);
+        btnText.setTextSize(sp(13));
+        btnText.setColor(0xFF0C447C);
+        btnText.setTextAlign(Paint.Align.CENTER);
+        selPaint.setStyle(Paint.Style.STROKE);
+        selPaint.setStrokeWidth(3f * dens);
+        selPaint.setColor(0xFFEF9F27);
         scaler = new ScaleGestureDetector(c, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override public boolean onScale(ScaleGestureDetector d) {
                 float ns = Math.max(.25f, Math.min(4f, scale * d.getScaleFactor()));
@@ -77,12 +114,75 @@ public class MapView extends View {
             @Override public boolean onScroll(MotionEvent a, MotionEvent b, float dx, float dy) {
                 tx -= dx; ty -= dy; invalidate(); return true;
             }
-            @Override public boolean onDoubleTap(MotionEvent e) { fit(); return true; }
+            @Override public boolean onSingleTapConfirmed(MotionEvent e) {
+                for (int i = 0; i < btnRects.size(); i++)
+                    if (btnRects.get(i).contains(e.getX(), e.getY())) {
+                        MapLayout.Node n = selectedNode();
+                        if (host != null && n != null) host.onAction(btnActions.get(i), n);
+                        return true;
+                    }
+                MapLayout.Node n = hit(e.getX(), e.getY());
+                select(n, false);
+                return true;
+            }
+            @Override public boolean onDoubleTap(MotionEvent e) {
+                MapLayout.Node n = hit(e.getX(), e.getY());
+                if (n == null) { fit(); return true; }
+                select(n, false);
+                if (host != null) host.onEditNode(n);
+                return true;
+            }
+            @Override public void onLongPress(MotionEvent e) {
+                MapLayout.Node n = hit(e.getX(), e.getY());
+                if (n == null) return;
+                select(n, true);
+                if (host != null) host.onBranchMenu(n);
+            }
         });
     }
 
     private float sp(float v) {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, v, getResources().getDisplayMetrics());
+    }
+
+    // ---------------- בחירה ----------------
+
+    private MapLayout.Node hit(float sx, float sy) {
+        if (layout == null) return null;
+        float mx = (sx - tx) / scale - margin, my = (sy - ty) / scale - margin;
+        float slack = 4 * dens / scale;
+        for (int i = layout.nodes.size() - 1; i >= 0; i--) {
+            MapLayout.Node n = layout.nodes.get(i);
+            if (mx >= n.x - slack && mx <= n.x + n.w + slack && my >= n.y - slack && my <= n.y + n.h + slack) return n;
+        }
+        return null;
+    }
+
+    public void select(MapLayout.Node n, boolean wholeBranch) {
+        selItem = n == null ? null : n.item;
+        selDiv = n == null ? null : n.division;
+        branch = n != null && wholeBranch;
+        invalidate();
+    }
+
+    /** בחירת פריט לפי המודל (אחרי הוספה), והזזת המפה כך שייראה. */
+    public void selectItem(com.aviccc.kvutzot.model.Model.Item it, com.aviccc.kvutzot.model.Model.Division d) {
+        selItem = it;
+        selDiv = d;
+        branch = false;
+        pendingReveal = true;
+        invalidate();
+    }
+
+    public MapLayout.Node selectedNode() {
+        if (layout == null || selItem == null) return null;
+        for (MapLayout.Node n : layout.nodes) if (n.item == selItem && n.division == selDiv) return n;
+        return null;
+    }
+
+    private boolean inBranch(MapLayout.Node n, MapLayout.Node top) {
+        for (MapLayout.Node x = n; x != null; x = x.parent) if (x == top) return true;
+        return false;
     }
 
     public void setProject(Project p, boolean vertical, boolean refit) {
@@ -191,6 +291,67 @@ public class MapView extends View {
                 c.drawText(n.mark, n.x + n.w - 4 * dens, n.y + 3 * dens - markPaint.ascent(), markPaint);
             }
         }
+        MapLayout.Node sel = selectedNode();
+        if (sel != null) {
+            float o = 3 * dens;
+            for (MapLayout.Node n : layout.nodes) {
+                if (n != sel && !(branch && inBranch(n, sel))) continue;
+                r.set(n.x - o, n.y - o, n.x + n.w + o, n.y + n.h + o);
+                selPaint.setAlpha(n == sel ? 255 : 120);
+                c.drawRoundRect(r, rad + o, rad + o, selPaint);
+            }
+        }
         c.restore();
+        btnRects.clear();
+        btnActions.clear();
+        if (sel != null) {
+            if (pendingReveal) { reveal(sel); pendingReveal = false; }
+            drawButtons(c, sel);
+        }
+    }
+
+    /** מזיז את המפה כך שהפריט ייראה, אם הוא מחוץ למסך. */
+    private void reveal(MapLayout.Node n) {
+        float sx = tx + (n.x + margin) * scale, sy = ty + (n.y + margin) * scale;
+        float sw = n.w * scale, sh = n.h * scale, m = 60 * dens;
+        if (sx < m || sx + sw > getWidth() - m || sy < m || sy + sh > getHeight() - m * 2) {
+            tx += getWidth() / 2f - (sx + sw / 2);
+            ty += getHeight() / 3f - (sy + sh / 2);
+            invalidate();
+        }
+    }
+
+    private void drawButtons(Canvas c, MapLayout.Node n) {
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        if (n.isDivision()) {
+            labels.add("+ בן"); btnActions.add(A_CHILD);
+            labels.add("שם"); btnActions.add(A_EDIT);
+            labels.add("⋯"); btnActions.add(A_MORE);
+        } else {
+            labels.add("+ בן"); btnActions.add(A_CHILD);
+            if (n.item.parentDivision != null || n.item.loose) { labels.add("+ אח"); btnActions.add(A_SIBLING); }
+            labels.add("ערוך"); btnActions.add(A_EDIT);
+            if (n.item.childCount() > 0) { labels.add(n.item.collapsed ? "פתח" : "כווץ"); btnActions.add(A_COLLAPSE); }
+            labels.add("⋯"); btnActions.add(A_MORE);
+        }
+        float bw = 52 * dens, bh = 36 * dens, gap = 6 * dens;
+        float total = labels.size() * bw + (labels.size() - 1) * gap;
+        float sx = tx + (n.x + margin) * scale, sy = ty + (n.y + margin) * scale;
+        float sw = n.w * scale, sh = n.h * scale;
+        float left = sx + sw / 2 - total / 2;
+        left = Math.max(gap, Math.min(left, getWidth() - total - gap));
+        float top = sy + sh + 8 * dens;
+        if (top + bh > getHeight() - gap) top = sy - 8 * dens - bh;
+        top = Math.max(gap, Math.min(top, getHeight() - bh - gap));
+        float rr = bh / 2;
+        // מימין לשמאל: הכפתור הראשון בצד ימין
+        for (int i = 0; i < labels.size(); i++) {
+            float l = left + total - (i + 1) * bw - i * gap;
+            RectF b = new RectF(l, top, l + bw, top + bh);
+            btnRects.add(b);
+            c.drawRoundRect(b, rr, rr, btnFill);
+            c.drawRoundRect(b, rr, rr, btnStroke);
+            c.drawText(labels.get(i), b.centerX(), b.centerY() - (btnText.ascent() + btnText.descent()) / 2, btnText);
+        }
     }
 }

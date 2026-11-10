@@ -24,6 +24,10 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.aviccc.kvutzot.model.Edit;
+import com.aviccc.kvutzot.model.MapLayout;
+import com.aviccc.kvutzot.model.Model.Division;
+import com.aviccc.kvutzot.model.Model.Item;
 import com.aviccc.kvutzot.model.Model.Project;
 import com.aviccc.kvutzot.model.OpmlIO;
 import com.aviccc.kvutzot.model.TextLines;
@@ -34,11 +38,11 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 
 /** גרסה 0.1: פתיחת קובץ, תצוגת טקסט, שמירה, וזיהוי שינוי מבחוץ. */
-public class Main extends Activity {
+public class Main extends Activity implements MapView.Host {
     private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3, REQ_EXPORT = 4;
     private static final int M_OPEN = 1, M_NEW = 2, M_SAVE = 3, M_SAVE_AS = 4, M_RELOAD = 5,
             M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8, M_EXPORT = 9,
-            M_VIEW = 10, M_DIR = 11, M_FIT = 12;
+            M_VIEW = 10, M_DIR = 11, M_FIT = 12, M_LOOSE = 13, M_SETTINGS = 14;
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
     private SharedPreferences prefs;
@@ -53,6 +57,12 @@ public class Main extends Activity {
     private ScrollView textScroll;
     private MapView map;
     private boolean showMap, vertical;
+    /** יש שינויים שלא נשמרו. */
+    private boolean dirty;
+    private boolean autosave;
+    private Item clip;
+    private final android.os.Handler handler = new android.os.Handler();
+    private final Runnable saver = new Runnable() { public void run() { if (dirty && uri != null) save(); } };
 
     @Override
     protected void onCreate(Bundle b) {
@@ -78,6 +88,7 @@ public class Main extends Activity {
         sv.addView(body);
         textScroll = sv;
         map = new MapView(this);
+        map.setHost(this);
         android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
         frame.addView(sv, new android.widget.FrameLayout.LayoutParams(-1, -1));
         frame.addView(map, new android.widget.FrameLayout.LayoutParams(-1, -1));
@@ -85,6 +96,7 @@ public class Main extends Activity {
         setContentView(root);
         showMap = prefs.getBoolean("showMap", true);
         vertical = prefs.getBoolean("vertical", true);
+        autosave = prefs.getBoolean("autosave", true);
         applyView();
 
         String saved = prefs.getString("uri", null);
@@ -94,6 +106,13 @@ public class Main extends Activity {
         } else {
             showWelcome();
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        handler.removeCallbacks(saver);
+        if (dirty && autosave && uri != null) save();
     }
 
     @Override
@@ -133,6 +152,8 @@ public class Main extends Activity {
         m.add(0, M_EXPORT, 4, "ייצוא ל-OPML (לתוכנות אחרות)");
         m.add(0, M_EX_TRI, 5, "דוגמה: משולש");
         m.add(0, M_EX_TOYS, 6, "דוגמה: צעצועים");
+        m.add(0, M_LOOSE, 5, "פריט תלוש חדש");
+        m.add(0, M_SETTINGS, 7, "הגדרות");
         m.add(0, M_ABOUT, 7, "אודות");
         return true;
     }
@@ -146,6 +167,7 @@ public class Main extends Activity {
         m.findItem(M_VIEW).setTitle(showMap ? "טקסט" : "מפה").setVisible(project != null);
         m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap);
         m.findItem(M_FIT).setVisible(project != null && showMap);
+        m.findItem(M_LOOSE).setVisible(project != null);
         return true;
     }
 
@@ -153,13 +175,14 @@ public class Main extends Activity {
     public boolean onOptionsItemSelected(MenuItem mi) {
         switch (mi.getItemId()) {
             case M_OPEN: {
+                if (guardDirty(mi)) return true;
                 Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
                 i.setType("*/*");
                 startActivityForResult(i, REQ_OPEN);
                 return true;
             }
-            case M_NEW: create(REQ_CREATE, "מפה חדשה.xml"); return true;
+            case M_NEW: if (!guardDirty(mi)) create(REQ_CREATE, "מפה חדשה.xml"); return true;
             case M_SAVE_AS: create(REQ_SAVE_AS, (project.title.isEmpty() ? "מפה" : project.title) + ".xml"); return true;
             case M_SAVE: save(); return true;
             case M_VIEW:
@@ -174,10 +197,17 @@ public class Main extends Activity {
                 invalidateOptionsMenu();
                 return true;
             case M_FIT: map.fit(); return true;
+            case M_LOOSE:
+                askName("פריט תלוש חדש", "", true, new Named() { public void done(String s) {
+                    Item n = Edit.addLoose(project, s);
+                    changed(n, null);
+                }});
+                return true;
+            case M_SETTINGS: settings(); return true;
             case M_EXPORT: create(REQ_EXPORT, (project.title.isEmpty() ? "מפה" : project.title) + ".opml"); return true;
-            case M_RELOAD: load(uri, false); return true;
-            case M_EX_TRI: example("triangle.xml", "משולש"); return true;
-            case M_EX_TOYS: example("toys.xml", "צעצועים"); return true;
+            case M_RELOAD: if (!guardDirty(mi)) load(uri, false); return true;
+            case M_EX_TRI: if (!guardDirty(mi)) example("triangle.xml", "משולש"); return true;
+            case M_EX_TOYS: if (!guardDirty(mi)) example("toys.xml", "צעצועים"); return true;
             case M_ABOUT:
                 new AlertDialog.Builder(this).setTitle("קבוצות ותגיות")
                         .setMessage("גרסה " + versionName() + "\nמבלגן לסדר.")
@@ -217,7 +247,7 @@ public class Main extends Activity {
         } else if (req == REQ_CREATE) {
             Project p = new Project();
             p.title = "מפה חדשה";
-            p.roots.add(new com.aviccc.kvutzot.model.Model.Item("נושא"));
+            p.roots.add(new Item("נושא"));
             writeThenLoad(u, OpmlIO.write(p));
         } else if (req == REQ_SAVE_AS) {
             writeThenLoad(u, OpmlIO.write(project));
@@ -277,6 +307,7 @@ public class Main extends Activity {
                     fileName = name;
                     lastText = text;
                     project = p;
+                    dirty = false;
                     if (remember || prefs.getString("uri", null) == null)
                         prefs.edit().putString("uri", u.toString()).apply();
                     render("נטען", true);
@@ -304,6 +335,7 @@ public class Main extends Activity {
                     fileName = name;
                     lastText = text;
                     project = p;
+                    dirty = false;
                     render(ok ? "נשמר" : STALE, true);
                 }});
             } catch (Exception e) {
@@ -330,6 +362,7 @@ public class Main extends Activity {
                 final boolean ok = readsBack(u, text);
                 runOnUiThread(new Runnable() { public void run() {
                     lastText = text;
+                    if (OpmlIO.write(project).equals(text)) dirty = false;
                     render(ok ? "נשמר" : STALE, false);
                 }});
             } catch (Exception e) {
@@ -385,6 +418,7 @@ public class Main extends Activity {
             project = OpmlIO.read(new String(bo.toByteArray(), UTF8));
             uri = null;
             lastText = null;
+            dirty = false;
             fileName = "דוגמה: " + name + " (לא שמורה)";
             render("כדי לשמור: \"שמור עותק בשם\"", true);
         } catch (Exception e) {
@@ -399,7 +433,9 @@ public class Main extends Activity {
         setTitle(p.title.isEmpty() ? "קבוצות ותגיות" : p.title);
         int items = TextLines.countItems(p);
         status.setText(fileName + " · " + items + " פריטים · "
-                + (p.absolute ? "מפה מוחלטת" : "מפה לא מוחלטת") + (note == null ? "" : " · " + note));
+                + (p.absolute ? "מפה מוחלטת" : "מפה לא מוחלטת")
+                + (dirty ? (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר") : "")
+                + (note == null ? "" : " · " + note));
         int indent = dp(22);
         int grey = Color.rgb(136, 135, 128);
         int blue = Color.rgb(24, 95, 165);
@@ -448,5 +484,213 @@ public class Main extends Activity {
 
     private static void span(SpannableStringBuilder sb, Object what, int s, int e) {
         if (e > s) sb.setSpan(what, s, e, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+
+    // ---------------- עריכה ----------------
+
+    private interface Named { void done(String s); }
+
+    /** חלון הקלדה. withNext: כפתור "הבא" שמוסיף ופותח שוב (הוספה ברצף), ו-Enter = הבא. */
+    private void askName(final String title, String initial, final boolean withNext, final Named then) {
+        final android.widget.EditText ed = new android.widget.EditText(this);
+        ed.setSingleLine(true);
+        ed.setText(initial);
+        ed.setSelectAllOnFocus(true);
+        ed.setTextDirection(View.TEXT_DIRECTION_RTL);
+        ed.setImeOptions(withNext ? android.view.inputmethod.EditorInfo.IME_ACTION_NEXT
+                : android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
+        box.setPadding(dp(20), dp(8), dp(20), 0);
+        box.addView(ed);
+        AlertDialog.Builder b = new AlertDialog.Builder(this).setTitle(title).setView(box)
+                .setPositiveButton("סיום", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        String s = ed.getText().toString().trim();
+                        if (!s.isEmpty() || !withNext) then.done(s);
+                    }})
+                .setNegativeButton("ביטול", null);
+        if (withNext) b.setNeutralButton("הבא", null);
+        final AlertDialog dlg = b.create();
+        dlg.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        final Runnable next = new Runnable() { public void run() {
+            String s = ed.getText().toString().trim();
+            if (s.isEmpty()) return;
+            then.done(s);
+            ed.setText("");
+        }};
+        dlg.setOnShowListener(new android.content.DialogInterface.OnShowListener() {
+            public void onShow(android.content.DialogInterface d) {
+                if (withNext) dlg.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) { next.run(); }});
+                ed.requestFocus();
+            }});
+        ed.setOnEditorActionListener(new android.widget.TextView.OnEditorActionListener() {
+            public boolean onEditorAction(android.widget.TextView v, int id, android.view.KeyEvent e) {
+                if (withNext) { next.run(); return true; }
+                then.done(ed.getText().toString().trim());
+                dlg.dismiss();
+                return true;
+            }});
+        dlg.show();
+    }
+
+    /** אחרי כל שינוי: ציור מחדש בלי לזוז, בחירה, ושמירה (אוטומטית — אחרי שתי שניות של שקט). */
+    private void changed(Item select, Division selDiv) {
+        dirty = true;
+        if (select != null) map.selectItem(select, selDiv);
+        render(null, false);
+        if (autosave && uri != null) {
+            handler.removeCallbacks(saver);
+            handler.postDelayed(saver, 2000);
+        }
+    }
+
+    private boolean guardDirty(final MenuItem mi) {
+        if (!dirty || (autosave && uri != null)) {
+            if (dirty) { handler.removeCallbacks(saver); save(); }
+            return false;
+        }
+        new AlertDialog.Builder(this).setTitle("יש שינויים שלא נשמרו")
+                .setMessage(uri == null ? "הדוגמה לא נשמרת. להמשיך ולאבד את השינויים?" : "להמשיך בלי לשמור?")
+                .setPositiveButton("המשך בלי לשמור", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { dirty = false; onOptionsItemSelected(mi); }})
+                .setNegativeButton("ביטול", null).show();
+        return true;
+    }
+
+    private void settings() {
+        final android.widget.CheckBox cb = new android.widget.CheckBox(this);
+        cb.setText("שמירה אוטומטית (שתי שניות אחרי כל שינוי, וביציאה מהאפליקציה)");
+        cb.setChecked(autosave);
+        android.widget.FrameLayout box = new android.widget.FrameLayout(this);
+        box.setPadding(dp(16), dp(8), dp(16), 0);
+        box.addView(cb);
+        new AlertDialog.Builder(this).setTitle("הגדרות").setView(box)
+                .setPositiveButton("אישור", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        autosave = cb.isChecked();
+                        prefs.edit().putBoolean("autosave", autosave).apply();
+                        if (project != null) render(null, false);
+                    }})
+                .setNegativeButton("ביטול", null).show();
+    }
+
+    @Override
+    public void onAction(String action, final MapLayout.Node n) {
+        final Item it = n.item;
+        switch (action) {
+            case MapView.A_CHILD:
+                askName(n.isDivision() ? "בן חדש ב\"" + n.text + "\"" : "בן חדש ל\"" + it.name + "\"", "", true, new Named() {
+                    public void done(String s) {
+                        Item c = Edit.addChild(it, n.division, s);
+                        if (it.collapsed) it.collapsed = false;
+                        changed(c, null);
+                    }});
+                break;
+            case MapView.A_SIBLING:
+                final Item[] last = {it};
+                askName("אח חדש ל\"" + it.name + "\"", "", true, new Named() {
+                    public void done(String s) {
+                        Item c = Edit.addSibling(project, last[0], s);
+                        if (c != null) { last[0] = c; changed(c, null); }
+                    }});
+                break;
+            case MapView.A_EDIT: onEditNode(n); break;
+            case MapView.A_COLLAPSE:
+                it.collapsed = !it.collapsed;
+                changed(it, null);
+                break;
+            case MapView.A_MORE: onBranchMenu(n); break;
+        }
+    }
+
+    @Override
+    public void onEditNode(final MapLayout.Node n) {
+        if (n.isDivision()) {
+            askName("שם החלוקה (הבחינה)", n.division.basis, false, new Named() {
+                public void done(String s) { n.division.basis = s; changed(n.item, n.division); }});
+        } else {
+            askName("שם הפריט", n.item.name, false, new Named() {
+                public void done(String s) { if (!s.isEmpty()) { n.item.name = s; changed(n.item, null); } }});
+        }
+    }
+
+    @Override
+    public void onBranchMenu(final MapLayout.Node n) {
+        final Item it = n.item;
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        if (n.isDivision()) {
+            final Division d = n.division;
+            labels.add("הוסף בן לחלוקה"); acts.add(new Runnable() { public void run() { onAction(MapView.A_CHILD, n); }});
+            labels.add("שנה את שם החלוקה"); acts.add(new Runnable() { public void run() { onEditNode(n); }});
+            if (clip != null) { labels.add("הדבק כבן כאן: " + clip.name); acts.add(new Runnable() { public void run() {
+                Item c = Edit.paste(clip, it, d); changed(c, null); }}); }
+            labels.add("מחק את החלוקה" + (d.children.isEmpty() ? "" : " ואת " + countDiv(d) + " הפריטים שבה"));
+            acts.add(new Runnable() { public void run() {
+                confirm("למחוק את החלוקה \"" + n.text + "\"" + (d.children.isEmpty() ? "?" : " ואת כל " + countDiv(d) + " הפריטים שבה?"),
+                        new Runnable() { public void run() { Edit.deleteDivision(d); changed(it, null); }});
+            }});
+            menu("חלוקה: " + n.text, labels, acts);
+            return;
+        }
+        int sibs = it.parentDivision == null ? 0 : it.parentDivision.children.size() - 1;
+        String head = it.name + " · " + it.childCount() + " בנים · " + sibs + " אחים";
+        labels.add("הוסף חלוקה בצד"); acts.add(new Runnable() { public void run() {
+            askName("שם החלוקה החדשה (למשל \"לפי צבע\")", "", false, new Named() { public void done(String s) {
+                Division d = Edit.addSide(it, s);
+                it.collapsed = false;
+                changed(it, d.children.isEmpty() && !d.basis.isEmpty() ? d : null);
+            }});
+        }});
+        labels.add("הוסף בנים ברצף"); acts.add(new Runnable() { public void run() { onAction(MapView.A_CHILD, n); }});
+        if (it.parentDivision != null || it.loose) { labels.add("הוסף אחים ברצף"); acts.add(new Runnable() { public void run() { onAction(MapView.A_SIBLING, n); }}); }
+        if (it.parentDivision != null) {
+            labels.add("הזז לפני"); acts.add(new Runnable() { public void run() { if (Edit.move(it, -1)) changed(it, null); }});
+            labels.add("הזז אחרי"); acts.add(new Runnable() { public void run() { if (Edit.move(it, 1)) changed(it, null); }});
+        }
+        labels.add("העתק"); acts.add(new Runnable() { public void run() { clip = Edit.copy(it); status.setText("הועתק: " + it.name); }});
+        final boolean canDelete = it.parentDivision != null || it.loose;
+        if (canDelete) { labels.add("גזור"); acts.add(new Runnable() { public void run() {
+            clip = Edit.copy(it);
+            Item parent = it.parent();
+            Edit.delete(project, it);
+            changed(parent, null);
+            status.setText("נגזר: " + clip.name + " · בחר פריט ו\"הדבק\"");
+        }}); }
+        if (clip != null) { labels.add("הדבק כבן: " + clip.name); acts.add(new Runnable() { public void run() {
+            Item c = Edit.paste(clip, it, null); it.collapsed = false; changed(c, null); }}); }
+        if (canDelete) {
+            labels.add("מחק" + (it.childCount() > 0 ? " (עם " + (Edit.countBranch(it) - 1) + " הפריטים שמתחתיו)" : ""));
+            acts.add(new Runnable() { public void run() {
+                confirm("למחוק את \"" + it.name + "\"" + (it.childCount() > 0 ? " ואת כל " + (Edit.countBranch(it) - 1) + " הפריטים שמתחתיו?" : "?"),
+                        new Runnable() { public void run() {
+                            Item parent = it.parent();
+                            Edit.delete(project, it);
+                            changed(parent, null);
+                        }});
+            }});
+        }
+        menu(head, labels, acts);
+    }
+
+    private static int countDiv(Division d) {
+        int c = 0;
+        for (Item i : d.children) c += Edit.countBranch(i);
+        return c;
+    }
+
+    private void menu(String title, java.util.List<String> labels, final java.util.List<Runnable> acts) {
+        new AlertDialog.Builder(this).setTitle(title)
+                .setItems(labels.toArray(new String[0]), new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { acts.get(w).run(); }})
+                .show();
+    }
+
+    private void confirm(String q, final Runnable yes) {
+        new AlertDialog.Builder(this).setTitle(q)
+                .setPositiveButton("מחק", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { yes.run(); }})
+                .setNegativeButton("ביטול", null).show();
     }
 }
