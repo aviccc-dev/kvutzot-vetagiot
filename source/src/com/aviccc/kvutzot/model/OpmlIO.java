@@ -41,6 +41,18 @@ public final class OpmlIO {
 
     public static Project read(String text) throws Xml.ParseException {
         Xml.Node root = Xml.parse(stripHeader(text));
+        if (root.name.equals("kvBrainstorm")) {
+            // קובץ סיעור מוחות נפרד מגרסה 0.7: נכנס לטאב "התחלת נושא" של קובץ אחד
+            Project p = new Project();
+            Brain b = new Brain();
+            Xml.Node t = root.child("title");
+            if (t != null) b.title = t.text.toString().trim();
+            BrainIO.readSections(root, b);
+            p.title = b.title;
+            p.start = b;
+            p.roots.add(new Item(b.title.isEmpty() ? "נושא" : b.title));
+            return p;
+        }
         if (!root.name.equals("opml")) throw new Xml.ParseException("השורש אינו opml", 0);
         Project p = new Project();
         Xml.Node head = root.child("head");
@@ -49,6 +61,15 @@ public final class OpmlIO {
                 switch (h.name) {
                     case "title": p.title = h.text.toString().trim(); break;
                     case "kv": p.absolute = YES.equals(h.attr("absolute")); break;
+                    case "kvStart": BrainIO.readSections(h, p.start); break;
+                    case "kvFree":
+                        for (Xml.Node n : h.all("node"))
+                            p.free.addWithId(n.attr("id"), n.attr("text"), num(n.attr("x")), num(n.attr("y")));
+                        for (Xml.Node l : h.all("link")) {
+                            FreeMap.Node a1 = p.free.node(nz(l.attr("a"))), b1 = p.free.node(nz(l.attr("b")));
+                            p.free.link(a1, b1);
+                        }
+                        break;
                     case "kvTags":
                         for (Xml.Node tn : h.all("kvTag")) {
                             String id = tn.attr("id");
@@ -131,6 +152,14 @@ public final class OpmlIO {
 
     private static String nz(String s) { return s == null ? "" : s; }
 
+    private static float num(String s) {
+        try { return s == null ? 0 : Float.parseFloat(s); } catch (NumberFormatException e) { return 0; }
+    }
+
+    private static String fmt(float f) {
+        return f == Math.round(f) ? String.valueOf(Math.round(f)) : String.valueOf(Math.round(f * 10) / 10f);
+    }
+
     /** String.join לא קיים באנדרואיד 5. */
     private static String join(java.util.List<String> l) {
         StringBuilder b = new StringBuilder();
@@ -168,6 +197,29 @@ public final class OpmlIO {
                 tags.children.add(tn);
             }
             head.children.add(tags);
+        }
+        if (!p.start.sections.isEmpty()) {
+            Xml.Node st = new Xml.Node("kvStart");
+            BrainIO.writeSections(p.start, st);
+            head.children.add(st);
+        }
+        if (!p.free.isEmpty()) {
+            Xml.Node fr = new Xml.Node("kvFree");
+            for (FreeMap.Node n : p.free.nodes) {
+                Xml.Node x = new Xml.Node("node");
+                x.attrs.put("id", n.id);
+                x.attrs.put("x", fmt(n.x));
+                x.attrs.put("y", fmt(n.y));
+                x.attrs.put("text", n.text);
+                fr.children.add(x);
+            }
+            for (FreeMap.Link l : p.free.links) {
+                Xml.Node x = new Xml.Node("link");
+                x.attrs.put("a", l.a);
+                x.attrs.put("b", l.b);
+                fr.children.add(x);
+            }
+            head.children.add(fr);
         }
         for (Xml.Node h : p.headExtra) head.children.add(h.copy());
         Xml.Node body = new Xml.Node("body");

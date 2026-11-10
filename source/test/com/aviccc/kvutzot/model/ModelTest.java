@@ -422,11 +422,42 @@ public class ModelTest {
         boolean notBrain = false;
         try { BrainIO.read(OpmlIO.write(p)); } catch (Xml.ParseException ex) { notBrain = true; }
         check(notBrain, "קובץ מפה לא נקרא כסיעור מוחות");
-        boolean notMap = false;
-        try { OpmlIO.read(bw); } catch (Xml.ParseException ex) { notMap = true; }
-        check(notMap, "קובץ סיעור מוחות לא נקרא כמפה");
+        check(OpmlIO.read(bw).start.sections.size() == 3, "קובץ סיעור מוחות נקרא כקובץ עם טאב 1 (מ-0.8)");
         Brain ragged = BrainIO.read("<kvBrainstorm><section kind=\"grid\"><row><cell>a</cell></row><row><cell>b</cell><cell>c</cell></row></section></kvBrainstorm>");
         eq(ragged.sections.get(0).grid.get(0).size(), 2, "שורות קצרות מושלמות לרוחב אחיד");
+
+        // --- שלושה טאבים בקובץ אחד ---
+        Project three = OpmlIO.read(file(dir, "משולש.xml"));
+        check(three.start.sections.isEmpty() && three.free.isEmpty(), "קובץ ישן: טאבים 1 ו-2 ריקים");
+        eq(OpmlIO.write(three), OpmlIO.write(OpmlIO.read(file(dir, "משולש.xml"))), "קובץ בלי טאבים 1-2 נכתב כמו קודם");
+        Brain.Section n1 = three.start.addSection(Brain.Kind.NOTEBOOK);
+        n1.lines.add(new Brain.Line("רעיון ראשון", false));
+        three.start.addSection(Brain.Kind.GRID).grid.get(0).set(1, "משבצת");
+        FreeMap.Node fa = three.free.add("צלעות", 10, 20);
+        FreeMap.Node fb = three.free.add("זוויות", 140.5f, -30);
+        FreeMap.Node fc = three.free.add("סימטריה \"חלקית\" <>", 60, 200);
+        check(three.free.link(fa, fb) && three.free.link(fb, fc), "קווים");
+        check(!three.free.link(fb, fa), "אותו קו לא פעמיים");
+        check(!three.free.link(fa, fa), "אין קו לעצמו");
+        eq(three.free.neighbors(fb).size(), 2, "שכנים");
+        Project three2 = roundTrip(OpmlIO.write(three), "שלושה טאבים");
+        eq(three2.start.sections.size(), 2, "טאב 1 נשמר");
+        eq(three2.start.sections.get(0).lines.get(0).text, "רעיון ראשון", "שורת פנקס בטאב 1");
+        eq(three2.free.nodes.size(), 3, "טאב 2: פריטים");
+        eq(three2.free.node(fb.id).x, 140.5f, "מיקום עם שבר");
+        eq(three2.free.node(fb.id).y, -30f, "מיקום שלילי");
+        eq(three2.free.node(fc.id).text, "סימטריה \"חלקית\" <>", "טקסט עם סימנים");
+        eq(three2.free.links.size(), 2, "טאב 2: קווים");
+        eq(three2.mainRoot().childCount(), 6, "טאב 3 לא נפגע");
+        three2.free.remove(three2.free.node(fb.id));
+        eq(three2.free.links.size(), 0, "מחיקת פריט מוחקת את הקווים שלו");
+        check(OpmlIO.writeOpml(three).contains("kvFree"), "ייצוא OPML שומר גם את 2 הטאבים (בראש)");
+        // קובץ סיעור מוחות נפרד מ-0.7 נקרא כקובץ עם טאב 1
+        Project fromOld = OpmlIO.read(bw);
+        eq(fromOld.start.sections.size(), 3, "סיעור מוחות ישן → טאב 1");
+        eq(fromOld.title, br.title, "הכותרת עוברת");
+        eq(fromOld.mainRoot().name, br.title, "שורש למפה בשם הכותרת");
+        roundTrip(OpmlIO.write(fromOld), "סיעור מוחות ישן אחרי המרה");
 
         // --- סקאלת ההגדלה ---
         eq(Zoom.values(0.5f).toString(), "[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]", "סקאלה בחצאים");

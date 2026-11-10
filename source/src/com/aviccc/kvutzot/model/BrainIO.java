@@ -35,6 +35,12 @@ public final class BrainIO {
         Brain b = new Brain();
         Xml.Node t = root.child("title");
         if (t != null) b.title = t.text.toString().trim();
+        readSections(root, b);
+        return b;
+    }
+
+    /** קריאת החלקים (section) שבתוך צומת, לתוך b. */
+    public static void readSections(Xml.Node root, Brain b) {
         for (Xml.Node sn : root.all("section")) {
             Brain.Kind k = Brain.Kind.of(sn.attr("kind") == null ? "" : sn.attr("kind"));
             if (k == null) continue;
@@ -63,7 +69,6 @@ public final class BrainIO {
             }
             b.sections.add(s);
         }
-        return b;
     }
 
     public static String write(Brain b) {
@@ -72,6 +77,14 @@ public final class BrainIO {
         Xml.Node t = new Xml.Node("title");
         t.text.append(b.title);
         root.children.add(t);
+        writeSections(b, root);
+        StringBuilder out = new StringBuilder(HEADER + "\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        Xml.write(root, out, 0);
+        return out.toString();
+    }
+
+    /** כתיבת החלקים לתוך צומת. */
+    public static void writeSections(Brain b, Xml.Node root) {
         for (Brain.Section s : b.sections) {
             Xml.Node sn = new Xml.Node("section");
             sn.attrs.put("kind", s.kind.code);
@@ -100,8 +113,5 @@ public final class BrainIO {
             }
             root.children.add(sn);
         }
-        StringBuilder out = new StringBuilder(HEADER + "\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        Xml.write(root, out, 0);
-        return out.toString();
     }
 }

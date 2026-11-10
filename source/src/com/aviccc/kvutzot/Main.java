@@ -25,7 +25,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.aviccc.kvutzot.model.Brain;
-import com.aviccc.kvutzot.model.BrainIO;
+import com.aviccc.kvutzot.model.FreeMap;
 import com.aviccc.kvutzot.model.Edit;
 import com.aviccc.kvutzot.model.MapLayout;
 import com.aviccc.kvutzot.model.Model.Division;
@@ -41,7 +41,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 
 /** גרסה 0.1: פתיחת קובץ, תצוגת טקסט, שמירה, וזיהוי שינוי מבחוץ. */
-public class Main extends Activity implements MapView.Host {
+public class Main extends Activity implements MapView.Host, FreeView.Host {
     private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3, REQ_EXPORT = 4, REQ_BRAIN = 5;
     private static final int M_OPEN = 1, M_NEW = 2, M_SAVE = 3, M_SAVE_AS = 4, M_RELOAD = 5,
             M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8, M_EXPORT = 9,
@@ -62,7 +62,8 @@ public class Main extends Activity implements MapView.Host {
         String fileName = "";
         String lastText;
         Project project;
-        Brain brain;
+        /** הטאב בתוך הקובץ: 0 התחלת נושא, 1 סיעור מוחות, 2 מפה. */
+        int part = 2;
         boolean dirty;
         int viewMode, tagLevel = 1;
         String viewInfo = "";
@@ -71,7 +72,6 @@ public class Main extends Activity implements MapView.Host {
         boolean spread = true;
         String label() {
             if (project != null && !project.title.isEmpty()) return project.title;
-            if (brain != null && !brain.title.isEmpty()) return brain.title;
             String f = fileName == null || fileName.isEmpty() ? "קובץ" : fileName;
             return f.endsWith(".xml") ? f.substring(0, f.length() - 4) : f;
         }
@@ -82,11 +82,12 @@ public class Main extends Activity implements MapView.Host {
     /** הטקסט כפי שנטען או נשמר לאחרונה, להשוואה עם שינוי מבחוץ. */
     private String lastText;
     private Project project;
-    /** סיעור מוחות (כשהטאב הוא סיעור מוחות, project == null). */
-    private Brain brain;
+    /** הטאב בתוך הקובץ: 0 התחלת נושא, 1 סיעור מוחות (מפה גמישה), 2 מפה. */
+    private int part = 2;
     private BrainView brainView;
     private ScrollView brainScroll;
-    private Brain.Kind pendingKind = Brain.Kind.NOTEBOOK;
+    private FreeView freeView;
+    private TextView freeAdd;
     private boolean asking;
     private ScrollView textScroll;
     private MapView map;
@@ -141,6 +142,24 @@ public class Main extends Activity implements MapView.Host {
         brainView = new BrainView(this);
         brainScroll.addView(brainView);
         frame.addView(brainScroll, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        freeView = new FreeView(this);
+        frame.addView(freeView, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        freeAdd = new TextView(this);
+        freeAdd.setText("+ פריט");
+        freeAdd.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        freeAdd.setTextColor(0xFF0C447C);
+        freeAdd.setPadding(dp(16), dp(9), dp(16), dp(9));
+        android.graphics.drawable.GradientDrawable fg = new android.graphics.drawable.GradientDrawable();
+        fg.setColor(0xF2FFFFFF);
+        fg.setStroke(dp(1), 0xFF185FA5);
+        fg.setCornerRadius(dp(20));
+        freeAdd.setBackground(fg);
+        freeAdd.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+            onFreeAdd(freeView.centerX(), freeView.centerY()); }});
+        android.widget.FrameLayout.LayoutParams fl = new android.widget.FrameLayout.LayoutParams(-2, -2,
+                android.view.Gravity.BOTTOM | android.view.Gravity.LEFT);
+        fl.setMargins(dp(12), 0, 0, dp(14));
+        frame.addView(freeAdd, fl);
         zoomBar = buildZoomBar();
         android.widget.FrameLayout.LayoutParams zl = new android.widget.FrameLayout.LayoutParams(-2, -2,
                 android.view.Gravity.BOTTOM | android.view.Gravity.LEFT);
@@ -175,8 +194,11 @@ public class Main extends Activity implements MapView.Host {
     private int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
 
     private void applyView() {
-        if (brainScroll != null) brainScroll.setVisibility(brain != null ? View.VISIBLE : View.GONE);
-        if (brain != null) {
+        boolean has = project != null;
+        if (brainScroll != null) brainScroll.setVisibility(has && part == 0 ? View.VISIBLE : View.GONE);
+        if (freeView != null) freeView.setVisibility(has && part == 1 ? View.VISIBLE : View.GONE);
+        if (freeAdd != null) freeAdd.setVisibility(has && part == 1 ? View.VISIBLE : View.GONE);
+        if (has && part != 2) {
             map.setVisibility(View.GONE);
             textScroll.setVisibility(View.GONE);
             if (zoomBar != null) zoomBar.setVisibility(View.GONE);
@@ -209,7 +231,6 @@ public class Main extends Activity implements MapView.Host {
         m.add(0, M_DIR, 1, "כיוון המפה");
         m.add(0, M_FIT, 1, "התאם למסך");
         m.add(0, M_NEW, 1, "מפה חדשה");
-        m.add(0, M_BRAIN, 1, "סיעור מוחות חדש");
         m.add(0, M_TITLE, 1, "שנה כותרת");
         m.add(0, M_SAVE, 2, "שמור");
         m.add(0, M_SAVE_AS, 3, "שמור עותק בשם");
@@ -225,16 +246,16 @@ public class Main extends Activity implements MapView.Host {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu m) {
-        m.findItem(M_SAVE).setEnabled(uri != null && (project != null || brain != null));
-        m.findItem(M_SAVE_AS).setEnabled(project != null || brain != null);
-        m.findItem(M_TITLE).setVisible(brain != null);
+        m.findItem(M_SAVE).setEnabled(uri != null && project != null);
+        m.findItem(M_SAVE_AS).setEnabled(project != null);
+        m.findItem(M_TITLE).setVisible(project != null);
         m.findItem(M_RELOAD).setEnabled(uri != null);
         m.findItem(M_EXPORT).setEnabled(project != null);
         m.findItem(M_TABS).setVisible(!docs.isEmpty());
         m.findItem(M_CLOSE).setVisible(cur != null);
-        m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap);
-        m.findItem(M_FIT).setVisible(project != null && showMap);
-        m.findItem(M_LOOSE).setVisible(project != null && viewMode == 0);
+        m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap && part == 2);
+        m.findItem(M_FIT).setVisible(project != null && showMap && part == 2);
+        m.findItem(M_LOOSE).setVisible(project != null && viewMode == 0 && part == 2);
         return true;
     }
 
@@ -252,22 +273,9 @@ public class Main extends Activity implements MapView.Host {
             }
             case M_NEW: create(REQ_CREATE, "מפה חדשה.xml"); return true;
             case M_SAVE_AS: create(REQ_SAVE_AS, (cur == null ? "מפה" : cur.label()) + ".xml"); return true;
-            case M_BRAIN: {
-                final Brain.Kind[] kinds = Brain.Kind.values();
-                String[] names = new String[kinds.length];
-                for (int k = 0; k < kinds.length; k++) names[k] = kinds[k].label
-                        + (kinds[k] == Brain.Kind.TEXT ? " — שורות שורות רגיל" : kinds[k] == Brain.Kind.GRID ? " — משבצות" : " — שורות מקובעות, פס ומחיקה");
-                new AlertDialog.Builder(this).setTitle("סיעור מוחות — איזה סוג?")
-                        .setItems(names, new android.content.DialogInterface.OnClickListener() {
-                            public void onClick(android.content.DialogInterface d, int w) {
-                                pendingKind = kinds[w];
-                                create(REQ_BRAIN, "סיעור מוחות.xml");
-                            }}).show();
-                return true;
-            }
             case M_TITLE:
-                if (brain != null) askName("כותרת", brain.title, false, new Named() { public void done(String s) {
-                    brain.title = s; brainChanged(true); }});
+                if (project != null) askName("כותרת הקובץ", project.title, false, new Named() { public void done(String s) {
+                    project.title = s; project.start.title = s; changedAny(true); }});
                 return true;
             case M_SAVE: save(); return true;
             case M_VIEW:
@@ -341,13 +349,8 @@ public class Main extends Activity implements MapView.Host {
             p.title = "מפה חדשה";
             p.roots.add(new Item("נושא"));
             newTab();
+            part = 0;
             writeThenLoad(u, OpmlIO.write(p));
-        } else if (req == REQ_BRAIN) {
-            Brain b = new Brain();
-            b.title = "סיעור מוחות";
-            b.addSection(pendingKind);
-            newTab();
-            writeThenLoad(u, BrainIO.write(b));
         } else if (req == REQ_SAVE_AS) {
             writeThenLoad(u, currentText());
         } else if (req == REQ_EXPORT) {
@@ -401,15 +404,13 @@ public class Main extends Activity implements MapView.Host {
         new Thread(new Runnable() { public void run() {
             try {
                 final String text = readText(u);
-                final boolean isBrain = BrainIO.isBrain(text);
-                final Project p = isBrain ? null : OpmlIO.read(text);
-                final Brain bb = isBrain ? BrainIO.read(text) : null;
+                final Project p = OpmlIO.read(text);
                 final String name = displayName(u);
                 runOnUiThread(new Runnable() { public void run() {
                     busy--;
                     if (target != cur) {
                         target.uri = u; target.fileName = name; target.lastText = text;
-                        target.project = p; target.brain = bb; target.dirty = false; target.viewMode = 0;
+                        target.project = p; target.dirty = false; target.viewMode = 0;
                         saveTabs();
                         return;
                     }
@@ -417,7 +418,6 @@ public class Main extends Activity implements MapView.Host {
                     fileName = name;
                     lastText = text;
                     project = p;
-                    brain = bb;
                     dirty = false;
                     viewMode = 0;
                     stash();
@@ -442,16 +442,14 @@ public class Main extends Activity implements MapView.Host {
         new Thread(new Runnable() { public void run() {
             try {
                 writeText(u, text);
-                final boolean isBrain = BrainIO.isBrain(text);
-                final Project p = isBrain ? null : OpmlIO.read(text);
-                final Brain bb = isBrain ? BrainIO.read(text) : null;
+                final Project p = OpmlIO.read(text);
                 final String name = displayName(u);
                 final boolean ok = readsBack(u, text);
                 runOnUiThread(new Runnable() { public void run() {
                     busy--;
                     if (target != cur) {
                         target.uri = u; target.fileName = name; target.lastText = text;
-                        target.project = p; target.brain = bb; target.dirty = false; target.viewMode = 0;
+                        target.project = p; target.dirty = false; target.viewMode = 0;
                         saveTabs();
                         return;
                     }
@@ -459,7 +457,6 @@ public class Main extends Activity implements MapView.Host {
                     fileName = name;
                     lastText = text;
                     project = p;
-                    brain = bb;
                     dirty = false;
                     viewMode = 0;
                     stash();
@@ -481,11 +478,10 @@ public class Main extends Activity implements MapView.Host {
     }
 
     private void save() {
-        if (uri == null || (project == null && brain == null)) return;
+        if (uri == null || project == null) return;
         final Uri u = uri;
         final Doc target = cur;
         final Project proj = project;
-        final Brain bproj = brain;
         final String text = currentText();
         setStatus("שומר…");
         busy++;
@@ -498,16 +494,16 @@ public class Main extends Activity implements MapView.Host {
                     if (target != cur) {
                         if (target != null) {
                             target.lastText = text;
-                            if ((proj != null ? OpmlIO.write(proj) : BrainIO.write(bproj)).equals(text)) target.dirty = false;
+                            if (OpmlIO.write(proj).equals(text)) target.dirty = false;
                         }
                         return;
                     }
                     lastText = text;
                     if (currentText().equals(text)) dirty = false;
                     stash();
-                    if (brain != null) {
-                        // בסיעור מוחות לא בונים מחדש אחרי שמירה — כדי לא להפריע להקלדה
-                        setStatus(brainSummary() + (dirty ? " · שומר…" : " · " + (ok ? "נשמר" : STALE)));
+                    if (part != 2) {
+                        // בטאבים 1-2 לא בונים מחדש אחרי שמירה — כדי לא להפריע להקלדה ולגרירה
+                        setStatus(partSummary() + (dirty ? " · שומר…" : " · " + (ok ? "נשמר" : STALE)));
                         rebuildTabsOnly();
                         return;
                     }
@@ -521,15 +517,18 @@ public class Main extends Activity implements MapView.Host {
     }
 
     private String currentText() {
-        return brain != null ? BrainIO.write(brain) : OpmlIO.write(project);
+        return OpmlIO.write(project);
     }
 
     /** שינוי בסיעור המוחות: לסמן, לשמור (אוטומטית), ולבנות מחדש רק כשהמבנה השתנה. */
-    private void brainChanged(boolean structure) {
+    private void brainChanged(boolean structure) { changedAny(structure); }
+
+    /** שינוי בטאבים 1-2 (או בכותרת): לסמן, לשמור (אוטומטית), ולבנות מחדש רק כשהמבנה השתנה. */
+    private void changedAny(boolean structure) {
         dirty = true;
         stash();
         if (structure) render(null, false);
-        else setStatus(brainSummary() + (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר"));
+        else setStatus(partSummary() + (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר"));
         rebuildTabsOnly();
         if (autosave && uri != null) {
             handler.removeCallbacks(saver);
@@ -537,10 +536,15 @@ public class Main extends Activity implements MapView.Host {
         }
     }
 
-    private String brainSummary() {
-        int lines = 0;
-        for (Brain.Section s : brain.sections) lines += s.kind == Brain.Kind.NOTEBOOK ? s.lines.size() : 0;
-        return brain.sections.size() + (brain.sections.size() == 1 ? " חלק" : " חלקים") + (lines > 0 ? " · " + lines + " שורות בפנקס" : "");
+    private String partSummary() {
+        if (part == 1) return project.free.nodes.size() + " פריטים · " + project.free.links.size() + " קווים";
+        if (part == 0) {
+            Brain b = project.start;
+            int lines = 0;
+            for (Brain.Section s : b.sections) lines += s.kind == Brain.Kind.NOTEBOOK ? s.lines.size() : 0;
+            return b.sections.size() + (b.sections.size() == 1 ? " חלק" : " חלקים") + (lines > 0 ? " · " + lines + " שורות בפנקס" : "");
+        }
+        return TextLines.countItems(project) + " פריטים";
     }
 
     private boolean tabsDirtyShown;
@@ -601,7 +605,7 @@ public class Main extends Activity implements MapView.Host {
             Project ex = OpmlIO.read(new String(bo.toByteArray(), UTF8));
             newTab();
             project = ex;
-            brain = null;
+            part = 2;
             uri = null;
             lastText = null;
             dirty = false;
@@ -655,18 +659,22 @@ public class Main extends Activity implements MapView.Host {
     }
 
     private void render(String note, boolean refit) {
-        if (brain != null) {
-            setTitle(brain.title.isEmpty() ? "סיעור מוחות" : brain.title);
-            setStatus(brainSummary()
+        if (part != 2) {
+            setTitle(project.title.isEmpty() ? "קבוצות ותגיות" : project.title);
+            setStatus(partSummary()
                     + (dirty ? (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר") : "")
                     + (note == null ? "" : " · " + note));
             stash();
-            int y = brainScroll.getScrollY();
-            brainView.setBrain(brain, new BrainView.Listener() {
-                public void changed() { brainChanged(false); }
-                public void structure() { brainChanged(true); }
-            });
-            brainScroll.scrollTo(0, y);
+            if (part == 0) {
+                int y = brainScroll.getScrollY();
+                brainView.setBrain(project.start, new BrainView.Listener() {
+                    public void changed() { changedAny(false); }
+                    public void structure() { changedAny(true); }
+                });
+                brainScroll.scrollTo(0, y);
+            } else {
+                freeView.setMap(project.free, this);
+            }
             tabsDirtyShown = dirty;
             rebuildStrips();
             applyView();
@@ -746,13 +754,13 @@ public class Main extends Activity implements MapView.Host {
     /** שומר את מצב הטאב הנוכחי מהשדות. */
     private void stash() {
         if (cur == null) return;
-        cur.uri = uri; cur.fileName = fileName; cur.lastText = lastText; cur.project = project; cur.brain = brain;
+        cur.uri = uri; cur.fileName = fileName; cur.lastText = lastText; cur.project = project; cur.part = part;
         cur.dirty = dirty; cur.viewMode = viewMode; cur.tagLevel = tagLevel; cur.viewInfo = viewInfo;
         cur.viewSort = viewSort;
     }
 
     private void unstash(Doc d) {
-        uri = d.uri; fileName = d.fileName; lastText = d.lastText; project = d.project; brain = d.brain;
+        uri = d.uri; fileName = d.fileName; lastText = d.lastText; project = d.project; part = d.part;
         dirty = d.dirty; viewMode = d.viewMode; tagLevel = d.tagLevel; viewInfo = d.viewInfo;
         viewSort = d.viewSort;
     }
@@ -783,8 +791,8 @@ public class Main extends Activity implements MapView.Host {
         unstash(d);
         map.select(null, false);
         saveTabs();
-        if (project == null && brain == null && uri != null) { load(uri, false); return; }
-        if (project == null && brain == null) { showWelcome(); return; }
+        if (project == null && uri != null) { load(uri, false); return; }
+        if (project == null) { showWelcome(); return; }
         render(null, true);
         checkExternalChange();
     }
@@ -810,7 +818,7 @@ public class Main extends Activity implements MapView.Host {
         if (d == cur) {
             cur = null;
             if (docs.isEmpty()) {
-                project = null; brain = null; uri = null; lastText = null; dirty = false;
+                project = null; uri = null; lastText = null; dirty = false;
                 saveTabs();
                 applyView();
                 body.setText("");
@@ -821,7 +829,7 @@ public class Main extends Activity implements MapView.Host {
             next.spread = true;
             cur = next;
             unstash(next);
-            if (project == null && brain == null && uri != null) { saveTabs(); load(uri, false); return; }
+            if (project == null && uri != null) { saveTabs(); load(uri, false); return; }
             render(null, true);
         }
         saveTabs();
@@ -983,7 +991,20 @@ public class Main extends Activity implements MapView.Host {
         viewRow.removeAllViews();
         ((View) viewRow.getParent()).setVisibility(project == null ? View.GONE : View.VISIBLE);
         if (project == null) return;
-        chip(viewRow, "מפה", showMap, false, new View.OnClickListener() { public void onClick(View v) {
+        final String[] parts = {"התחלת נושא", "סיעור מוחות", "מפה"};
+        for (int k = 0; k < 3; k++) {
+            final int pk = k;
+            chip(viewRow, parts[k], part == k, false, new View.OnClickListener() { public void onClick(View v) {
+                if (part == pk) return;
+                part = pk;
+                map.select(null, false);
+                stash();
+                render(null, true);
+            }});
+        }
+        if (part != 2) return;
+        gap(viewRow);
+        chip(viewRow, "גרפי", showMap, false, new View.OnClickListener() { public void onClick(View v) {
             showMap = true; prefs.edit().putBoolean("showMap", true).apply(); applyView(); rebuildStrips(); }});
         chip(viewRow, "טקסט", !showMap, false, new View.OnClickListener() { public void onClick(View v) {
             showMap = false; prefs.edit().putBoolean("showMap", false).apply(); applyView(); rebuildStrips(); }});
@@ -1009,6 +1030,69 @@ public class Main extends Activity implements MapView.Host {
                 }});
         }
     }
+
+    // ---------------- טאב 2: המפה הגמישה ----------------
+
+    @Override
+    public void onFreeAdd(final float x, final float y) {
+        askName("פריט חדש", "", true, new Named() {
+            float off = 0;
+            public void done(String s) {
+                FreeMap.Node n = project.free.add(s, x, y + off);
+                off += 56;
+                freeView.select(n);
+                changedAny(false);
+                freeView.invalidate();
+            }});
+    }
+
+    @Override
+    public void onFreeEdit(final FreeMap.Node n) {
+        askName("הפריט", n.text, false, new Named() { public void done(String s) {
+            n.text = s;
+            changedAny(false);
+            freeView.invalidate();
+        }});
+    }
+
+    @Override
+    public void onFreeMenu(final FreeMap.Node n) {
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        labels.add("העבר למפה (כפריט תלוש)"); acts.add(new Runnable() { public void run() {
+            Item it = Edit.addLoose(project, n.text);
+            project.free.remove(n);
+            freeView.select(null);
+            changedAny(false);
+            freeView.invalidate();
+            setStatus("עבר למפה כתלוש: " + it.name);
+        }});
+        labels.add("העתק למפה (ונשאר כאן)"); acts.add(new Runnable() { public void run() {
+            Edit.addLoose(project, n.text);
+            changedAny(false);
+            setStatus("הועתק למפה כתלוש: " + n.text);
+        }});
+        for (final FreeMap.Node o : project.free.neighbors(n)) {
+            labels.add("נתק מ: " + o.text);
+            acts.add(new Runnable() { public void run() { project.free.unlink(n, o); changedAny(false); freeView.invalidate(); }});
+        }
+        labels.add("מחק"); acts.add(new Runnable() { public void run() {
+            confirm("למחוק את \"" + n.text + "\"" + (project.free.neighbors(n).isEmpty() ? "?" : " ואת הקווים שלו?"),
+                    new Runnable() { public void run() {
+                        project.free.remove(n);
+                        freeView.select(null);
+                        changedAny(false);
+                        freeView.invalidate();
+                    }});
+        }});
+        menu(n.text.isEmpty() ? "פריט" : n.text, labels, acts);
+    }
+
+    @Override
+    public void onFreeChanged() { changedAny(false); freeView.invalidate(); }
+
+    @Override
+    public void onFreeStatus(String s) { setStatus(s); }
 
     // ---------------- עריכה ----------------
 

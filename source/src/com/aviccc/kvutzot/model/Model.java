@@ -18,6 +18,10 @@ public final class Model {
         public final List<Item> roots = new ArrayList<>();
         /** צמתים בראש הקובץ שהתוכנה לא מכירה, נשמרים כמו שהם. */
         public final List<Xml.Node> headExtra = new ArrayList<>();
+        /** טאב 1, "התחלת נושא": מה שעולה בראש — רשימות, טבלאות, כתבן. */
+        public Brain start = new Brain();
+        /** טאב 2, "סיעור מוחות": מפה גמישה. */
+        public FreeMap free = new FreeMap();
 
         public Tag tag(String id) {
             for (Tag t : tags) if (t.id.equals(id)) return t;
