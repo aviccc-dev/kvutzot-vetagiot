@@ -1,0 +1,75 @@
+# בניית הגרסה למחשב (חלונות). רצה כשנדחף תג desktop-vX.Y.Z, או ידנית.
+# קובץ ההתקנה של חלונות חייב להיבנות על חלונות, ולכן הבנייה כאן ולא בסביבה של Claude.
+# התוצאה: דף הורדה (Release) עם קובץ התקנה ועם ZIP שאפשר לפתוח ולהפעיל בלי התקנה.
+name: windows
+
+on:
+  push:
+    tags: ['desktop-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: JAR (המוח מ-source, המסך מ-desktop)
+        shell: bash
+        run: bash desktop/build.sh build/in/kvutzot.jar
+
+      - name: סביבת Java מצומצמת
+        shell: bash
+        run: |
+          jlink --add-modules java.desktop,java.prefs,jdk.localedata,jdk.charsets \
+            --include-locales=en,he --strip-debug --no-man-pages --no-header-files \
+            --output build/runtime
+
+      - name: תיקיית התוכנה (מופעלת בלי התקנה)
+        shell: bash
+        run: |
+          V=$(cat desktop/version.txt)
+          jpackage --type app-image --name KvutzotVeTagiot --app-version "$V" \
+            --input build/in --main-jar kvutzot.jar --main-class com.aviccc.kvutzot.desktop.App \
+            --runtime-image build/runtime --icon desktop/res/icon.ico --vendor aviccc \
+            --description "Kvutzot ve-Tagiot" --dest build/image
+          cd build/image && 7z a -tzip ../KvutzotVeTagiot-$V-portable.zip KvutzotVeTagiot > /dev/null
+          ls -la ..
+
+      - name: קובץ התקנה (אם WiX קיים במכונה)
+        id: installer
+        continue-on-error: true
+        shell: bash
+        run: |
+          V=$(cat desktop/version.txt)
+          jpackage --type exe --name KvutzotVeTagiot --app-version "$V" \
+            --app-image build/image/KvutzotVeTagiot \
+            --win-per-user-install --win-menu --win-menu-group "Kvutzot ve-Tagiot" --win-shortcut --win-shortcut-prompt \
+            --win-upgrade-uuid 6c1d6a2e-4f0b-4c1e-9a7e-2b8f3d4c5e61 --vendor aviccc \
+            --description "Kvutzot ve-Tagiot" --dest build/installer
+          ls -la build/installer
+
+      - name: דף הורדה
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(cat desktop/version.txt)
+          TAG=${GITHUB_REF_NAME}
+          if [[ "$TAG" != desktop-v* ]]; then TAG="desktop-v$V"; fi
+          FILES="build/KvutzotVeTagiot-$V-portable.zip"
+          if ls build/installer/*.exe > /dev/null 2>&1; then
+            cp build/installer/*.exe "build/KvutzotVeTagiot-$V-setup.exe"
+            FILES="build/KvutzotVeTagiot-$V-setup.exe $FILES"
+          fi
+          NOTES="notes/desktop-$V.md"
+          gh release view "$TAG" > /dev/null 2>&1 && gh release upload "$TAG" $FILES --clobber \
+            || gh release create "$TAG" $FILES --title "קבוצות ותגיות למחשב $V" --notes-file "$NOTES"
