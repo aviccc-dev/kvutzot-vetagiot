@@ -7,7 +7,9 @@ import com.aviccc.kvutzot.model.Model.Project;
 import com.aviccc.kvutzot.model.Palette;
 import com.aviccc.kvutzot.model.Zoom;
 
+import javax.swing.AbstractAction;
 import javax.swing.JComponent;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -18,6 +20,8 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -48,6 +52,8 @@ public class MapPanel extends JComponent {
         /** אחרי גרירה של פריט (ההזזה כבר נרשמה בו). */
         void onDragged(Item it);
         void onZoom(float z);
+        /** מקש במפה: "child" (Tab), "sibling" (Enter), "collapse" (רווח). */
+        void onKey(String action);
     }
 
     private static final float PAD = 8, MAXW = 150, MARGIN = 24;
@@ -71,6 +77,8 @@ public class MapPanel extends JComponent {
 
     private float scale = 1f, tx, ty;
     private boolean needFit = true;
+    /** המשתמש הזיז או הגדיל מאז ההתאמה האחרונה: אז שינוי גודל החלון לא מתאים מחדש. */
+    private boolean userMoved;
     private boolean readOnly;
     public boolean compact = true;
     public float spaceB = 1f, spaceD = 1f;
@@ -128,6 +136,7 @@ public class MapPanel extends JComponent {
                 } else if (panning) {
                     tx += dx;
                     ty += dy;
+                    userMoved = true;
                     repaint();
                 }
             }
@@ -157,6 +166,7 @@ public class MapPanel extends JComponent {
                 } else {
                     float step = (float) (r * 40);
                     if (e.isShiftDown()) tx -= step; else ty -= step;
+                    userMoved = true;
                     repaint();
                 }
             }
@@ -164,6 +174,101 @@ public class MapPanel extends JComponent {
         addMouseListener(m);
         addMouseMotionListener(m);
         addMouseWheelListener(m);
+        // שינוי גודל (חלון, לוח הפריט): כל עוד לא הזיזו — מתאימים מחדש, כמו בטלפון
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override public void componentResized(java.awt.event.ComponentEvent e) { if (!userMoved && layout != null) fit(); }
+        });
+        // מקשים כמו במפות חשיבה (הוחלט 11.11.2026): Tab בן, Enter אח, חיצים — מעבר, רווח — כיווץ
+        setFocusTraversalKeysEnabled(false);
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0), () -> { if (host != null) host.onKey("child"); });
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, 0), () -> { if (host != null) host.onKey("child"); });
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), () -> { if (host != null) host.onKey("sibling"); });
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), () -> { if (host != null) host.onKey("collapse"); });
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), () -> navigate(0, -1));
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), () -> navigate(0, 1));
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), () -> navigate(-1, 0));
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), () -> navigate(1, 0));
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_HOME, 0), () -> {
+            if (layout != null && !layout.roots.isEmpty()) { MapLayout.Node r = layout.roots.get(0); select(r, false); reveal(r); }
+        });
+    }
+
+    /** מקש שפועל כשהמפה בפוקוס (ולא כשמקלידים בשדה טקסט). */
+    public void bindKey(KeyStroke k, Runnable r) {
+        String key = "kv-" + k;
+        getInputMap(WHEN_FOCUSED).put(k, key);
+        getActionMap().put(key, new AbstractAction() { public void actionPerformed(ActionEvent e) { r.run(); } });
+    }
+
+    // ---------------- מעבר בחיצים ----------------
+
+    /**
+     * מעבר בחיצים לפי מה שרואים: לכיוון האב — לאב; לכיוון הבנים — לבן הקרוב; לצדדים — לפריט הסמוך
+     * באותה שורה (או עמודה). אם אין — לפריט הקרוב ביותר בכיוון הזה.
+     */
+    private void navigate(int dx, int dy) {
+        if (layout == null || layout.nodes.isEmpty()) return;
+        MapLayout.Node cur = selectedNode();
+        if (cur == null) {
+            MapLayout.Node r = layout.roots.isEmpty() ? layout.nodes.get(0) : layout.roots.get(0);
+            select(r, false);
+            reveal(r);
+            return;
+        }
+        boolean vert = layout.vertical;
+        // מלמעלה למטה: האב למעלה. מימין לשמאל: האב מימין
+        boolean toParent = vert ? dy < 0 : dx > 0;
+        boolean toChild = vert ? dy > 0 : dx < 0;
+        MapLayout.Node next;
+        if (toParent) next = cur.parent;
+        else if (toChild) next = nearestChild(cur, vert);
+        else next = across(cur, vert ? dx : dy, vert);
+        if (next == null) next = spatial(cur, dx, dy);
+        if (next == null) return;
+        select(next, false);
+        reveal(next);
+    }
+
+    private static float cx(MapLayout.Node n) { return n.x + n.w / 2; }
+    private static float cy(MapLayout.Node n) { return n.y + n.h / 2; }
+
+    private static MapLayout.Node nearestChild(MapLayout.Node n, boolean vert) {
+        MapLayout.Node best = null;
+        float bd = Float.MAX_VALUE;
+        for (MapLayout.Node k : n.children) {
+            float d = vert ? Math.abs(cx(k) - cx(n)) : Math.abs(cy(k) - cy(n));
+            if (d < bd) { bd = d; best = k; }
+        }
+        return best;
+    }
+
+    /** הסמוך באותה שורה (מלמעלה למטה) או באותה עמודה (מימין לשמאל). */
+    private MapLayout.Node across(MapLayout.Node n, int sign, boolean vert) {
+        MapLayout.Node best = null;
+        float bd = Float.MAX_VALUE;
+        for (MapLayout.Node k : layout.nodes) {
+            if (k == n) continue;
+            boolean overlap = vert ? k.y < n.y + n.h && k.y + k.h > n.y : k.x < n.x + n.w && k.x + k.w > n.x;
+            if (!overlap) continue;
+            float d = vert ? (cx(k) - cx(n)) * sign : (cy(k) - cy(n)) * sign;
+            if (d > 1 && d < bd) { bd = d; best = k; }
+        }
+        return best;
+    }
+
+    private MapLayout.Node spatial(MapLayout.Node n, int dx, int dy) {
+        MapLayout.Node best = null;
+        float bs = Float.MAX_VALUE;
+        for (MapLayout.Node k : layout.nodes) {
+            if (k == n) continue;
+            float ox = cx(k) - cx(n), oy = cy(k) - cy(n);
+            float along = dx != 0 ? ox * dx : oy * dy;
+            float side = dx != 0 ? Math.abs(oy) : Math.abs(ox);
+            if (along <= 1) continue;
+            float score = along + side * 2.5f;
+            if (score < bs) { bs = score; best = k; }
+        }
+        return best;
     }
 
     private void popup(MapLayout.Node n, MouseEvent e) {
@@ -187,6 +292,7 @@ public class MapPanel extends JComponent {
         ty = cy - (cy - ty) * f;
         scale = z;
         needFit = false;
+        userMoved = true;
         if (host != null) host.onZoom(scale);
         repaint();
     }
@@ -200,6 +306,7 @@ public class MapPanel extends JComponent {
         ty = layout.vertical ? 0 : (getHeight() - h * scale) / 2;
         if (ty < 0) ty = 0;
         needFit = false;
+        userMoved = false;
         if (host != null) host.onZoom(scale);
         repaint();
     }
@@ -208,6 +315,7 @@ public class MapPanel extends JComponent {
     public void scrollBy(float dx, float dy) {
         tx += dx;
         ty += dy;
+        userMoved = true;
         repaint();
     }
 
@@ -289,9 +397,9 @@ public class MapPanel extends JComponent {
         repaint();
     }
 
-    private static String label(MapLayout.Node n) {
+    private String label(MapLayout.Node n) {
         String t = n.text.isEmpty() ? "(בלי שם)" : n.text;
-        return n.hidden > 0 ? t + "  ▸ " + n.hidden : t;
+        return n.hidden > 0 ? t + "  " + (textFont.canDisplay('\u25B8') ? "▸" : "›") + " " + n.hidden : t;
     }
 
     private Box box(MapLayout.Node n) {
@@ -451,9 +559,20 @@ public class MapPanel extends JComponent {
     public void reveal(MapLayout.Node n) {
         float sx = tx + (n.x + MARGIN) * scale, sy = ty + (n.y + MARGIN) * scale;
         float sw = n.w * scale, sh = n.h * scale, m = 40;
-        if (sx < m || sx + sw > getWidth() - m || sy < m || sy + sh > getHeight() - m) {
-            tx += getWidth() / 2f - (sx + sw / 2);
-            ty += getHeight() / 3f - (sy + sh / 2);
+        float w = getWidth(), h = getHeight();
+        if (w <= 2 * m || h <= 2 * m) return;
+        // מזיזים רק כמה שצריך (במעבר בחיצים המפה לא קופצת); פריט גדול מהחלון — למרכז
+        float mx = 0, my = 0;
+        if (sw > w - 2 * m) mx = w / 2f - (sx + sw / 2);
+        else if (sx < m) mx = m - sx;
+        else if (sx + sw > w - m) mx = w - m - (sx + sw);
+        if (sh > h - 2 * m) my = h / 3f - (sy + sh / 2);
+        else if (sy < m) my = m - sy;
+        else if (sy + sh > h - m) my = h - m - (sy + sh);
+        if (mx != 0 || my != 0) {
+            tx += mx;
+            ty += my;
+            userMoved = true;
             repaint();
         }
     }

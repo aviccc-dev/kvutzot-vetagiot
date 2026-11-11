@@ -76,7 +76,7 @@ import java.util.prefs.Preferences;
  * קבוצות ותגיות — הגרסה למחשב (חלונות). אותו מוח (model) כמו בטלפון, מסך שנכתב מחדש ב-Swing.
  * "בעיקרון כמו בטלפון, רק צריך התאמות: שם אין מגע, ויש מקלדת ועכבר; התפריטים מקובלים אחרת; יש יותר מקום."
  */
-public final class App implements MapPanel.Host {
+public final class App implements MapPanel.Host, FreePanel.Host, ItemPanel.Host {
 
     /** קובץ פתוח (טאב). כל המצב של הטאב נשמר כאן. */
     static final class Doc {
@@ -114,7 +114,15 @@ public final class App implements MapPanel.Host {
     private JPanel center;
     private MapPanel map;
     private JTextPane text;
-    private JLabel other, welcome;
+    private JLabel welcome;
+    private BrainPanel brainPanel;
+    private JScrollPane brainScroll;
+    private FreePanel freePanel;
+    /** חלון הפריט: לוח בצד המפה (עוקב אחרי הבחירה) או חלון נפרד — לפי ההגדרות. */
+    private ItemPanel side;
+    private javax.swing.JSplitPane split;
+    private JPanel centerWrap;
+    private boolean sideMode, sideShown;
     private Project shownP;
     private boolean showMap, vertical, autosave, asking;
     private float zoomStep;
@@ -168,9 +176,14 @@ public final class App implements MapPanel.Host {
         text.setEditable(false);
         text.setComponentOrientation(Ui.RTL);
         text.setMargin(new Insets(10, 14, 40, 14));
-        other = new JLabel("", JLabel.CENTER);
-        other.setFont(Ui.base.deriveFont(15f));
-        other.setForeground(new Color(0x5F5E5A));
+        brainPanel = new BrainPanel(null);
+        brainScroll = new JScrollPane(brainPanel);
+        brainScroll.setBorder(null);
+        brainScroll.getVerticalScrollBar().setUnitIncrement(18);
+        brainScroll.setComponentOrientation(Ui.RTL);
+        brainScroll.getViewport().setBackground(Color.WHITE);
+        freePanel = new FreePanel(Ui.base);
+        freePanel.wheelZooms = map.wheelZooms;
         welcome = new JLabel("<html><div dir=rtl style='text-align:center'>פתח קובץ (Ctrl+O), צור קובץ חדש (Ctrl+N),<br>או פתח דוגמה מתפריט \"קובץ\".</div></html>", JLabel.CENTER);
         welcome.setFont(Ui.base.deriveFont(16f));
         welcome.setForeground(new Color(0x5F5E5A));
@@ -181,10 +194,22 @@ public final class App implements MapPanel.Host {
         ts.setBorder(null);
         ts.getVerticalScrollBar().setUnitIncrement(18);
         center.add(ts, "text");
-        center.add(other, "other");
+        center.add(brainScroll, "brain");
+        center.add(freePanel, "free");
         center.add(welcome, "welcome");
         center.setBackground(Color.WHITE);
-        root.add(center, BorderLayout.CENTER);
+        side = new ItemPanel(this);
+        side.setMinimumSize(new Dimension(220, 100));
+        sideMode = !"window".equals(prefs.get("itemPane", "side"));
+        sideShown = prefs.getBoolean("sideShown", true);
+        split = new javax.swing.JSplitPane(javax.swing.JSplitPane.HORIZONTAL_SPLIT);
+        split.setBorder(null);
+        split.setResizeWeight(1);
+        split.setContinuousLayout(true);
+        split.setDividerSize(6);
+        centerWrap = new JPanel(new BorderLayout());
+        centerWrap.add(center, BorderLayout.CENTER);
+        root.add(centerWrap, BorderLayout.CENTER);
 
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Ui.GREY_LINE),
@@ -193,7 +218,7 @@ public final class App implements MapPanel.Host {
         bottom.add(status, BorderLayout.CENTER);
         zoomBar = new JPanel(new FlowLayout(FlowLayout.LEADING, 2, 0));
         zoomBar.setOpaque(false);
-        JButton minus = flat("−", "הקטן (Ctrl+מינוס)");
+        JButton minus = flat(Ui.glyph("−", "-"), "הקטן (Ctrl+מינוס)");
         minus.addActionListener(e -> map.setZoom(Zoom.next(map.getZoom(), zoomStep, -1)));
         zoomLabel = flat("1", "הגדלה — בחירה מרשימה");
         zoomLabel.setPreferredSize(new Dimension(56, zoomLabel.getPreferredSize().height));
@@ -209,6 +234,8 @@ public final class App implements MapPanel.Host {
         bottom.add(zoomBar, BorderLayout.LINE_END);
         root.add(bottom, BorderLayout.SOUTH);
 
+        brainPanel = new BrainPanel(frame);
+        brainScroll.setViewportView(brainPanel);
         frame.setContentPane(root);
         frame.setJMenuBar(buildMenus());
         Ui.rtl(frame.getContentPane());
@@ -291,7 +318,16 @@ public final class App implements MapPanel.Host {
             public void menuSelected(MenuEvent e) {
                 edit.removeAll();
                 MapLayout.Node n = map.selectedNode();
-                if (cur == null || cur.project == null || !onMap()) {
+                Sheet es = cur == null ? null : sheet(cur);
+                if (es != null && es.kind == Sheet.Kind.FREE) {
+                    if (!es.locked) edit.add(mi("פריט חדש…", () -> onFreeAdd(freePanel.centerX(), freePanel.centerY())));
+                    com.aviccc.kvutzot.model.FreeMap.Node fn = freePanel.selected();
+                    if (fn != null) { edit.addSeparator(); fillFreeMenu(edit, fn); }
+                } else if (es != null && es.kind == Sheet.Kind.START) {
+                    JMenuItem none = new JMenuItem(es.locked ? "הטאב נעול — רק קריאה" : "עורכים ישירות בחלקים; \"…\" ליד כל חלק — פעולות");
+                    none.setEnabled(false);
+                    edit.add(none);
+                } else if (cur == null || cur.project == null || !onMap()) {
                     JMenuItem none = new JMenuItem("אין מפה פתוחה");
                     none.setEnabled(false);
                     edit.add(none);
@@ -337,6 +373,7 @@ public final class App implements MapPanel.Host {
         // קיצורים שאינם בתפריט (פועלים בכל החלון)
         JComponent rp = frame.getRootPane();
         bind(rp, ctrl(KeyEvent.VK_0), map::fit);
+        bind(rp, KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0), () -> { if (sideMode && onMap()) toggleSide(); });
         bind(rp, ctrl(KeyEvent.VK_EQUALS), () -> map.setZoom(Zoom.next(map.getZoom(), zoomStep, 1)));
         bind(rp, ctrl(KeyEvent.VK_ADD), () -> map.setZoom(Zoom.next(map.getZoom(), zoomStep, 1)));
         bind(rp, ctrl(KeyEvent.VK_MINUS), () -> map.setZoom(Zoom.next(map.getZoom(), zoomStep, -1)));
@@ -345,14 +382,16 @@ public final class App implements MapPanel.Host {
         bind(rp, KeyStroke.getKeyStroke(KeyEvent.VK_TAB, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), () -> cycleDoc(-1));
         bind(rp, ctrl(KeyEvent.VK_PAGE_DOWN), () -> cycleSheet(1));
         bind(rp, ctrl(KeyEvent.VK_PAGE_UP), () -> cycleSheet(-1));
-        bind(rp, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), () -> { MapLayout.Node n = map.selectedNode(); if (n != null) onOpen(n); });
-        bind(rp, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), () -> { MapLayout.Node n = map.selectedNode(); if (n != null && editable()) deleteNode(n); });
-        bind(rp, ctrl(KeyEvent.VK_C), () -> { MapLayout.Node n = map.selectedNode(); if (n != null && !n.isDivision() && onMap()) copy(n.item); });
-        bind(rp, ctrl(KeyEvent.VK_X), () -> { MapLayout.Node n = map.selectedNode(); if (n != null && !n.isDivision() && editable()) cut(n.item); });
-        bind(rp, ctrl(KeyEvent.VK_V), () -> { MapLayout.Node n = map.selectedNode(); if (n != null && editable() && clip != null) paste(n); });
-        bind(rp, KeyStroke.getKeyStroke(KeyEvent.VK_CONTEXT_MENU, 0), this::menuAtSelection);
-        bind(rp, KeyStroke.getKeyStroke(KeyEvent.VK_F10, InputEvent.SHIFT_DOWN_MASK), this::menuAtSelection);
-        bind(rp, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), () -> map.select(null, false));
+        // מקשים של המפה: פועלים רק כשהמפה בפוקוס, כדי לא להפריע להקלדה בשדות
+        map.bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), () -> { MapLayout.Node n = map.selectedNode(); if (n != null) onOpen(n); });
+        map.bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), () -> { MapLayout.Node n = map.selectedNode(); if (n != null && editable()) deleteNode(n); });
+        map.bindKey(ctrl(KeyEvent.VK_C), () -> { MapLayout.Node n = map.selectedNode(); if (n != null && !n.isDivision() && onMap()) copy(n.item); });
+        map.bindKey(ctrl(KeyEvent.VK_X), () -> { MapLayout.Node n = map.selectedNode(); if (n != null && !n.isDivision() && editable()) cut(n.item); });
+        map.bindKey(ctrl(KeyEvent.VK_V), () -> { MapLayout.Node n = map.selectedNode(); if (n != null && editable() && clip != null) paste(n); });
+        map.bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_CONTEXT_MENU, 0), this::menuAtSelection);
+        map.bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F10, InputEvent.SHIFT_DOWN_MASK), this::menuAtSelection);
+        map.bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), () -> map.select(null, false));
+        map.bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.ALT_DOWN_MASK), () -> { MapLayout.Node n = map.selectedNode(); if (n != null) details(n); });
         return bar;
     }
 
@@ -376,11 +415,19 @@ public final class App implements MapPanel.Host {
                 "במפה:\n"
                 + "• לחיצה — בחירת פריט.\n"
                 + "• לחיצה כפולה על פריט — שינוי השם; על חלוקה — בחירת בחינה.\n"
-                + "• לחיצה ימנית — כל הפעולות על הפריט (כמו ⋯ בטלפון). גם תפריט \"עריכה\" למעלה.\n"
+                + "• לחיצה ימנית — כל הפעולות על הפריט (כמו … בטלפון). גם תפריט \"עריכה\" למעלה.\n"
+                + "• לוח הפריט בצד מראה את הפריט הנבחר: מידע, תגיות, תכונות ובחינות. F4 — הסתרה והחזרה.\n"
+                + "  בהגדרות אפשר לבחור חלון נפרד במקום הלוח (נפתח ב-Alt+Enter).\n"
                 + "• גרירה של פריט — הזזת הענף שלו (נשמרת בקובץ). גרירה ברקע — הזזת המפה.\n"
                 + "• גלגלת — הגדלה סביב העכבר (בהגדרות אפשר לבחור שהגלגלת גוללת). Shift+גלגלת — גלילה לרוחב.\n"
                 + "• לחיצה כפולה ברקע, או Ctrl+0 — התאמה לחלון.\n\n"
-                + "מקלדת:\n"
+                + "מקלדת במפה (כמו במפות חשיבה):\n"
+                + "• Tab (או Insert) — הוספת בנים · Enter — הוספת אחים. בחלון ההוספה Enter מוסיף והחלון נשאר פתוח לבא.\n"
+                + "• החיצים — מעבר בין פריטים: לכיוון האב, לכיוון הבנים, ולצדדים. Home — ראש המפה.\n"
+                + "• רווח — כיווץ או פתיחה של הענף · Alt+Enter — פרטי הפריט.\n\n"
+                + "בסיעור מוחות: לחיצה כפולה במקום ריק — פריט חדש שם; לחיצה ימנית — ערוך, חבר, העבר למפה, מחק.\n"
+                + "בהתחלת נושא: עורכים ישירות; בגיליון — לחיצה ימנית על משבצת להוספה ומחיקה; בפנקס — לחיצה ימנית על שורה.\n\n"
+                + "מקשים נוספים:\n"
                 + "• F2 — שינוי שם · Delete — מחיקה · Ctrl+C / Ctrl+X / Ctrl+V — העתק, גזור, הדבק כבן.\n"
                 + "• מקש התפריט או Shift+F10 — תפריט הפריט הנבחר · Esc — ביטול הבחירה.\n"
                 + "• Ctrl+Tab — הקובץ הבא · Ctrl+PageDown / PageUp — הטאב הבא / הקודם בקובץ.\n"
@@ -411,6 +458,14 @@ public final class App implements MapPanel.Host {
         hh.addActionListener(e -> { setVertical(false); render(null, true); });
         g2.add(vv); g2.add(hh);
         view.add(vv); view.add(hh);
+        view.addSeparator();
+        if (sideMode) {
+            javax.swing.JCheckBoxMenuItem sp = new javax.swing.JCheckBoxMenuItem("לוח הפריט בצד", sideShown);
+            sp.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
+            sp.addActionListener(e -> toggleSide());
+            view.add(sp);
+        } else item(view, "פרטי הפריט הנבחר…", KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.ALT_DOWN_MASK),
+                () -> { MapLayout.Node n = map.selectedNode(); if (n != null) details(n); });
         view.addSeparator();
         item(view, "התאם לחלון", ctrl(KeyEvent.VK_0), map::fit);
         item(view, "הגדל", ctrl(KeyEvent.VK_EQUALS), () -> map.setZoom(Zoom.next(map.getZoom(), zoomStep, 1)));
@@ -852,7 +907,7 @@ public final class App implements MapPanel.Host {
         tabRow.add(new Ui.Chip("+ פתח", false, false).onClick(this::openFile));
         if (hidden > 0) {
             final int h = hidden;
-            Ui.Chip bgc = new Ui.Chip("☰ " + h + " ברקע", false, true);
+            Ui.Chip bgc = new Ui.Chip(Ui.glyph("☰", "≡") + " " + h + " ברקע", false, true);
             bgc.onClick(() -> {
                 JPopupMenu m = Ui.popup();
                 for (final Doc d : docs) if (!d.spread && d != cur) {
@@ -879,7 +934,7 @@ public final class App implements MapPanel.Host {
         int hiddenSheets = 0;
         for (final Sheet s : p.sheets) {
             if (s.hidden) { hiddenSheets++; continue; }
-            Ui.Chip c = new Ui.Chip((s.locked ? "🔒 " : "") + s.name, s == curSh, false);
+            Ui.Chip c = new Ui.Chip((s.locked ? Ui.glyph("🔒", "נעול:") + " " : "") + s.name, s == curSh, false);
             c.setToolTipText(s.kind.label + (s.note.isEmpty() ? "" : " · " + s.note));
             c.onClick(() -> { if (s != sheet(cur)) enterSheet(s); });
             c.onMenu(() -> {
@@ -902,6 +957,10 @@ public final class App implements MapPanel.Host {
                 Ui.showUnder(m, dr);
             });
             sheetRow.add(dr);
+        }
+        if (curSh.kind == Sheet.Kind.FREE && !curSh.locked) {
+            sheetRow.add(Ui.gap());
+            sheetRow.add(new Ui.Chip("+ פריט", false, false).onClick(() -> onFreeAdd(freePanel.centerX(), freePanel.centerY())));
         }
         if (curSh.kind == Sheet.Kind.MAP) {
             sheetRow.add(Ui.gap());
@@ -951,10 +1010,91 @@ public final class App implements MapPanel.Host {
         zoomBar.setVisible(false);
     }
 
+    private String card = "welcome";
+
     private void showCard(String name) {
+        card = name;
         cards.show(center, name);
         zoomBar.setVisible("map".equals(name));
+        layoutSide();
+        if ("map".equals(name)) SwingUtilities.invokeLater(() -> { if (!side.isAncestorOf(frame.getFocusOwner())) map.requestFocusInWindow(); });
+        if ("free".equals(name)) SwingUtilities.invokeLater(freePanel::requestFocusInWindow);
     }
+
+    // ---------------- לוח הפריט בצד ----------------
+
+    /** הלוח מוצג בצד רק במפה הגרפית, כשבהגדרות נבחר "לוח בצד", ולא הוסתר. */
+    private void layoutSide() {
+        boolean want = sideMode && sideShown && "map".equals(card);
+        boolean has = split.getParent() == centerWrap;
+        if (want && !has) {
+            centerWrap.removeAll();
+            split.setRightComponent(center);
+            split.setLeftComponent(side);
+            centerWrap.add(split, BorderLayout.CENTER);
+            int w = prefs.getInt("sideW", 360);
+            centerWrap.revalidate();
+            SwingUtilities.invokeLater(() -> split.setDividerLocation(Math.max(220, w)));
+        } else if (!want && has) {
+            prefs.putInt("sideW", split.getDividerLocation());
+            centerWrap.removeAll();
+            split.remove(center);
+            centerWrap.add(center, BorderLayout.CENTER);
+            centerWrap.revalidate();
+            centerWrap.repaint();
+        }
+        if (want) updateSide();
+    }
+
+    /** הלוח מראה את הפריט הנבחר במפה (בתצוגה — את הפריט המקורי; בחלוקה — את הבחינה). */
+    private void updateSide() {
+        if (!sideMode || !sideShown || cur == null || cur.project == null || !"map".equals(card)) return;
+        MapLayout.Node n = map.selectedNode();
+        if (n == null) {
+            side.empty("בחר פריט במפה, וכאן יוצג כל המידע עליו: בחינות, מידע, תגיות ותכונות.\n\n"
+                    + "אפשר לבחור בעכבר או בחיצים. לסגירת הלוח: תצוגה ← לוח הפריט בצד.");
+            return;
+        }
+        if (n.isDivision()) {
+            Item a = cur.project.aspect(n.division.aspectId);
+            if (a == null) {
+                side.empty("חלוקה" + (n.division.basis.isEmpty() ? " בלי בחינה" : ": " + n.division.basis)
+                        + ".\n\nבחירת בחינה לחלוקה: לחיצה כפולה עליה, או F2.");
+                return;
+            }
+            side.show(cur.project, a, locked());
+            return;
+        }
+        Item o = original(n);
+        if (o == null) { side.empty("אין פריט מקורי לתיבה הזאת."); return; }
+        side.show(cur.project, o, locked());
+    }
+
+    /** "פרטי הפריט" (Alt+Enter): בלוח שבצד, או בחלון נפרד. */
+    private void details(MapLayout.Node n) {
+        if (cur == null || cur.project == null) return;
+        Item o = n.isDivision() ? cur.project.aspect(n.division.aspectId) : original(n);
+        if (o == null) { if (n.isDivision() && editable()) editNode(n); return; }
+        if (sideMode) {
+            if (!sideShown) { sideShown = true; prefs.putBoolean("sideShown", true); }
+            layoutSide();
+            return;
+        }
+        ItemPanel.showWindow(frame, this, cur.project, o, locked());
+    }
+
+    private void toggleSide() {
+        sideShown = !sideShown;
+        prefs.putBoolean("sideShown", sideShown);
+        layoutSide();
+    }
+
+    @Override public void itemChanged(Item it) {
+        markChanged();
+        render(null, false);
+    }
+
+    @Override public java.awt.Window window() { return frame; }
 
     private boolean onMap() {
         Sheet s = cur == null ? null : sheet(cur);
@@ -1007,10 +1147,22 @@ public final class App implements MapPanel.Host {
         String dirtyNote = cur.dirty ? (cur.path == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר") : "";
         if (sh.kind != Sheet.Kind.MAP) {
             setStatus(summary(cur) + (sh.locked ? " · נעול" : "") + dirtyNote + (note == null ? "" : " · " + note) + sheetNote);
-            other.setText("<html><div dir=rtl style='text-align:center'>הטאב \"" + Ui.esc(sh.name) + "\" (" + sh.kind.label
-                    + ") עוד לא בנוי בגרסה למחשב.<br>בינתיים אפשר לעבוד עליו בטלפון — זה אותו קובץ, והתוכן שלו נשמר כמו שהוא.</div></html>");
             rebuildStrips();
-            showCard("other");
+            if (sh.kind == Sheet.Kind.START) {
+                final int y = brainScroll.getVerticalScrollBar().getValue();
+                brainPanel.set(pr.start, sh, new BrainPanel.Listener() {
+                    public void changed() { changedAny(false); }
+                    public void structure() { changedAny(true); }
+                });
+                showCard("brain");
+                SwingUtilities.invokeLater(() -> brainScroll.getVerticalScrollBar().setValue(y));
+            } else {
+                freePanel.locked = sh.locked;
+                freePanel.links = sh.links;
+                freePanel.wheelZooms = map.wheelZooms;
+                freePanel.setMap(pr.free, this);
+                showCard("free");
+            }
             return;
         }
         pr.syncAspects();
@@ -1027,6 +1179,7 @@ public final class App implements MapPanel.Host {
         if (showMap) {
             map.setProject(p, vertical, refit);
             showCard("map");
+            updateSide();
             zoomLabel.setText(Zoom.format(map.getZoom()));
         } else {
             buildText(p);
@@ -1058,7 +1211,7 @@ public final class App implements MapPanel.Host {
                 } else {
                     doc.insertString(doc.getLength(), l.mark, style(fam, 11, false, false, grey));
                     doc.insertString(doc.getLength(), "  " + (l.text.isEmpty() ? "(בלי שם)" : l.text), style(fam, 17, l.depth == 0, false, ink));
-                    if (l.hidden > 0) doc.insertString(doc.getLength(), "  ▸ " + l.hidden, style(fam, 17, false, false, blue));
+                    if (l.hidden > 0) doc.insertString(doc.getLength(), "  " + Ui.glyph("▸", "›") + " " + l.hidden, style(fam, 17, false, false, blue));
                     if (!l.info.isEmpty()) doc.insertString(doc.getLength(), "  (" + l.info + ")", style(fam, 12.5f, false, false, grey));
                 }
                 doc.insertString(doc.getLength(), "\n", style(fam, 17, false, false, ink));
@@ -1437,6 +1590,14 @@ public final class App implements MapPanel.Host {
         g2.add(wz); g2.add(ws);
         box.add(wz);
         box.add(ws);
+        box.add(javax.swing.Box.createVerticalStrut(12));
+        box.add(new JLabel("חלון הפריט (מידע, תגיות, תכונות, בחינות):"));
+        ButtonGroup g3 = new ButtonGroup();
+        JRadioButton ps = new JRadioButton("לוח קבוע בצד המפה — מראה את הפריט הנבחר (F4 מסתיר ומחזיר)", sideMode);
+        JRadioButton pw = new JRadioButton("חלון נפרד — נפתח ב-Alt+Enter או בלחיצה ימנית", !sideMode);
+        g3.add(ps); g3.add(pw);
+        box.add(ps);
+        box.add(pw);
         for (java.awt.Component c : box.getComponents()) if (c instanceof JComponent) ((JComponent) c).setAlignmentX(1f);
         JPanel body = new JPanel(new BorderLayout());
         body.add(box, BorderLayout.CENTER);
@@ -1451,6 +1612,10 @@ public final class App implements MapPanel.Host {
             prefs.putBoolean("autosave", autosave);
             prefs.putFloat("zoomStep", zoomStep);
             prefs.put("wheel", map.wheelZooms ? "zoom" : "scroll");
+            freePanel.wheelZooms = map.wheelZooms;
+            sideMode = ps.isSelected();
+            prefs.put("itemPane", sideMode ? "side" : "window");
+            layoutSide();
             d.dispose();
             if (cur != null && cur.project != null) render(null, false);
         });
@@ -1458,25 +1623,153 @@ public final class App implements MapPanel.Host {
         Ui.show(d, body, frame);
     }
 
+    // ---------------- סיעור מוחות ----------------
+
+    private float freeOff;
+
+    @Override public void onFreeAdd(float x, float y) {
+        freeOff = 0;
+        Ui.ask(frame, "פריט חדש", "", true, s -> {
+            com.aviccc.kvutzot.model.FreeMap.Node n = cur.project.free.add(s, x, y + freeOff);
+            freeOff += 56;
+            freePanel.select(n);
+            changedAny(false);
+            freePanel.repaint();
+        });
+    }
+
+    @Override public void onFreeEdit(com.aviccc.kvutzot.model.FreeMap.Node n) {
+        Ui.ask(frame, "הפריט", n.text, false, s -> {
+            n.text = s;
+            changedAny(false);
+            freePanel.repaint();
+        });
+    }
+
+    @Override public void onFreeDelete(com.aviccc.kvutzot.model.FreeMap.Node n) {
+        com.aviccc.kvutzot.model.FreeMap fm = cur.project.free;
+        Ui.confirm(frame, "למחוק את \"" + n.text + "\"" + (fm.neighbors(n).isEmpty() ? "?" : " ואת הקווים שלו?"), "מחק", () -> {
+            fm.remove(n);
+            freePanel.select(null);
+            changedAny(false);
+            freePanel.repaint();
+        });
+    }
+
+    @Override public void onFreeMenu(com.aviccc.kvutzot.model.FreeMap.Node n, int sx, int sy) {
+        JPopupMenu m = Ui.popup();
+        fillFreeMenu(m, n);
+        if (m.getComponentCount() == 0) return;
+        m.show(freePanel, Math.max(0, sx - m.getPreferredSize().width), sy);
+    }
+
+    private void fillFreeMenu(java.awt.Container m, com.aviccc.kvutzot.model.FreeMap.Node n) {
+        if (locked()) {
+            JMenuItem x = new JMenuItem("הטאב נעול — רק קריאה");
+            x.setEnabled(false);
+            m.add(x);
+            return;
+        }
+        com.aviccc.kvutzot.model.FreeMap fm = cur.project.free;
+        m.add(withKey(mi("ערוך…", () -> onFreeEdit(n)), KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0)));
+        if (freePanel.links) m.add(mi("חבר לפריט אחר…", () -> freePanel.startLink(n)));
+        sep(m);
+        m.add(mi("העבר למפה", () -> toMap(n, true)));
+        m.add(mi("העתק למפה (ונשאר כאן)", () -> toMap(n, false)));
+        List<com.aviccc.kvutzot.model.FreeMap.Node> nb = fm.neighbors(n);
+        if (!nb.isEmpty()) {
+            sep(m);
+            for (com.aviccc.kvutzot.model.FreeMap.Node o : nb)
+                m.add(mi("נתק מ: " + o.text, () -> { fm.unlink(n, o); changedAny(false); freePanel.repaint(); }));
+        }
+        sep(m);
+        m.add(withKey(mi("מחק…", () -> onFreeDelete(n)), KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0)));
+    }
+
+    @Override public void onFreeBackground(float x, float y, int sx, int sy) {
+        if (locked()) return;
+        JPopupMenu m = Ui.popup();
+        m.add(mi("פריט חדש כאן…", () -> onFreeAdd(x, y)));
+        m.show(freePanel, Math.max(0, sx - m.getPreferredSize().width), sy);
+    }
+
+    @Override public void onFreeChanged() { changedAny(false); freePanel.repaint(); }
+
+    @Override public void onFreeStatus(String st) { setStatus(st); }
+
+    /** מסיעור המוחות למפה: בוחרים מפה (אם יש כמה); במפה בסדר מוחלט — גם מקום בעץ, אחרת — תלוש. */
+    private void toMap(com.aviccc.kvutzot.model.FreeMap.Node n, boolean move) {
+        List<Sheet> maps = new ArrayList<>();
+        for (Sheet s : cur.project.sheets) if (s.kind == Sheet.Kind.MAP && !s.locked) maps.add(s);
+        if (maps.isEmpty()) { setStatus("כל המפות נעולות"); return; }
+        if (maps.size() == 1) { toMap(n, move, maps.get(0)); return; }
+        List<String> names = new ArrayList<>();
+        for (Sheet s : maps) names.add(s.name + (s.absolute ? " · סדר מוחלט" : ""));
+        Ui.choose(frame, "לאיזו מפה?", names, -1, w -> toMap(n, move, maps.get(w)));
+    }
+
+    private void toMap(com.aviccc.kvutzot.model.FreeMap.Node n, boolean move, Sheet ms) {
+        Runnable done = () -> {
+            if (move) { cur.project.free.remove(n); freePanel.select(null); freePanel.repaint(); }
+            changedAny(false);
+        };
+        if (!ms.absolute) {
+            Item it = new Item(n.text);
+            it.loose = true;
+            ms.roots.add(it);
+            done.run();
+            setStatus((move ? "עבר" : "הועתק") + " ל\"" + ms.name + "\" כתלוש: " + n.text);
+            return;
+        }
+        chooseParent(ms, null, (parent, d) -> {
+            Item it = Edit.addChild(parent, d, n.text);
+            parent.collapsed = false;
+            done.run();
+            setStatus((move ? "עבר" : "הועתק") + " ל\"" + ms.name + "\" תחת \"" + parent.name + "\": " + it.name);
+        });
+    }
+
     // ---------------- המפה: בחירה, תפריט, עריכה ----------------
 
     @Override public void onZoom(float z) { zoomLabel.setText(Zoom.format(z)); }
 
-    @Override public void onSelect(MapLayout.Node n) { }
+    @Override public void onSelect(MapLayout.Node n) { updateSide(); }
+
+    /** מקשים כמו במפות חשיבה: Tab — בן, Enter — אח, רווח — כיווץ או פתיחה. */
+    @Override public void onKey(String action) {
+        MapLayout.Node n = map.selectedNode();
+        if (n == null || cur == null || !onMap()) return;
+        if (!editable()) {
+            if ("sibling".equals(action)) details(n);
+            else setStatus(locked() ? "הטאב נעול — רק קריאה" : "תצוגה — רק קריאה. לעריכה: \"עץ\"");
+            return;
+        }
+        final Item it = n.item;
+        switch (action) {
+            case "child":
+                addChildren(it, n.division, n.isDivision() ? "בן חדש ב\"" + n.text + "\"" : "בן חדש ל\"" + it.name + "\"");
+                break;
+            case "sibling":
+                if (n.isDivision()) { setStatus("לחלוקה אין אחים — Tab מוסיף לה בן"); break; }
+                if (it.parentDivision == null && !it.loose) { setStatus("לראש המפה אין אחים — Tab מוסיף בן"); break; }
+                addSiblings(it);
+                break;
+            case "collapse":
+                if (!n.isDivision() && it.childCount() > 0) { it.collapsed = !it.collapsed; changed(it, null); }
+                break;
+            default: break;
+        }
+    }
 
     @Override public void onDragged(Item it) {
         if (!editable()) return;
         changed(null, null);
-        setStatus("הוזז: " + it.name + " · להחזיר — לחיצה ימנית ← \"החזר למקום האוטומטי\"");
+        setStatus("הוזז: " + it.name + " · להחזיר — לחיצה ימנית, ואז \"החזר למקום האוטומטי\"");
     }
 
     /** לחיצה כפולה: שינוי שם (או בחינה לחלוקה); בתצוגה או בטאב נעול — המידע על הפריט. */
     @Override public void onOpen(MapLayout.Node n) {
-        if (!editable()) {
-            Item o = original(n);
-            if (o != null) readOnlyItem(o);
-            return;
-        }
+        if (!editable()) { details(n); return; }
         editNode(n);
     }
 
@@ -1524,7 +1817,7 @@ public final class App implements MapPanel.Host {
         final Item it = n.item;
         if (!editable()) {
             Item o = original(n);
-            if (o != null) m.add(mi("מה יש על הפריט", () -> readOnlyItem(o)));
+            if (o != null) m.add(withKey(mi("פרטי הפריט…", () -> details(n)), KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.ALT_DOWN_MASK)));
             if (o == null) {
                 JMenuItem x = new JMenuItem(locked() ? "הטאב נעול — רק קריאה" : "תצוגה — רק קריאה");
                 x.setEnabled(false);
@@ -1534,25 +1827,25 @@ public final class App implements MapPanel.Host {
         }
         if (n.isDivision()) {
             final Division d = n.division;
-            m.add(mi("הוסף בנים לחלוקה…", () -> addChildren(it, d, "בן חדש ב\"" + n.text + "\"")));
-            m.add(mi("בחר בחינה לחלוקה…", () -> editNode(n)));
+            m.add(withKey(mi("הוסף בנים לחלוקה…", () -> addChildren(it, d, "בן חדש ב\"" + n.text + "\"")), KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0)));
+            m.add(withKey(mi("בחר בחינה לחלוקה…", () -> editNode(n)), KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0)));
             Item a = cur.project.aspect(d.aspectId);
-            if (a != null) m.add(mi("מה יש על הבחינה \"" + a.name + "\"", () -> readOnlyItem(a)));
+            if (a != null) m.add(withKey(mi("פרטי הבחינה \"" + a.name + "\"…", () -> details(n)), KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.ALT_DOWN_MASK)));
             if (clip != null) m.add(mi("הדבק כבן כאן: " + clip.name, () -> { Item c = Edit.paste(clip, it, d); changed(c, null); }));
             sep(m);
             m.add(mi("מחק את החלוקה" + (d.children.isEmpty() ? "" : " ואת " + countDiv(d) + " הפריטים שבה") + "…", () -> deleteNode(n)));
             return;
         }
-        m.add(mi("הוסף בנים…", () -> addChildren(it, null, "בן חדש ל\"" + it.name + "\"")));
-        if (it.parentDivision != null || it.loose) m.add(mi("הוסף אחים…", () -> addSiblings(it)));
-        m.add(mi("שנה שם…", () -> editNode(n)));
+        m.add(withKey(mi("הוסף בנים…", () -> addChildren(it, null, "בן חדש ל\"" + it.name + "\"")), KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0)));
+        if (it.parentDivision != null || it.loose) m.add(withKey(mi("הוסף אחים…", () -> addSiblings(it)), KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)));
+        m.add(withKey(mi("שנה שם…", () -> editNode(n)), KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0)));
         m.add(mi("הוסף חלוקה בצד…", () -> askAspect("החלוקה החדשה — לפי איזו בחינה? (למשל \"לפי צבע\")", "", s -> {
             Division d = Edit.addSide(it, s);
             Edit.setAspect(cur.project, d, s);
             it.collapsed = false;
             changed(it, d.children.isEmpty() && !d.basis.isEmpty() ? d : null);
         })));
-        if (it.childCount() > 0) m.add(mi(it.collapsed ? "פתח את הענף" : "כווץ את הענף", () -> { it.collapsed = !it.collapsed; changed(it, null); }));
+        if (it.childCount() > 0) m.add(withKey(mi(it.collapsed ? "פתח את הענף" : "כווץ את הענף", () -> { it.collapsed = !it.collapsed; changed(it, null); }), KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0)));
         sep(m);
         if (it.parentDivision != null) {
             m.add(mi("הזז לפני", () -> { if (Edit.move(it, -1)) changed(it, null); }));
@@ -1573,7 +1866,7 @@ public final class App implements MapPanel.Host {
         m.add(withKey(mi("העתק", () -> copy(it)), ctrl(KeyEvent.VK_C)));
         if (clip != null) m.add(withKey(mi("הדבק כבן: " + clip.name, () -> paste(n)), ctrl(KeyEvent.VK_V)));
         sep(m);
-        m.add(mi("מה יש על הפריט", () -> readOnlyItem(it)));
+        m.add(withKey(mi("פרטי הפריט (מידע, תגיות, תכונות, בחינות)…", () -> details(n)), KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.ALT_DOWN_MASK)));
         if (canDelete) {
             sep(m);
             m.add(withKey(mi("מחק" + (it.childCount() > 0 ? " (עם " + (Edit.countBranch(it) - 1) + " הפריטים שמתחתיו)" : "") + "…", () -> deleteNode(n)),
@@ -1685,35 +1978,6 @@ public final class App implements MapPanel.Host {
                 : "בחינה קיימת — מהרשימה; שם חדש — בחינה חדשה. ריק — חלוקה בלי בחינה.", then);
     }
 
-    /** מה שיש על הפריט, לקריאה (עד שחלון הפריט ייבנה במחשב). */
-    private void readOnlyItem(Item it) {
-        StringBuilder b = new StringBuilder();
-        Map<String, List<String>> groups = new LinkedHashMap<>();
-        for (Info in : it.infos) {
-            String g = in.kind == Info.Kind.USER ? (in.name.isEmpty() ? "מידע" : in.name)
-                    : in.kind == Info.Kind.ESSENTIAL ? "תכונה עצמית" : "תכונה מקרית";
-            groups.computeIfAbsent(g, k -> new ArrayList<>()).add(in.text);
-        }
-        for (Map.Entry<String, List<String>> e : groups.entrySet()) {
-            b.append(e.getKey()).append(":\n");
-            for (String x : e.getValue()) b.append("• ").append(x).append("\n");
-            b.append("\n");
-        }
-        if (!it.tagIds.isEmpty()) {
-            b.append("תגיות: ");
-            boolean first = true;
-            for (String id : it.tagIds) {
-                Tag tg = cur.project.tag(id);
-                b.append(first ? "" : ", ").append(tg == null ? id : tg.name);
-                first = false;
-            }
-            b.append("\n");
-        }
-        if (b.length() == 0) b.append("אין מידע על הפריט.");
-        b.append("\n\n(עריכת המידע והתגיות — בחלון הפריט, בשלב הבא של הגרסה למחשב.)");
-        Ui.message(frame, it.name.isEmpty() ? "(בלי שם)" : it.name, b.toString().trim());
-    }
-
     /** אחרי כל שינוי במפה: ציור מחדש בלי לזוז, בחירה, ושמירה אוטומטית אחרי שתי שניות של שקט. */
     private void changed(Item select, Division selDiv) {
         markChanged();
@@ -1725,7 +1989,12 @@ public final class App implements MapPanel.Host {
     private void changedAny(boolean structure) {
         markChanged();
         if (structure) render(null, false);
-        else rebuildTabRow();
+        else {
+            rebuildTabRow();
+            Sheet sh = sheet(cur);
+            if (sh != null && sh.kind != Sheet.Kind.MAP)
+                setStatus(summary(cur) + (sh.locked ? " · נעול" : "") + (cur.path == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר"));
+        }
     }
 
     private void markChanged() {

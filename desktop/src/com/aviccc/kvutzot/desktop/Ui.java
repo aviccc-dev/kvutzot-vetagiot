@@ -61,6 +61,11 @@ final class Ui {
         return new Font(Font.DIALOG, Font.PLAIN, 14);
     }
 
+    /** סימן מיוחד אם הגופן יודע לצייר אותו (בחלונות לא תמיד), אחרת — חלופה פשוטה. */
+    static String glyph(String preferred, String fallback) {
+        return base != null && base.canDisplayUpTo(preferred) == -1 ? preferred : fallback;
+    }
+
     static <T extends Container> T rtl(T c) {
         c.applyComponentOrientation(RTL);
         return c;
@@ -310,6 +315,30 @@ final class Ui {
         JPanel south = new JPanel(new BorderLayout());
         south.add(hint, BorderLayout.NORTH);
         south.add(withNext ? buttons(button("הבא", next), done, cancel) : buttons(done, cancel), BorderLayout.SOUTH);
+        body.add(south, BorderLayout.SOUTH);
+        show(d, body, owner);
+    }
+
+    /** שאלת טקסט ארוך (כמה שורות). Ctrl+Enter — שמירה. */
+    static void askMulti(Window owner, String title, String initial, Consumer<String> then) {
+        JDialog d = dialog(owner, title);
+        javax.swing.JTextArea a = new javax.swing.JTextArea(initial, 5, 36);
+        a.setLineWrap(true);
+        a.setWrapStyleWord(true);
+        a.setFont(base.deriveFont(15f));
+        a.setComponentOrientation(RTL);
+        Runnable ok = () -> { d.dispose(); then.accept(a.getText()); };
+        a.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, java.awt.event.InputEvent.CTRL_DOWN_MASK), "ok");
+        a.getActionMap().put("ok", new AbstractAction() { public void actionPerformed(ActionEvent e) { ok.run(); }});
+        JPanel body = new JPanel(new BorderLayout());
+        body.add(new JScrollPane(a), BorderLayout.CENTER);
+        JLabel hint = new JLabel("שמירה ב-Ctrl+Enter · ביטול ב-Esc");
+        hint.setForeground(new Color(0x888780));
+        hint.setFont(base.deriveFont(12f));
+        hint.setBorder(BorderFactory.createEmptyBorder(6, 0, 0, 0));
+        JPanel south = new JPanel(new BorderLayout());
+        south.add(hint, BorderLayout.NORTH);
+        south.add(buttons(button("שמור", ok), button("ביטול", d::dispose)), BorderLayout.SOUTH);
         body.add(south, BorderLayout.SOUTH);
         show(d, body, owner);
     }
