@@ -367,7 +367,8 @@ public final class App implements MapPanel.Host, FreePanel.Host, ItemPanel.Host 
         JMenu help = new JMenu("עזרה");
         item(help, "עכבר ומקלדת", KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0), this::helpKeys);
         item(help, "אודות", null, () -> Ui.message(frame, "קבוצות ותגיות",
-                "גרסה למחשב " + version() + "\nמבלגן לסדר.\n\nאותו קובץ עובד גם בטלפון וגם במחשב."));
+                "גרסה למחשב " + version() + "\nמבלגן לסדר.\n\nאותו קובץ עובד גם בטלפון וגם במחשב.\n\nרץ על Java " + System.getProperty("java.version")
+                        + (System.getProperty("java.home", "").contains("KvutzotVeTagiot") ? " (כלולה בתוכנה)" : " (מותקנת במחשב)")));
         bar.add(help);
 
         // קיצורים שאינם בתפריט (פועלים בכל החלון)

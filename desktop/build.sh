@@ -8,7 +8,7 @@ R=$(cd "$D/.." && pwd)
 OUT=${1:-$D/out/kvutzot.jar}
 T=$(mktemp -d)
 mkdir -p "$T/classes/examples"
-javac -encoding UTF-8 --release 17 -nowarn -d "$T/classes" \
+javac -encoding UTF-8 --release 11 -nowarn -d "$T/classes" \
   $(find "$R/source/src/com/aviccc/kvutzot/model" "$D/src" -name "*.java") 2>&1 | grep -v "JAVA_TOOL_OPTIONS" || true
 test -f "$T/classes/com/aviccc/kvutzot/desktop/App.class" || { echo "הידור נכשל"; exit 1; }
 cp "$D/version.txt" "$T/classes/version.txt"
