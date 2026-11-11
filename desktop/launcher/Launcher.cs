@@ -26,18 +26,19 @@ static class Launcher
 
         int version;
         string old;
-        string javaw = FindJava(out version, out old);
+        // קודם: סביבת ההרצה שקובץ ההתקנה הוריד ליד התוכנה (כשלא הייתה Java במחשב); אחר כך — Java של המחשב
+        string javaw = FindJava(dir, out version, out old);
 
         if (testOut != null)
         {
             File.WriteAllText(testOut, javaw == null ? "none" + (old == null ? "" : " old=" + old)
-                : "java=" + javaw + " version=" + version, Encoding.UTF8);
+                : "java=" + javaw + " version=" + version, new UTF8Encoding(false));
             return javaw == null ? 1 : 0;
         }
 
         if (!File.Exists(jar))
         {
-            Show("הקובץ kvutzot.jar לא נמצא ליד התוכנה.\n\nצריך לפתוח את כל קובץ ה-ZIP לתיקייה אחת, ולהפעיל משם.", MessageBoxIcon.Error);
+            Show("הקובץ kvutzot.jar לא נמצא ליד התוכנה.\n\nכדאי להתקין את התוכנה מחדש מקובץ ההתקנה.", MessageBoxIcon.Error);
             return 2;
         }
 
@@ -47,11 +48,11 @@ static class Launcher
                     ? "לא נמצאה במחשב Java."
                     : "נמצאה במחשב Java ישנה (גרסה " + old + ").")
                 + " התוכנה צריכה Java בגרסה " + MinVersion + " ומעלה.\n\n"
-                + "אפשר להתקין Java פעם אחת (חינם, Temurin), ואז להפעיל את התוכנה שוב.\n"
-                + "או להוריד את הגרסה המלאה של התוכנה, שכוללת Java בתוכה (כ-28 מגה, בלי התקנה נוספת).";
-            int r = Ask(msg, new string[] { "להתקנת Java", "לגרסה המלאה", "ביטול" });
-            if (r == 0) Open(JavaUrl);
-            else if (r == 1) Open(FullUrl);
+                + "הכי פשוט: להתקין את התוכנה מחדש מקובץ ההתקנה — הוא יוריד את Java בעצמו.\n"
+                + "אפשר גם להתקין Java בנפרד (חינם, Temurin), ואז להפעיל את התוכנה שוב.";
+            int r = Ask(msg, new string[] { "לדף ההורדה של התוכנה", "להתקנת Java", "ביטול" });
+            if (r == 0) Open(FullUrl);
+            else if (r == 1) Open(JavaUrl);
             return 3;
         }
 
@@ -133,8 +134,16 @@ static class Launcher
     // ---------------- חיפוש Java ----------------
 
     /// <summary>הגרסה הגבוהה ביותר שנמצאה (11 ומעלה). old — גרסה ישנה שנמצאה, אם לא נמצאה מתאימה.</summary>
-    static string FindJava(out int bestVersion, out string old)
+    static string FindJava(string dir, out int bestVersion, out string old)
     {
+        string own = Path.Combine(dir, "runtime");
+        bestVersion = 0;
+        old = null;
+        if (File.Exists(Path.Combine(own, @"bin\javaw.exe")))
+        {
+            int ov = VersionOf(own);
+            if (ov >= MinVersion) { bestVersion = ov; return Path.Combine(own, @"bin\javaw.exe"); }
+        }
         List<string> homes = new List<string>();
         Add(homes, Environment.GetEnvironmentVariable("JAVA_HOME"));
         string path = Environment.GetEnvironmentVariable("PATH") ?? "";
@@ -174,8 +183,6 @@ static class Launcher
         }
 
         string best = null;
-        bestVersion = 0;
-        old = null;
         foreach (string h in homes)
         {
             string javaw = Path.Combine(h, @"bin\javaw.exe");

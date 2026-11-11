@@ -1,8 +1,11 @@
 # בניית הגרסה למחשב (חלונות). רצה כשנדחף תג desktop-vX.Y.Z, או ידנית.
-# קובץ ההתקנה של חלונות חייב להיבנות על חלונות, ולכן הבנייה כאן ולא בסביבה של Claude.
-# התוצאה: דף הורדה (Release) עם שלושה קבצים:
-#   small.zip — מפעיל קטן ו-kvutzot.jar (כ-0.2 מגה). משתמש ב-Java שכבר מותקנת במחשב (11 ומעלה).
-#   full-setup.exe / full-portable.zip — עם Java בפנים (כ-28 מגה), בלי צורך בהתקנה נוספת.
+# קבצים לחלונות חייבים להיבנות על חלונות, ולכן הבנייה כאן ולא בסביבה של Claude.
+#
+# התוצאה: דף הורדה (Release) עם:
+#   setup.exe — קובץ ההתקנה (קטן). בודק אם יש Java 11 ומעלה במחשב:
+#               יש — מתקין רק את התוכנה; אין — מוריד פעם אחת את runtime-windows-x64.zip מאותו דף.
+#   runtime-windows-x64.zip — סביבת ההרצה (בשביל קובץ ההתקנה; לא צריך להוריד ידנית).
+#   full-portable.zip — הכול כלול, בלי התקנה (למחשב בלי אינטרנט).
 name: windows
 
 on:
@@ -16,6 +19,8 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,28 +33,20 @@ jobs:
         shell: bash
         run: bash desktop/build.sh build/in/kvutzot.jar
 
-      - name: סביבת Java מצומצמת
+      - name: סביבת הרצה מצומצמת (jlink)
         shell: bash
         run: |
           jlink --add-modules java.desktop,java.prefs,jdk.localedata,jdk.charsets \
             --include-locales=en,he --strip-debug --no-man-pages --no-header-files \
             --output build/runtime
+          (cd build/runtime && 7z a -tzip ../runtime-windows-x64.zip * > /dev/null)
+          SHA=$(sha256sum build/runtime-windows-x64.zip | cut -d' ' -f1)
+          echo "RUNTIME_SHA=$SHA" >> $GITHUB_ENV
+          ls -la build/runtime-windows-x64.zip; echo "sha256 $SHA"
 
-      - name: תיקיית התוכנה (מופעלת בלי התקנה)
-        shell: bash
-        run: |
-          V=$(cat desktop/version.txt)
-          jpackage --type app-image --name KvutzotVeTagiot --app-version "$V" \
-            --input build/in --main-jar kvutzot.jar --main-class com.aviccc.kvutzot.desktop.App \
-            --runtime-image build/runtime --icon desktop/res/icon.ico --vendor aviccc \
-            --description "Kvutzot ve-Tagiot" --dest build/image
-          cd build/image && 7z a -tzip ../KvutzotVeTagiot-$V-full-portable.zip KvutzotVeTagiot > /dev/null
-          ls -la ..
-
-      - name: גרסה קטנה — מפעיל שבודק אם Java מותקנת, ו-kvutzot.jar
+      - name: המפעיל (מחפש Java ומפעיל את התוכנה)
         shell: pwsh
         run: |
-          $V = (Get-Content desktop/version.txt).Trim()
           $out = "build\small\KvutzotVeTagiot"
           New-Item -ItemType Directory -Force $out | Out-Null
           & "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe /codepage:65001 `
@@ -57,39 +54,71 @@ jobs:
             /out:$out\KvutzotVeTagiot.exe desktop\launcher\Launcher.cs
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Copy-Item build\in\kvutzot.jar $out
-          # בדיקה: המפעיל מוצא את ה-Java שמותקנת במכונה של הבנייה
           Start-Process "$out\KvutzotVeTagiot.exe" -ArgumentList '--test', "$PWD\build\found.txt" -Wait
           Get-Content build\found.txt
           if (-not (Select-String -Path build\found.txt -Pattern '^java=')) { Write-Error "המפעיל לא מצא Java"; exit 1 }
-          Compress-Archive -Path $out -DestinationPath "build\KvutzotVeTagiot-$V-small.zip"
-          Get-Item "build\KvutzotVeTagiot-$V-small.zip" | Select-Object Name, Length
 
-      - name: קובץ התקנה (אם WiX קיים במכונה)
-        id: installer
-        continue-on-error: true
+      - name: דף ההורדה, וסביבת ההרצה עליו (קובץ ההתקנה מוריד אותה משם)
         shell: bash
         run: |
           V=$(cat desktop/version.txt)
-          jpackage --type exe --name KvutzotVeTagiot --app-version "$V" \
-            --app-image build/image/KvutzotVeTagiot \
-            --win-per-user-install --win-menu --win-menu-group "Kvutzot ve-Tagiot" --win-shortcut --win-shortcut-prompt \
-            --win-upgrade-uuid 6c1d6a2e-4f0b-4c1e-9a7e-2b8f3d4c5e61 --vendor aviccc \
-            --description "Kvutzot ve-Tagiot" --dest build/installer
-          ls -la build/installer
+          gh release view "desktop-v$V" > /dev/null 2>&1 \
+            || gh release create "desktop-v$V" --title "קבוצות ותגיות למחשב $V" --notes-file "notes/desktop-$V.md"
+          gh release upload "desktop-v$V" build/runtime-windows-x64.zip --clobber
 
-      - name: דף הורדה
+      - name: קובץ ההתקנה (Inno Setup)
+        shell: pwsh
+        run: |
+          $V = (Get-Content desktop/version.txt).Trim()
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc /Q "/DAppVersion=$V" "/DRuntimeSha=$env:RUNTIME_SHA" desktop\installer\kvutzot.iss
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Get-Item "build\KvutzotVeTagiot-$V-setup.exe" | Select-Object Name, Length
+
+      - name: בדיקת קובץ ההתקנה — כשיש Java, וכשאין
+        shell: pwsh
+        run: |
+          $V = (Get-Content desktop/version.txt).Trim()
+          $setup = "build\KvutzotVeTagiot-$V-setup.exe"
+          function Install($dir, $extra) {
+            $a = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=$dir", "/LOG=$dir.log") + $extra
+            Start-Process $setup -ArgumentList $a -Wait
+          }
+          function Found($dir) {
+            Start-Process "$dir\KvutzotVeTagiot.exe" -ArgumentList '--test', "$dir-found.txt" -Wait
+            $t = Get-Content "$dir-found.txt"; Write-Host "  $t"; return $t
+          }
+          function Uninstall($dir) { Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES' -Wait; Start-Sleep 3 }
+
+          Write-Host "1. יש Java במחשב: מתקינים רק את התוכנה"
+          $d1 = "$PWD\build\t1"
+          Install $d1 @()
+          if (Test-Path "$d1\runtime") { Write-Error "הורדה סביבת הרצה אף שיש Java"; exit 1 }
+          if ((Found $d1) -notmatch '^java=') { Write-Error "לא נמצאה Java"; exit 1 }
+          Uninstall $d1
+
+          Write-Host "2. אין Java (מדמים): מוריד סביבת הרצה ומתקין בתיקיית התוכנה"
+          $d2 = "$PWD\build\t2"
+          Install $d2 @('/forceruntime=1')
+          if (-not (Test-Path "$d2\runtime\bin\javaw.exe")) { Get-Content "$d2.log" -Tail 30; Write-Error "סביבת ההרצה לא הותקנה"; exit 1 }
+          if ((Found $d2) -notmatch 'runtime\\bin\\javaw\.exe') { Write-Error "המפעיל לא משתמש בסביבה שהותקנה"; exit 1 }
+          Uninstall $d2
+          if (Test-Path "$d2\runtime") { Write-Error "הסרת ההתקנה לא מחקה את סביבת ההרצה"; exit 1 }
+          Write-Host "שני המסלולים עברו"
+
+      - name: הכול כלול, בלי התקנה (למחשב בלי אינטרנט)
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           V=$(cat desktop/version.txt)
-          TAG=${GITHUB_REF_NAME}
-          if [[ "$TAG" != desktop-v* ]]; then TAG="desktop-v$V"; fi
-          FILES="build/KvutzotVeTagiot-$V-small.zip build/KvutzotVeTagiot-$V-full-portable.zip"
-          if ls build/installer/*.exe > /dev/null 2>&1; then
-            cp build/installer/*.exe "build/KvutzotVeTagiot-$V-full-setup.exe"
-            FILES="$FILES build/KvutzotVeTagiot-$V-full-setup.exe"
-          fi
-          NOTES="notes/desktop-$V.md"
-          gh release view "$TAG" > /dev/null 2>&1 && gh release upload "$TAG" $FILES --clobber \
-            || gh release create "$TAG" $FILES --title "קבוצות ותגיות למחשב $V" --notes-file "$NOTES"
+          jpackage --type app-image --name KvutzotVeTagiot --app-version "$V" \
+            --input build/in --main-jar kvutzot.jar --main-class com.aviccc.kvutzot.desktop.App \
+            --runtime-image build/runtime --icon desktop/res/icon.ico --vendor aviccc \
+            --description "Kvutzot ve-Tagiot" --dest build/image
+          (cd build/image && 7z a -tzip ../KvutzotVeTagiot-$V-full-portable.zip KvutzotVeTagiot > /dev/null)
+
+      - name: העלאה לדף ההורדה
+        shell: bash
+        run: |
+          V=$(cat desktop/version.txt)
+          gh release upload "desktop-v$V" "build/KvutzotVeTagiot-$V-setup.exe" "build/KvutzotVeTagiot-$V-full-portable.zip" --clobber
