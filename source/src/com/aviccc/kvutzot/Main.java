@@ -686,6 +686,47 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         menu("תצוגה לפי…", labels, acts);
     }
 
+    /** שם התצוגה הנוכחית, לשבב. */
+    private String viewName() {
+        switch (viewMode) {
+            case 1: return "# תגיות" + (tagLevel > 1 ? " " + tagLevel : "");
+            case 2: return viewInfo.isEmpty() ? "מידע" : viewInfo;
+            case 3: return "תכונות";
+            case 4: return "בחינות";
+            case 5: return levelFrom == levelTo ? "רמה " + levelFrom : "רמות " + levelFrom + "–" + levelTo;
+            default: return "עץ";
+        }
+    }
+
+    /** תפריט קטן מתחת לשבב: כל התצוגות ברשימה נגללת; הנוכחית מסומנת. */
+    private void viewsPopup(View anchor) {
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        final android.widget.PopupMenu pm = new android.widget.PopupMenu(this, anchor);
+        addView(pm, acts, "עץ", viewMode == 0, new Runnable() { public void run() { setView(0, 1, ""); }});
+        addView(pm, acts, "# תגיות", viewMode == 1 && tagLevel == 1, new Runnable() { public void run() { setView(1, 1, ""); }});
+        int maxLevel = Views.maxTagLevel(project);
+        for (int k = 2; k <= maxLevel; k++) {
+            final int lv = k;
+            addView(pm, acts, "# תגיות " + k, viewMode == 1 && tagLevel == k, new Runnable() { public void run() { setView(1, lv, ""); }});
+        }
+        for (final String n : Views.usedInfoNames(project))
+            addView(pm, acts, n.isEmpty() ? "מידע" : n, viewMode == 2 && viewInfo.equals(n), new Runnable() { public void run() { setView(2, 1, n); }});
+        addView(pm, acts, "תכונות", viewMode == 3, new Runnable() { public void run() { setView(3, 1, ""); }});
+        if (!project.aspects.isEmpty())
+            addView(pm, acts, "בחינות", viewMode == 4, new Runnable() { public void run() { setView(4, 1, ""); }});
+        if (Edit.maxDepth(project) >= 1)
+            addView(pm, acts, viewMode == 5 ? viewName() + " (שנה…)" : "מרמה עד רמה…", viewMode == 5,
+                    new Runnable() { public void run() { fromToLevel(Math.max(1, Edit.maxDepth(project))); }});
+        pm.setOnMenuItemClickListener(new android.widget.PopupMenu.OnMenuItemClickListener() {
+            public boolean onMenuItemClick(MenuItem mi) { acts.get(mi.getItemId()).run(); return true; }});
+        pm.show();
+    }
+
+    private static void addView(android.widget.PopupMenu pm, java.util.List<Runnable> acts, String label, boolean on, Runnable r) {
+        pm.getMenu().add(0, acts.size(), acts.size(), (on ? "✓ " : "    ") + label);
+        acts.add(r);
+    }
+
     private void setView(int mode, int level, String info) {
         viewMode = mode;
         tagLevel = level;
@@ -1124,23 +1165,9 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         chip(viewRow, "טקסט", !showMap, false, new View.OnClickListener() { public void onClick(View v) {
             setShowMap(false); applyView(); rebuildStrips(); }});
         gap(viewRow);
-        chip(viewRow, "עץ", viewMode == 0, false, new View.OnClickListener() { public void onClick(View v) { setView(0, 1, ""); }});
-        chip(viewRow, "# תגיות", viewMode == 1 && tagLevel == 1, false, new View.OnClickListener() { public void onClick(View v) { setView(1, 1, ""); }});
-        int maxLevel = Views.maxTagLevel(project);
-        for (int k = 2; k <= maxLevel; k++) {
-            final int lv = k;
-            chip(viewRow, "# תגיות " + k, viewMode == 1 && tagLevel == k, false, new View.OnClickListener() {
-                public void onClick(View v) { setView(1, lv, ""); }});
-        }
-        for (final String n : Views.usedInfoNames(project))
-            chip(viewRow, n.isEmpty() ? "מידע" : n, viewMode == 2 && viewInfo.equals(n), false, new View.OnClickListener() {
-                public void onClick(View v) { setView(2, 1, n); }});
-        chip(viewRow, "תכונות", viewMode == 3, false, new View.OnClickListener() { public void onClick(View v) { setView(3, 1, ""); }});
-        if (!project.aspects.isEmpty())
-            chip(viewRow, "בחינות", viewMode == 4, false, new View.OnClickListener() { public void onClick(View v) { setView(4, 1, ""); }});
-        if (viewMode == 5)
-            chip(viewRow, levelFrom == levelTo ? "רמה " + levelFrom : "רמות " + levelFrom + "–" + levelTo, true, false,
-                    new View.OnClickListener() { public void onClick(View v) { fromToLevel(Math.max(1, Edit.maxDepth(project))); }});
+        // תצוגות (0.10.5): שבב אחד עם התצוגה הנוכחית; נגיעה — תפריט קטן נגלל עם כל התצוגות
+        final TextView vc = chip(viewRow, "תצוגה: " + viewName() + " ▾", viewMode != 0, false, null);
+        vc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { viewsPopup(vc); }});
         if (viewMode != 0 && viewMode != 5) {
             gap(viewRow);
             chip(viewRow, viewSort == Views.Sort.NAME ? "מיון: א-ב" : "מיון: מפה", false, false, new View.OnClickListener() {
