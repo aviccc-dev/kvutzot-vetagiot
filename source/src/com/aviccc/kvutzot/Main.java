@@ -940,6 +940,9 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private void viewsPopup(View anchor) {
         final java.util.List<Runnable> acts = new java.util.ArrayList<>();
         final Drop pm = new Drop();
+        // "פריטים" — המצב הראשוני: העץ עצמו, בלי קיבוץ לפי מידע
+        addView(pm, acts, "פריטים", viewMode == 0 || viewMode == 5, new Runnable() { public void run() {
+            if (viewMode != 0 && viewMode != 5) setView(0, 1, ""); }});
         addView(pm, acts, "# תגיות", viewMode == 1 && tagLevel == 1, new Runnable() { public void run() { setView(1, 1, ""); }});
         int maxLevel = Views.maxTagLevel(project);
         for (int k = 2; k <= maxLevel; k++) {
@@ -1443,7 +1446,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         final boolean treeOn = viewMode == 0 || viewMode == 5;
         final TextView tc = chip(viewRow, (viewMode == 5 ? viewName() : "עץ") + " ▾", treeOn, false, null);
         tc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { treePopup(tc); }});
-        final TextView vc = chip(viewRow, (treeOn ? "לפי…" : "לפי: " + viewName()) + " ▾", !treeOn, false, null);
+        final TextView vc = chip(viewRow, "לפי: " + (treeOn ? "פריטים" : viewName()) + " ▾", !treeOn, false, null);
         vc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { viewsPopup(vc); }});
         if (viewMode != 0 && viewMode != 5) {
             gap(viewRow);
