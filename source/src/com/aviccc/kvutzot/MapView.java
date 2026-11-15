@@ -167,18 +167,21 @@ public class MapView extends View {
                 }
                 tx -= dx; ty -= dy; invalidate(); return true;
             }
-            @Override public boolean onSingleTapConfirmed(MotionEvent e) {
-                for (int i = 0; i < btnRects.size(); i++)
-                    if (btnRects.get(i).contains(e.getX(), e.getY())) {
-                        MapLayout.Node n = selectedNode();
-                        if (host != null && n != null) host.onAction(btnActions.get(i), n);
-                        return true;
-                    }
+            /** מגיבים מיד כשהאצבע עולה (0.11), בלי לחכות לראות אם זו נגיעה כפולה. */
+            @Override public boolean onSingleTapUp(MotionEvent e) {
+                int b = button(e.getX(), e.getY());
+                if (b >= 0) {
+                    MapLayout.Node n = selectedNode();
+                    String act = btnActions.get(b);
+                    if (host != null && n != null) host.onAction(act, n);
+                    return true;
+                }
                 MapLayout.Node n = hit(e.getX(), e.getY());
                 select(n, false);
                 return true;
             }
             @Override public boolean onDoubleTap(MotionEvent e) {
+                if (button(e.getX(), e.getY()) >= 0) return true;
                 MapLayout.Node n = hit(e.getX(), e.getY());
                 if (n == null) { fit(); return true; }
                 select(n, false);
@@ -186,6 +189,7 @@ public class MapView extends View {
                 return true;
             }
             @Override public void onLongPress(MotionEvent e) {
+                if (button(e.getX(), e.getY()) >= 0) return;
                 MapLayout.Node n = hit(e.getX(), e.getY());
                 if (n == null) return;
                 select(n, true);
@@ -199,6 +203,38 @@ public class MapView extends View {
     }
 
     // ---------------- בחירה ----------------
+
+    /** הכפתור שמתחת לאצבע, או -1. */
+    private int button(float x, float y) {
+        for (int i = 0; i < btnRects.size(); i++) if (btnRects.get(i).contains(x, y)) return i;
+        return -1;
+    }
+
+    /** המקום וההגדלה של המפה על המסך — כדי לחזור אליהם כשחוזרים לטאב (0.11). */
+    public float[] getView() { return layout == null || needFit ? null : new float[]{scale, tx, ty}; }
+
+    public void setView(float[] v) {
+        if (v == null || v.length < 3) return;
+        scale = v[0]; tx = v[1]; ty = v[2];
+        needFit = false;
+        zoomChanged();
+        invalidate();
+    }
+
+    /** גודל המפה כולה בהגדלה s (לייצוא). */
+    public int exportWidth(float s) { return layout == null ? 0 : (int) Math.ceil((layout.width + 2 * margin) * s); }
+    public int exportHeight(float s) { return layout == null ? 0 : (int) Math.ceil((layout.height + 2 * margin) * s); }
+
+    /** ציור המפה כולה (לתמונה או ל-PDF): הכול, עם הטקסט, בלי בחירה וכפתורים. */
+    public void export(Canvas c, float s) {
+        if (layout == null) return;
+        c.drawColor(0xFFFFFFFF);
+        c.save();
+        c.scale(s, s);
+        c.translate(margin, margin);
+        paint(c, -Float.MAX_VALUE, -Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE, true, true);
+        c.restore();
+    }
 
     private MapLayout.Node hit(float sx, float sy) {
         if (layout == null) return null;
@@ -371,6 +407,29 @@ public class MapView extends View {
         // בהקטנה גדולה הטקסט לא קריא — מציירים רק תיבות
         boolean showText = textPaint.getTextSize() * scale >= 5.5f;
         boolean fine = scale >= 0.35f;
+        paint(c, vx0, vy0, vx1, vy1, showText, fine);
+        float rad = 7 * dens;
+        MapLayout.Node sel = selectedNode();
+        if (sel != null) {
+            float o = 3 * dens;
+            for (MapLayout.Node n : layout.nodes) {
+                if (n != sel && !(branch && inBranch(n, sel))) continue;
+                r.set(n.x - o, n.y - o, n.x + n.w + o, n.y + n.h + o);
+                selPaint.setAlpha(n == sel ? 255 : 120);
+                c.drawRoundRect(r, rad + o, rad + o, selPaint);
+            }
+        }
+        c.restore();
+        btnRects.clear();
+        btnActions.clear();
+        if (sel != null) {
+            if (pendingReveal) { reveal(sel); pendingReveal = false; }
+            drawButtons(c, sel);
+        }
+    }
+
+    /** הקווים והתיבות שבתחום (ביחידות המפה). */
+    private void paint(Canvas c, float vx0, float vy0, float vx1, float vy1, boolean showText, boolean fine) {
         for (MapLayout.Node n : layout.nodes)
             for (MapLayout.Node k : n.children) {
                 float x0 = Math.min(n.x, k.x), x1 = Math.max(n.x + n.w, k.x + k.w);
@@ -420,27 +479,20 @@ public class MapView extends View {
                 c.drawText(n.mark, n.x + n.w - 4 * dens, n.y + 3 * dens - markPaint.ascent(), markPaint);
             }
         }
-        MapLayout.Node sel = selectedNode();
-        if (sel != null) {
-            float o = 3 * dens;
-            for (MapLayout.Node n : layout.nodes) {
-                if (n != sel && !(branch && inBranch(n, sel))) continue;
-                r.set(n.x - o, n.y - o, n.x + n.w + o, n.y + n.h + o);
-                selPaint.setAlpha(n == sel ? 255 : 120);
-                c.drawRoundRect(r, rad + o, rad + o, selPaint);
-            }
-        }
-        c.restore();
-        btnRects.clear();
-        btnActions.clear();
-        if (sel != null) {
-            if (pendingReveal) { reveal(sel); pendingReveal = false; }
-            drawButtons(c, sel);
-        }
     }
 
     /** מזיז את המפה כך שהפריט ייראה, אם הוא מחוץ למסך. */
     private void reveal(MapLayout.Node n) {
+        if (textPaint.getTextSize() * scale < 9f) {
+            // ההגדלה קטנה מכדי לקרוא: מגדילים סביב הפריט
+            float ns = Math.min(1f, 9.5f / textPaint.getTextSize() * 1.6f);
+            scale = Math.max(scale, ns);
+            tx = getWidth() / 2f - (n.x + n.w / 2 + margin) * scale;
+            ty = getHeight() / 3f - (n.y + n.h / 2 + margin) * scale;
+            zoomChanged();
+            invalidate();
+            return;
+        }
         float sx = tx + (n.x + margin) * scale, sy = ty + (n.y + margin) * scale;
         float sw = n.w * scale, sh = n.h * scale, m = 60 * dens;
         if (sx < m || sx + sw > getWidth() - m || sy < m || sy + sh > getHeight() - m * 2) {

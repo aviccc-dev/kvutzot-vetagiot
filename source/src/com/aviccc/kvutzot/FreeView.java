@@ -97,7 +97,7 @@ public class FreeView extends View {
                 invalidate();
                 return true;
             }
-            @Override public boolean onSingleTapConfirmed(MotionEvent e) {
+            @Override public boolean onSingleTapUp(MotionEvent e) {
                 for (int i = 0; i < btnRects.size(); i++)
                     if (btnRects.get(i).contains(e.getX(), e.getY())) { button(btnActs.get(i)); return true; }
                 FreeMap.Node n = hit(e.getX(), e.getY());
@@ -120,6 +120,7 @@ public class FreeView extends View {
                 return true;
             }
             @Override public boolean onDoubleTap(MotionEvent e) {
+                for (int i = 0; i < btnRects.size(); i++) if (btnRects.get(i).contains(e.getX(), e.getY())) return true;
                 FreeMap.Node n = hit(e.getX(), e.getY());
                 if (host == null || locked) return true;
                 if (n != null) { selected = n; host.onFreeEdit(n); }

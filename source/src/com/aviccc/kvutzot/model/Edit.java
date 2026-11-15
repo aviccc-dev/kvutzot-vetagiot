@@ -312,4 +312,75 @@ public final class Edit {
         used.addAll(it.tagIds);
         for (Division d : it.divisions) for (Item c : d.children) collectTags(c, used);
     }
+
+    // ---------------- ניהול תגיות ובחינות (0.11) ----------------
+
+    /** מחיקת תגית: מוסרת מכל הפריטים, הבחינות והתגיות שנושאים אותה. מחזיר מכמה פריטים הוסרה. */
+    public static int deleteTag(Project p, Model.Tag t) {
+        int[] n = {0};
+        for (Item r : p.allRoots()) dropTag(r, t.id, n);
+        for (Item a : p.aspects.values()) a.tagIds.remove(t.id);
+        for (Model.Tag x : p.tags) x.tagIds.remove(t.id);
+        p.tags.remove(t);
+        return n[0];
+    }
+
+    private static void dropTag(Item it, String id, int[] n) {
+        if (it.tagIds.remove(id)) n[0]++;
+        for (Division d : it.divisions) for (Item c : d.children) dropTag(c, id, n);
+    }
+
+    /** מחיקת בחינה: החלוקות שלפיה נשארות, בלי בחינה ובלי שם. מחזיר כמה חלוקות. */
+    public static int deleteAspect(Project p, String id) {
+        int[] n = {0};
+        for (Item r : p.allRoots()) dropAspect(r, id, n);
+        p.aspects.remove(id);
+        return n[0];
+    }
+
+    private static void dropAspect(Item it, String id, int[] n) {
+        for (Division d : it.divisions) {
+            if (id.equals(d.aspectId)) { d.aspectId = ""; d.basis = ""; n[0]++; }
+            for (Item c : d.children) dropAspect(c, id, n);
+        }
+    }
+
+    /**
+     * תגית על תגית: over מונחת על t. לא על עצמה, ולא במעגל (אם t כבר נמצאת, ישירות או בעקיפין, על over).
+     * מחזיר אם נוספה.
+     */
+    public static boolean tagOnTag(Project p, Model.Tag t, Model.Tag over) {
+        if (t == over || t.tagIds.contains(over.id) || reaches(p, over, t.id, 0)) return false;
+        t.tagIds.add(over.id);
+        return true;
+    }
+
+    private static boolean reaches(Project p, Model.Tag from, String target, int depth) {
+        if (depth > 50) return true;
+        for (String id : from.tagIds) {
+            if (id.equals(target)) return true;
+            Model.Tag n = p.tag(id);
+            if (n != null && reaches(p, n, target, depth + 1)) return true;
+        }
+        return false;
+    }
+
+    /** הפריטים שנושאים את התגית, בכל המפות. */
+    public static java.util.List<Item> itemsWithTag(Project p, String tagId) {
+        java.util.List<Item> l = new java.util.ArrayList<>();
+        for (Item r : p.allRoots()) withTag(r, tagId, l);
+        return l;
+    }
+
+    private static void withTag(Item it, String id, java.util.List<Item> l) {
+        if (it.tagIds.contains(id)) l.add(it);
+        for (Division d : it.divisions) for (Item c : d.children) withTag(c, id, l);
+    }
+
+    /** פתיחת כל האבות של פריט, כדי שייראה במפה. מחזיר אם משהו נפתח. */
+    public static boolean expandTo(Item it) {
+        boolean any = false;
+        for (Item x = it.parent(); x != null; x = x.parent()) if (x.collapsed) { x.collapsed = false; any = true; }
+        return any;
+    }
 }

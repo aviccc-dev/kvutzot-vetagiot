@@ -44,10 +44,10 @@ import java.nio.charset.Charset;
 
 /** גרסה 0.1: פתיחת קובץ, תצוגת טקסט, שמירה, וזיהוי שינוי מבחוץ. */
 public class Main extends Activity implements MapView.Host, FreeView.Host {
-    private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3, REQ_EXPORT = 4, REQ_BRAIN = 5;
+    private static final int REQ_OPEN = 1, REQ_CREATE = 2, REQ_SAVE_AS = 3, REQ_EXPORT = 4, REQ_BRAIN = 5, REQ_PNG = 6, REQ_PDF = 7;
     private static final int M_OPEN = 1, M_NEW = 2, M_SAVE = 3, M_SAVE_AS = 4, M_RELOAD = 5,
             M_EX_TRI = 6, M_EX_TOYS = 7, M_ABOUT = 8, M_EXPORT = 9,
-            M_VIEW = 10, M_DIR = 11, M_FIT = 12, M_LOOSE = 13, M_SETTINGS = 14, M_SHOW = 15, M_SORT = 16, M_TABS = 17, M_CLOSE = 18, M_BRAIN = 19, M_TITLE = 20, M_LEVEL = 21;
+            M_VIEW = 10, M_DIR = 11, M_FIT = 12, M_LOOSE = 13, M_SETTINGS = 14, M_SHOW = 15, M_SORT = 16, M_TABS = 17, M_CLOSE = 18, M_BRAIN = 19, M_TITLE = 20, M_LEVEL = 21, M_UNDO = 22, M_REDO = 23, M_SEARCH = 24, M_TAGS = 25, M_BACKUPS = 26, M_PNG = 27, M_PDF = 28;
     private static final Charset UTF8 = Charset.forName("UTF-8");
 
     private SharedPreferences prefs;
@@ -71,6 +71,11 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         boolean dirty;
         int viewMode, tagLevel = 1, levelFrom = 1, levelTo = 1;
         String sheetId = "";
+        /** ביטול פעולה (0.11): מצבי הקובץ הקודמים, המצב הנוכחי, ומה שבוטל. */
+        final java.util.ArrayList<String> undo = new java.util.ArrayList<>(), redo = new java.util.ArrayList<>();
+        String snap;
+        /** המקום וההגדלה של כל מפה ותצוגה, כדי לחזור אליהם. */
+        final java.util.HashMap<String, float[]> views = new java.util.HashMap<>();
         String viewInfo = "";
         Views.Sort viewSort = Views.Sort.MAP;
         /** פרוס בשורת הטאבים (או ברקע — רק בניהול). */
@@ -147,6 +152,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         body.setPadding(pad, pad, pad, dp(40));
         body.setLineSpacing(dp(3), 1f);
         body.setTextDirection(View.TEXT_DIRECTION_RTL);
+        body.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
+        body.setHighlightColor(0x33185FA5);
         sv.addView(body);
         textScroll = sv;
         map = new MapView(this);
@@ -239,7 +246,14 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         }
         boolean m = showMap && project != null;
         if (project != null && shownP != null) {
-            if (m && mapStale) { mapStale = false; map.setProject(shownP, vertical, refitPending); refitPending = false; }
+            if (m && mapStale) {
+                mapStale = false;
+                float[] st = wantRestore && cur != null ? cur.views.get(viewKey()) : null;
+                wantRestore = false;
+                if (st != null) { map.setProject(shownP, vertical, false); map.setView(st); }
+                else map.setProject(shownP, vertical, refitPending);
+                refitPending = false;
+            }
             if (!m && textStale) { textStale = false; buildText(shownP); }
         }
         map.setVisibility(m ? View.VISIBLE : View.GONE);
@@ -261,6 +275,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
 
     @Override
     public boolean onCreateOptionsMenu(Menu m) {
+        m.add(0, M_UNDO, 0, "↶").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        m.add(0, M_SEARCH, 0, "חיפוש").setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        m.add(0, M_REDO, 0, "בצע שוב (↷)");
+        m.add(0, M_TAGS, 0, "תגיות ובחינות…");
         m.add(0, M_OPEN, 0, "פתח קובץ (בטאב חדש)");
         m.add(0, M_TABS, 0, "ניהול טאבים");
         m.add(0, M_CLOSE, 0, "סגור את הטאב");
@@ -273,6 +291,9 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.add(0, M_SAVE_AS, 3, "שמור עותק בשם");
         m.add(0, M_RELOAD, 4, "טען מחדש");
         m.add(0, M_EXPORT, 4, "ייצוא ל-OPML (לתוכנות אחרות)");
+        m.add(0, M_PDF, 4, "ייצוא המפה ל-PDF");
+        m.add(0, M_PNG, 4, "ייצוא המפה לתמונה");
+        m.add(0, M_BACKUPS, 4, "גיבויים…");
         m.add(0, M_EX_TRI, 5, "דוגמה: משולש");
         m.add(0, M_EX_TOYS, 6, "דוגמה: צעצועים");
         m.add(0, M_LOOSE, 5, "פריט תלוש חדש");
@@ -289,6 +310,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.findItem(M_RELOAD).setEnabled(uri != null);
         m.findItem(M_EXPORT).setEnabled(project != null);
         m.findItem(M_TABS).setVisible(!docs.isEmpty());
+        m.findItem(M_UNDO).setVisible(project != null);
+        m.findItem(M_REDO).setVisible(project != null && cur != null && !cur.redo.isEmpty());
+        m.findItem(M_SEARCH).setVisible(project != null);
+        m.findItem(M_TAGS).setVisible(project != null);
+        m.findItem(M_BACKUPS).setVisible(uri != null && project != null);
+        m.findItem(M_PDF).setVisible(project != null && showMap && part == 2);
+        m.findItem(M_PNG).setVisible(project != null && showMap && part == 2);
         m.findItem(M_CLOSE).setVisible(cur != null);
         m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap && part == 2);
         m.findItem(M_FIT).setVisible(project != null && showMap && part == 2);
@@ -300,6 +328,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     @Override
     public boolean onOptionsItemSelected(MenuItem mi) {
         switch (mi.getItemId()) {
+            case M_UNDO: undo(false); return true;
+            case M_REDO: undo(true); return true;
+            case M_SEARCH: search(); return true;
+            case M_TAGS: manageTags(); return true;
+            case M_BACKUPS: backups(); return true;
+            case M_PDF: create(REQ_PDF, (project.title.isEmpty() ? "מפה" : project.title) + ".pdf", "application/pdf"); return true;
+            case M_PNG: create(REQ_PNG, (project.title.isEmpty() ? "מפה" : project.title) + ".png", "image/png"); return true;
             case M_TABS: manageTabs(); return true;
             case M_CLOSE: closeTab(cur); return true;
             case M_OPEN: {
@@ -316,10 +351,6 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     project.title = s; project.start.title = s; changedAny(true); }});
                 return true;
             case M_SAVE: save(); return true;
-            case M_VIEW:
-                setShowMap(!showMap);
-                applyView();
-                return true;
             case M_DIR:
                 setVertical(!vertical);
                 render(null, true);
@@ -327,11 +358,6 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 return true;
             case M_FIT: map.fit(); return true;
             case M_LEVEL: showToLevel(); return true;
-            case M_SHOW: chooseView(); return true;
-            case M_SORT:
-                viewSort = viewSort == Views.Sort.MAP ? Views.Sort.NAME : Views.Sort.MAP;
-                render(null, true);
-                return true;
             case M_LOOSE:
                 askName("פריט תלוש חדש", "", true, new Named() { public void done(String s) {
                     Item n = Edit.addLoose(project, s);
@@ -352,10 +378,12 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         return super.onOptionsItemSelected(mi);
     }
 
-    private void create(int req, String title) {
+    private void create(int req, String title) { create(req, title, "text/xml"); }
+
+    private void create(int req, String title, String mime) {
         Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
-        i.setType("text/xml");
+        i.setType(mime);
         i.putExtra(Intent.EXTRA_TITLE, title);
         startActivityForResult(i, req);
     }
@@ -392,6 +420,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             writeThenLoad(u, OpmlIO.write(p));
         } else if (req == REQ_SAVE_AS) {
             writeThenLoad(u, currentText());
+        } else if (req == REQ_PNG || req == REQ_PDF) {
+            exportMap(u, req == REQ_PDF);
         } else if (req == REQ_EXPORT) {
             final Uri out = u;
             final String text = OpmlIO.writeOpml(project);
@@ -451,6 +481,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 final long t1 = System.nanoTime();
                 final Project p = OpmlIO.read(text);
                 p.syncAspects();
+                // המצב ההתחלתי לביטול פעולה — בצורה שבה התוכנה עצמה כותבת (כדי שהשוואה תהיה מדויקת)
+                final String norm = OpmlIO.write(p);
                 final long t2 = System.nanoTime();
                 try { map.prepare(p, vertical); } catch (Throwable ignored) { }
                 final long t3 = System.nanoTime();
@@ -460,6 +492,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     if (target != cur) {
                         target.uri = u; target.fileName = name; target.lastText = text; target.lastRead = text;
                         target.project = p; target.dirty = false; target.viewMode = 0;
+                        resetUndo(target, norm);
                         saveTabs();
                         return;
                     }
@@ -470,6 +503,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     project = p;
                     dirty = false;
                     viewMode = 0;
+                    resetUndo(cur, norm);
                     stash();
                     saveTabs();
                     long t4 = System.nanoTime();
@@ -518,6 +552,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     if (target != cur) {
                         target.uri = u; target.fileName = name; target.lastText = text; target.lastRead = text;
                         target.project = p; target.dirty = false; target.viewMode = 0;
+                        if (target.snap == null) resetUndo(target, text);
                         saveTabs();
                         return;
                     }
@@ -528,6 +563,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     project = p;
                     dirty = false;
                     viewMode = 0;
+                    if (cur != null && cur.snap == null) resetUndo(cur, text);
                     stash();
                     saveTabs();
                     render(ok ? "נשמר" : STALE, true);
@@ -558,7 +594,9 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         final Uri u = uri;
         final Doc target = cur;
         final Project proj = project;
-        final String text = currentText();
+        // מצב הקובץ נבנה פעם אחת — גם לביטול פעולה וגם לשמירה
+        snapshot();
+        final String text = cur != null && cur.snap != null ? cur.snap : currentText();
         final String known = lastText, seen = lastRead;
         final long savedRev = rev;
         setStatus("שומר…");
@@ -577,6 +615,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                         return;
                     }
                 }
+                if (known != null) backup(u, known);
                 writeText(u, text);
                 String back = null;
                 try { back = readText(u); } catch (Exception ignored) { }
@@ -645,6 +684,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private void changedAny(boolean structure) {
         dirty = true;
         rev++;
+        touchUndo();
         stash();
         if (structure) render(null, false);
         else setStatus(partSummary() + (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר"));
@@ -737,6 +777,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             dirty = false;
             viewMode = 0;
             fileName = "דוגמה: " + name + " (לא שמורה)";
+            resetUndo(cur, OpmlIO.write(ex));
             stash();
             render("כדי לשמור: \"שמור עותק בשם\"", true);
         } catch (Exception e) {
@@ -757,25 +798,6 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             case 5: viewResult = Views.byLevels(project, levelFrom, levelTo); break;
         }
         return viewResult == null ? project : viewResult.project;
-    }
-
-    private void chooseView() {
-        final java.util.List<String> labels = new java.util.ArrayList<>();
-        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
-        labels.add("רגילה (העץ)"); acts.add(new Runnable() { public void run() { setView(0, 1, ""); }});
-        labels.add("לפי תגיות"); acts.add(new Runnable() { public void run() { setView(1, 1, ""); }});
-        int maxLevel = Views.maxTagLevel(project);
-        for (int k = 2; k <= maxLevel; k++) {
-            final int lv = k;
-            labels.add("לפי תגיות על תגיות (רמה " + k + ")");
-            acts.add(new Runnable() { public void run() { setView(1, lv, ""); }});
-        }
-        for (final String n : Views.usedInfoNames(project)) {
-            labels.add("לפי " + (n.isEmpty() ? "מידע בלי שם" : n));
-            acts.add(new Runnable() { public void run() { setView(2, 1, n); }});
-        }
-        labels.add("לפי תכונות (עצמיות ומקריות)"); acts.add(new Runnable() { public void run() { setView(3, 1, ""); }});
-        menu("תצוגה לפי…", labels, acts);
     }
 
     /** שם התצוגה הנוכחית, לשבב. */
@@ -886,6 +908,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     }
 
     private void setView(int mode, int level, String info) {
+        rememberView();
+        wantRestore = true;
         viewMode = mode;
         tagLevel = level;
         viewInfo = info;
@@ -968,6 +992,14 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 sb.append("  ");
                 int n = sb.length();
                 sb.append(l.text.isEmpty() ? "(בלי שם)" : l.text);
+                if (l.item != null) {
+                    // נגיעה בשם פותחת את חלון הפריט (0.11)
+                    final Item shownItem = l.item;
+                    span(sb, new android.text.style.ClickableSpan() {
+                        @Override public void onClick(View w) { openItem(shownItem); }
+                        @Override public void updateDrawState(android.text.TextPaint ds) { }
+                    }, n, sb.length());
+                }
                 if (l.depth == 0) span(sb, new StyleSpan(Typeface.BOLD), n, sb.length());
                 if (l.hidden > 0) {
                     int h = sb.length();
@@ -1130,6 +1162,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     /** לפני מעבר: שמירת המצב, ושמירה לקובץ אם יש שינויים ושמירה אוטומטית. */
     private void leaveCurrent() {
         if (cur == null) return;
+        snapshot();
+        rememberView();
         stash();
         handler.removeCallbacks(saver);
         if (dirty && autosave && uri != null) save();
@@ -1141,6 +1175,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         cur = d;
         unstash(d);
         map.select(null, false);
+        wantRestore = true;
         saveTabs();
         if (project == null && uri != null) { load(uri, false); return; }
         if (project == null) { showWelcome(); return; }
@@ -1194,7 +1229,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         final boolean[] on = new boolean[docs.size()];
         for (int i = 0; i < docs.size(); i++) {
             Doc d = docs.get(i);
-            names[i] = d.label() + (d == cur ? "  (פתוח עכשיו)" : "") + (d.dirty ? "  · לא נשמר" : "");
+            names[i] = tabLabel(d) + (d == cur ? "  (פתוח עכשיו)" : "") + (d.dirty ? "  · לא נשמר" : "");
             on[i] = d.spread || d == cur;
         }
         new AlertDialog.Builder(this).setTitle("ניהול טאבים — מסומן = פרוס בשורה")
@@ -1215,11 +1250,11 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         final java.util.List<String> labels = new java.util.ArrayList<>();
         final java.util.List<Runnable> acts = new java.util.ArrayList<>();
         for (final Doc d : new java.util.ArrayList<>(docs)) {
-            labels.add("עבור אל: " + d.label());
+            labels.add("עבור אל: " + tabLabel(d));
             acts.add(new Runnable() { public void run() { d.spread = true; switchTo(d); }});
         }
         for (final Doc d : new java.util.ArrayList<>(docs)) {
-            labels.add("סגור: " + d.label());
+            labels.add("סגור: " + tabLabel(d));
             acts.add(new Runnable() { public void run() { closeTab(d); }});
         }
         menu("טאבים", labels, acts);
@@ -1325,7 +1360,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         for (final Doc d : docs) {
             if (!d.spread && d != cur) continue;
             boolean unsaved = d == cur ? dirty : d.dirty;
-            TextView t = chip(tabRow, d.label() + (unsaved ? " •" : ""), d == cur, !d.spread, new View.OnClickListener() {
+            TextView t = chip(tabRow, tabLabel(d) + (unsaved ? " •" : ""), d == cur, !d.spread, new View.OnClickListener() {
                 public void onClick(View v) { switchTo(d); }});
             t.setOnLongClickListener(new View.OnLongClickListener() { public boolean onLongClick(View v) {
                 final java.util.List<String> labels = new java.util.ArrayList<>();
@@ -1467,6 +1502,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     }
 
     private void enterSheet(Sheet s) {
+        rememberView();
+        wantRestore = true;
         if (s.hidden) s.hidden = false;
         sheetId = s.id;
         viewMode = 0;
@@ -1495,6 +1532,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private void markDirty() {
         dirty = true;
         rev++;
+        touchUndo();
         stash();
         rebuildTabsOnly();
         if (autosave && uri != null) {
@@ -1805,6 +1843,380 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 .setPositiveButton("סגור", null).show();
     }
 
+    // ---------------- 0.11: ביטול, חיפוש, תגיות ובחינות, גיבויים, ייצוא ----------------
+
+    private boolean wantRestore;
+
+    private String viewKey() { return sheetId + "|" + viewMode + "|" + tagLevel + "|" + viewInfo + "|" + levelFrom + "|" + levelTo; }
+
+    /** זוכר איפה המפה עומדת עכשיו, לפני שעוברים לטאב או לתצוגה אחרים. */
+    private void rememberView() {
+        if (cur == null || project == null || part != 2 || !showMap || mapStale) return;
+        float[] v = map.getView();
+        if (v != null) cur.views.put(viewKey(), v);
+    }
+
+    /** שם הטאב; כששני טאבים באותה כותרת — גם שם הקובץ. */
+    private String tabLabel(Doc d) {
+        String base = d.label();
+        boolean dup = false;
+        for (Doc o : docs) if (o != d && o.label().equals(base)) { dup = true; break; }
+        String f = d == cur ? fileName : d.fileName;
+        if (!dup || f == null || f.isEmpty()) return base;
+        if (f.endsWith(".xml")) f = f.substring(0, f.length() - 4);
+        return f.equals(base) ? base : base + " · " + f;
+    }
+
+    /** פותח את חלון הפריט (מתצוגת הטקסט או מחיפוש). בתצוגה לפי מידע — את הפריט המקורי. */
+    private void openItem(Item shown) {
+        final Item o = viewResult == null ? shown : viewResult.original(shown);
+        if (o == null) return;
+        if (locked()) { readOnlyItem(o); return; }
+        new ItemWindow(this, project, o, new Runnable() { public void run() { changed(null, null); }}).show();
+    }
+
+    // ביטול פעולה: אחרי כל שינוי (ו-0.4 שנייה של שקט) נשמר מצב הקובץ. הקלדה רצופה — צעד אחד.
+
+    private final Runnable snapper = new Runnable() { public void run() { snapshot(); } };
+
+    private void touchUndo() {
+        handler.removeCallbacks(snapper);
+        handler.postDelayed(snapper, 400);
+    }
+
+    private static void resetUndo(Doc d, String text) {
+        if (d == null) return;
+        d.undo.clear();
+        d.redo.clear();
+        d.snap = text;
+    }
+
+    private void snapshot() {
+        handler.removeCallbacks(snapper);
+        if (cur == null || project == null) return;
+        String now = currentText();
+        if (cur.snap == null) { cur.snap = now; return; }
+        if (now.equals(cur.snap)) return;
+        cur.undo.add(cur.snap);
+        if (cur.undo.size() > 30) cur.undo.remove(0);
+        cur.snap = now;
+        cur.redo.clear();
+        invalidateOptionsMenu();
+    }
+
+    private void undo(boolean again) {
+        if (cur == null || project == null) return;
+        snapshot();
+        java.util.ArrayList<String> from = again ? cur.redo : cur.undo, to = again ? cur.undo : cur.redo;
+        if (from.isEmpty()) { setStatus(again ? "אין מה לבצע שוב" : "אין מה לבטל"); return; }
+        String text = from.remove(from.size() - 1);
+        try {
+            Project p = OpmlIO.read(text);
+            to.add(cur.snap);
+            cur.snap = text;
+            project = p;
+            viewResult = null;
+            map.select(null, false);
+            freeView.select(null);
+            dirty = true;
+            rev++;
+            stash();
+            render((again ? "בוצע שוב" : "בוטל") + " · נשארו " + from.size(), false);
+            if (autosave && uri != null) {
+                handler.removeCallbacks(saver);
+                handler.postDelayed(saver, 2000);
+            }
+            invalidateOptionsMenu();
+        } catch (Exception e) { fail("לא ניתן לבטל", e); }
+    }
+
+    /** חיפוש בכל המפות שבקובץ: שם, מידע, תגיות, בחינות. נגיעה בתוצאה — קפיצה אל הפריט. */
+    private void search() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        box.setPadding(dp(16), dp(8), dp(16), 0);
+        final android.widget.EditText ed = new android.widget.EditText(this);
+        ed.setSingleLine(true);
+        ed.setHint("מה לחפש? (שם, מידע, תגית, בחינה)");
+        ed.setTextDirection(View.TEXT_DIRECTION_RTL);
+        box.addView(ed);
+        final TextView count = new TextView(this);
+        count.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        count.setTextColor(0xFF888780);
+        box.addView(count);
+        final android.widget.ListView list = new android.widget.ListView(this);
+        final java.util.List<com.aviccc.kvutzot.model.Search.Hit> hits = new java.util.ArrayList<>();
+        final android.widget.BaseAdapter ad = new android.widget.BaseAdapter() {
+            public int getCount() { return hits.size(); }
+            public Object getItem(int i) { return hits.get(i); }
+            public long getItemId(int i) { return i; }
+            public View getView(int i, View cv, android.view.ViewGroup parent) {
+                TextView v = cv instanceof TextView ? (TextView) cv : new TextView(Main.this);
+                com.aviccc.kvutzot.model.Search.Hit h = hits.get(i);
+                SpannableStringBuilder sb = new SpannableStringBuilder();
+                sb.append(h.item.name.isEmpty() ? "(בלי שם)" : h.item.name);
+                span(sb, new StyleSpan(Typeface.BOLD), 0, sb.length());
+                int s = sb.length();
+                String path = com.aviccc.kvutzot.model.Search.path(h.item);
+                String where = h.where.equals("שם") ? "" : h.where + ": " + h.snippet;
+                String second = where + (!where.isEmpty() && !path.isEmpty() ? "  ·  " : "") + path
+                        + (h.sheet != sheet() ? "  ·  בטאב \"" + h.sheet.name + "\"" : "");
+                if (!second.isEmpty()) {
+                    sb.append("\n").append(second);
+                    span(sb, new RelativeSizeSpan(0.8f), s, sb.length());
+                    span(sb, new ForegroundColorSpan(0xFF5F5E5A), s, sb.length());
+                }
+                v.setText(sb);
+                v.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+                v.setTextColor(0xFF2C2C2A);
+                v.setTextDirection(View.TEXT_DIRECTION_RTL);
+                v.setPadding(dp(4), dp(8), dp(4), dp(8));
+                return v;
+            }
+        };
+        list.setAdapter(ad);
+        box.addView(list, new LinearLayout.LayoutParams(-1, dp(320)));
+        final AlertDialog dlg = new AlertDialog.Builder(this).setTitle("חיפוש").setView(box)
+                .setNegativeButton("סגור", null).create();
+        ed.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence c, int a, int b, int d) { }
+            public void onTextChanged(CharSequence c, int a, int b, int d) { }
+            public void afterTextChanged(android.text.Editable e) {
+                hits.clear();
+                hits.addAll(com.aviccc.kvutzot.model.Search.find(project, e.toString(), 200));
+                count.setText(e.toString().trim().isEmpty() ? "" : hits.isEmpty() ? "לא נמצא" : hits.size() >= 200 ? "200 הראשונים" : hits.size() + " נמצאו");
+                ad.notifyDataSetChanged();
+            }});
+        list.setOnItemClickListener(new android.widget.AdapterView.OnItemClickListener() {
+            public void onItemClick(android.widget.AdapterView<?> a, View v, int pos, long id) {
+                dlg.dismiss();
+                goTo(hits.get(pos).sheet, hits.get(pos).item);
+            }});
+        if (dlg.getWindow() != null) dlg.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        dlg.show();
+        ed.requestFocus();
+    }
+
+    /** קפיצה אל פריט: עוברים לטאב שלו ולתצוגת העץ, פותחים את האבות שלו, בוחרים אותו ומביאים אותו למסך. */
+    private void goTo(Sheet s, Item it) {
+        rememberView();
+        if (s != null && s != sheet()) { s.hidden = false; sheetId = s.id; }
+        viewMode = 0;
+        syncSheet();
+        if (!showMap) setShowMap(true);
+        boolean opened = Edit.expandTo(it);
+        map.selectItem(it, null);
+        if (opened) changed(it, null);
+        else { stash(); render(null, false); }
+    }
+
+    /** ניהול תגיות ובחינות: כמה נושאים כל אחת, שינוי שם, תגית על תגית, מחיקה. */
+    private void manageTags() {
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        project.syncAspects();
+        for (final com.aviccc.kvutzot.model.Model.Tag t : project.tags) {
+            int use = Edit.itemsWithTag(project, t.id).size();
+            StringBuilder on = new StringBuilder();
+            for (String id : t.tagIds) { com.aviccc.kvutzot.model.Model.Tag o = project.tag(id); if (o != null) on.append(on.length() > 0 ? ", " : "").append(o.name); }
+            labels.add("# " + t.name + "  ·  " + use + (use == 1 ? " פריט" : " פריטים") + (on.length() > 0 ? "  ·  עליה: " + on : ""));
+            acts.add(new Runnable() { public void run() { tagActions(t); }});
+        }
+        for (final java.util.Map.Entry<String, Item> e : new java.util.ArrayList<>(project.aspects.entrySet())) {
+            int use = project.aspectUse(e.getKey());
+            labels.add("בחינה: " + e.getValue().name + "  ·  " + use + (use == 1 ? " חלוקה" : " חלוקות"));
+            acts.add(new Runnable() { public void run() { aspectActions(e.getKey(), e.getValue()); }});
+        }
+        if (labels.isEmpty()) { setStatus("אין עדיין תגיות או בחינות בקובץ"); return; }
+        menu("תגיות (" + project.tags.size() + ") ובחינות (" + project.aspects.size() + ")", labels, acts);
+    }
+
+    private void tagActions(final com.aviccc.kvutzot.model.Model.Tag t) {
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        final java.util.List<Item> carriers = Edit.itemsWithTag(project, t.id);
+        if (!carriers.isEmpty()) {
+            labels.add("הפריטים שנושאים אותה (" + carriers.size() + ")…");
+            acts.add(new Runnable() { public void run() {
+                final java.util.List<String> l = new java.util.ArrayList<>();
+                final java.util.List<Runnable> a = new java.util.ArrayList<>();
+                for (final Item it : carriers) {
+                    String path = com.aviccc.kvutzot.model.Search.path(it);
+                    l.add(it.name + (path.isEmpty() ? "" : "   ·   " + path));
+                    a.add(new Runnable() { public void run() { goTo(sheetOf(it), it); }});
+                }
+                menu("# " + t.name, l, a);
+            }});
+        }
+        labels.add("שנה שם…"); acts.add(new Runnable() { public void run() {
+            askName("שם חדש לתגית (שם של תגית קיימת — מאחד)", t.name, false, new Named() { public void done(String s) {
+                if (s.isEmpty()) return;
+                Edit.renameTag(project, t, s);
+                changedAny(true);
+                manageTags();
+            }});
+        }});
+        labels.add("שים תגית על התגית הזאת…"); acts.add(new Runnable() { public void run() {
+            askName("תגית על \"" + t.name + "\" (קיימת או חדשה)", "", false, new Named() { public void done(String s) {
+                if (s.isEmpty()) return;
+                com.aviccc.kvutzot.model.Model.Tag over = project.obtainTag(s);
+                if (Edit.tagOnTag(project, t, over)) { changedAny(true); tagActions(t); }
+                else setStatus("אי אפשר: תגית לא מונחת על עצמה, ולא במעגל");
+            }});
+        }});
+        for (final String id : new java.util.ArrayList<>(t.tagIds)) {
+            final com.aviccc.kvutzot.model.Model.Tag o = project.tag(id);
+            if (o == null) continue;
+            labels.add("הסר מעליה: # " + o.name);
+            acts.add(new Runnable() { public void run() { t.tagIds.remove(id); changedAny(true); tagActions(t); }});
+        }
+        labels.add("מחק את התגית" + (carriers.isEmpty() ? "" : " (מ-" + carriers.size() + " פריטים)"));
+        acts.add(new Runnable() { public void run() {
+            confirm("למחוק את התגית \"" + t.name + "\"" + (carriers.isEmpty() ? "?" : " מכל " + carriers.size() + " הפריטים?"),
+                    new Runnable() { public void run() { Edit.deleteTag(project, t); changedAny(true); manageTags(); }});
+        }});
+        menu("# " + t.name, labels, acts);
+    }
+
+    private void aspectActions(final String id, final Item a) {
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        final int use = project.aspectUse(id);
+        labels.add("פתח (מידע עליה, שינוי שם, ואיפה חילקו לפיה)"); acts.add(new Runnable() { public void run() {
+            new ItemWindow(Main.this, project, a, new Runnable() { public void run() { changed(null, null); }}).show(); }});
+        labels.add("מחק את הבחינה" + (use == 0 ? "" : " (" + use + " חלוקות יישארו בלי בחינה)"));
+        acts.add(new Runnable() { public void run() {
+            confirm("למחוק את הבחינה \"" + a.name + "\"?" + (use == 0 ? "" : " " + use + " חלוקות יישארו, בלי בחינה."),
+                    new Runnable() { public void run() { Edit.deleteAspect(project, id); changedAny(true); manageTags(); }});
+        }});
+        menu("בחינה: " + a.name, labels, acts);
+    }
+
+    /** הטאב (המפה) שהפריט נמצא בו. */
+    private Sheet sheetOf(Item it) {
+        Item top = it;
+        while (top.parent() != null) top = top.parent();
+        for (Sheet s : project.sheets) if (s.kind == Sheet.Kind.MAP && s.roots.contains(top)) return s;
+        return null;
+    }
+
+    // גיבויים: לפני שמירה, המצב הקודם של הקובץ נשמר בצד — לכל היותר פעם בעשר דקות, עשרה אחרונים לכל קובץ.
+
+    private final java.util.Map<String, Long> lastBackup = new java.util.HashMap<>();
+
+    private java.io.File backupDir(Uri u) {
+        return new java.io.File(new java.io.File(getFilesDir(), "backups"), Integer.toHexString(u.toString().hashCode()));
+    }
+
+    /** רץ בתור הקבצים, לא במסך. כישלון בגיבוי לא עוצר את השמירה. */
+    private void backup(Uri u, String text) {
+        try {
+            String key = u.toString();
+            long now = System.currentTimeMillis();
+            Long last = lastBackup.get(key);
+            if (last != null && now - last < 10 * 60 * 1000L) return;
+            java.io.File dir = backupDir(u);
+            dir.mkdirs();
+            java.io.File[] old = dir.listFiles();
+            if (old == null) old = new java.io.File[0];
+            java.util.Arrays.sort(old);
+            lastBackup.put(key, now);
+            if (old.length > 0 && readFile(old[old.length - 1]).equals(text)) return;
+            String name = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US).format(new java.util.Date(now)) + ".xml";
+            java.io.FileOutputStream out = new java.io.FileOutputStream(new java.io.File(dir, name));
+            try { out.write(text.getBytes(UTF8)); } finally { out.close(); }
+            for (int k = 0; k < old.length - 9; k++) old[k].delete();
+        } catch (Exception ignored) { }
+    }
+
+    private static String readFile(java.io.File f) throws Exception {
+        java.io.FileInputStream in = new java.io.FileInputStream(f);
+        try {
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) bo.write(buf, 0, n);
+            return new String(bo.toByteArray(), UTF8);
+        } finally { in.close(); }
+    }
+
+    /** רשימת הגיבויים של הקובץ הפתוח; נגיעה פותחת את הגיבוי בטאב חדש, לא שמור. */
+    private void backups() {
+        if (uri == null) return;
+        java.io.File[] fs = backupDir(uri).listFiles();
+        if (fs == null || fs.length == 0) { setStatus("אין עדיין גיבויים לקובץ הזה (נוצרים לפני שמירה, פעם בעשר דקות)"); return; }
+        java.util.Arrays.sort(fs);
+        final java.util.List<String> labels = new java.util.ArrayList<>();
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        final java.text.SimpleDateFormat in = new java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US);
+        final java.text.SimpleDateFormat out = new java.text.SimpleDateFormat("dd.MM.yyyy  HH:mm", java.util.Locale.US);
+        for (int k = fs.length - 1; k >= 0; k--) {
+            final java.io.File f = fs[k];
+            String when;
+            try { when = out.format(in.parse(f.getName().replace(".xml", ""))); } catch (Exception e) { when = f.getName(); }
+            final String label = when;
+            labels.add(when + "   ·   " + (f.length() / 1024 + 1) + " ק״ב");
+            acts.add(new Runnable() { public void run() {
+                try {
+                    String text = readFile(f);
+                    Project p = OpmlIO.read(text);
+                    newTab();
+                    project = p;
+                    part = 2;
+                    sheetId = "";
+                    uri = null;
+                    lastText = null;
+                    lastRead = null;
+                    dirty = false;
+                    viewMode = 0;
+                    fileName = "גיבוי מ-" + label.trim() + " (לא שמור)";
+                    resetUndo(cur, text);
+                    stash();
+                    render("כדי לחזור אליו: \"שמור עותק בשם\"", true);
+                } catch (Exception e) { fail("לא ניתן לפתוח את הגיבוי", e); }
+            }});
+        }
+        menu("גיבויים — נפתחים בטאב חדש, בלי לגעת בקובץ", labels, acts);
+    }
+
+    /** ייצוא המפה כולה (כמו שהיא מוצגת עכשיו, כולל כיווצים ותצוגה) ל-PDF או לתמונה. */
+    private void exportMap(final Uri out, boolean pdf) {
+        if (project == null || !showMap || part != 2 || map.exportWidth(1f) == 0) { setStatus("אין מפה גרפית על המסך לייצא"); return; }
+        try {
+            final ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            float w1 = map.exportWidth(1f), h1 = map.exportHeight(1f);
+            if (pdf) {
+                float dens = getResources().getDisplayMetrics().density;
+                float s = Math.min(0.75f / dens, 14000f / Math.max(w1, h1));
+                android.graphics.pdf.PdfDocument doc = new android.graphics.pdf.PdfDocument();
+                android.graphics.pdf.PdfDocument.Page page = doc.startPage(
+                        new android.graphics.pdf.PdfDocument.PageInfo.Builder(map.exportWidth(s), map.exportHeight(s), 1).create());
+                map.export(page.getCanvas(), s);
+                doc.finishPage(page);
+                doc.writeTo(bo);
+                doc.close();
+            } else {
+                float s = (float) Math.min(1.0, Math.sqrt(12e6 / (w1 * h1)));
+                android.graphics.Bitmap bm = android.graphics.Bitmap.createBitmap(map.exportWidth(s), map.exportHeight(s), android.graphics.Bitmap.Config.ARGB_8888);
+                map.export(new android.graphics.Canvas(bm), s);
+                bm.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, bo);
+                bm.recycle();
+            }
+            setStatus("מייצא…");
+            io.execute(new Runnable() { public void run() {
+                try {
+                    OutputStream os = getContentResolver().openOutputStream(out, "w");
+                    if (os == null) throw new Exception("לא ניתן לכתוב לקובץ");
+                    try { os.write(bo.toByteArray()); os.flush(); } finally { os.close(); }
+                    runOnUiThread(new Runnable() { public void run() { setStatus("יוצא: " + displayName(out)); }});
+                } catch (Exception e) { fail("הייצוא נכשל", e); }
+            }});
+        } catch (OutOfMemoryError e) {
+            fail("הייצוא נכשל", new Exception("המפה גדולה מדי לתמונה במכשיר הזה. נסה PDF, או כווץ ענפים."));
+        } catch (Exception e) { fail("הייצוא נכשל", e); }
+    }
+
     // ---------------- בחינות ----------------
 
     /** בחירת בחינה: מתוך הקיימות (רשימה במסגרת עם ▾) או חדשה. ריק — חלוקה בלי בחינה. */
@@ -1919,6 +2331,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private void changed(Item select, Division selDiv) {
         dirty = true;
         rev++;
+        touchUndo();
         stash();
         if (select != null) map.selectItem(select, selDiv);
         render(null, false);

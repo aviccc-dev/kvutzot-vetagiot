@@ -565,6 +565,41 @@ public class ModelTest {
         Item fxLoose = Edit.addLoose(fx, "תלוש");
         check(!Edit.placeUnder(fx, fxRoot, fxLoose, null) && fx.mainRoot() == fxRoot, "ראש המפה לא מוצב תחת פריט אחר");
 
+        // --- חיפוש וניהול תגיות ובחינות (0.11) ---
+        Project sr = OpmlIO.read(file(dir, "משולש.xml"));
+        java.util.List<Search.Hit> hits = Search.find(sr, "משולש", 50);
+        check(!hits.isEmpty() && hits.get(0).where.equals("שם"), "חיפוש: קודם מי שנמצא בשם");
+        check(Search.find(sr, "", 50).isEmpty(), "חיפוש ריק — בלי תוצאות");
+        check(Search.find(sr, "אין-מילה-כזאת", 50).isEmpty(), "חיפוש: לא נמצא");
+        Model.Tag anyTag = sr.tags.get(0);
+        java.util.List<Search.Hit> th = Search.find(sr, anyTag.name, 200);
+        int carriers = Edit.itemsWithTag(sr, anyTag.id).size();
+        check(carriers > 0 && th.size() >= carriers, "חיפוש לפי שם תגית מוצא את נושאיה");
+        eq(Search.find(sr, "משולש", 1).size(), 1, "חיפוש: הגבלת מספר התוצאות");
+        Item deepIt = Edit.itemsWithTag(sr, anyTag.id).get(0);
+        check(Search.path(sr.mainRoot()).isEmpty(), "דרך של השורש — ריקה");
+        // תגית על תגית בלי מעגל
+        Model.Tag tA = sr.obtainTag("אאא"), tB = sr.obtainTag("בבב"), tC = sr.obtainTag("גגג");
+        check(Edit.tagOnTag(sr, tA, tB) && Edit.tagOnTag(sr, tB, tC), "תגית על תגית");
+        check(!Edit.tagOnTag(sr, tC, tA), "תגית על תגית: בלי מעגל");
+        check(!Edit.tagOnTag(sr, tA, tA) && !Edit.tagOnTag(sr, tA, tB), "לא על עצמה ולא פעמיים");
+        // מחיקת תגית
+        eq(Edit.deleteTag(sr, anyTag), carriers, "מחיקת תגית: הוסרה מכל נושאיה");
+        check(sr.tag(anyTag.id) == null && Edit.itemsWithTag(sr, anyTag.id).isEmpty(), "התגית נמחקה");
+        Edit.deleteTag(sr, tB);
+        check(!tA.tagIds.contains(tB.id), "מחיקת תגית מסירה אותה גם מתגיות");
+        // מחיקת בחינה
+        String anyAsp = sr.aspects.keySet().iterator().next();
+        int aspUse = sr.aspectUse(anyAsp);
+        eq(Edit.deleteAspect(sr, anyAsp), aspUse, "מחיקת בחינה: החלוקות נשארות בלי בחינה");
+        check(sr.aspect(anyAsp) == null && sr.aspectUse(anyAsp) == 0, "הבחינה נמחקה");
+        OpmlIO.read(OpmlIO.write(sr));
+        // פתיחת האבות
+        Project ex2 = OpmlIO.read(file(dir, "צעצועים.xml"));
+        Item pl = ex2.mainRoot().divisions.get(1).children.get(0);
+        ex2.mainRoot().collapsed = true;
+        check(Edit.expandTo(pl) && !ex2.mainRoot().collapsed && !Edit.expandTo(pl), "פתיחת האבות של פריט");
+
         // --- טאבים: כמה מכל סוג, עם מאפיינים (0.10) ---
         Project ms = OpmlIO.read(file(dir, "משולש.xml"));
         eq(ms.sheets.size(), 3, "קובץ ישן: שלושה טאבים");
