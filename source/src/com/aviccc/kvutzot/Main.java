@@ -107,6 +107,27 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private TextView freeAdd;
     private boolean asking;
     private ScrollView textScroll;
+    private android.widget.ListView textList;
+    private final java.util.List<TextLines.Line> textLines = new java.util.ArrayList<>();
+    private final android.widget.BaseAdapter textAdapter = new android.widget.BaseAdapter() {
+        public int getCount() { return textLines.size(); }
+        public Object getItem(int i) { return textLines.get(i); }
+        public long getItemId(int i) { return i; }
+        @Override public boolean areAllItemsEnabled() { return false; }
+        @Override public boolean isEnabled(int i) { return textLines.get(i).item != null && textLines.get(i).kind == TextLines.Kind.ITEM; }
+        public View getView(int i, View cv, android.view.ViewGroup parent) {
+            TextView v = cv instanceof TextView ? (TextView) cv : new TextView(Main.this);
+            TextLines.Line l = textLines.get(i);
+            v.setText(lineText(l));
+            v.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+            v.setTextColor(Color.rgb(44, 44, 42));
+            v.setTextDirection(View.TEXT_DIRECTION_RTL);
+            v.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+            v.setLineSpacing(dp(3), 1f);
+            v.setPaddingRelative(dp(10) + l.depth * dp(22), dp(l.kind == TextLines.Kind.HEADER ? 16 : 4), dp(10), dp(4));
+            return v;
+        }
+    };
     private MapView map;
     private boolean showMap, vertical;
     /** מה שמוצג כרגע במפה; הטקסט והמפה נבנים רק כשהם על המסך (מהירות בקובץ גדול). */
@@ -152,26 +173,25 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         body.setPadding(pad, pad, pad, dp(40));
         body.setLineSpacing(dp(3), 1f);
         body.setTextDirection(View.TEXT_DIRECTION_RTL);
-        // נגיעה בשם של פריט בתצוגת הטקסט פותחת את החלון שלו (בלי LinkMovementMethod, שמאט טקסט ארוך)
-        final android.view.GestureDetector textTap = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
-            @Override public boolean onSingleTapUp(android.view.MotionEvent e) {
-                CharSequence cs = body.getText();
-                if (!(cs instanceof Spanned) || body.getLayout() == null) return false;
-                int off = body.getOffsetForPosition(e.getX(), e.getY());
-                android.text.style.ClickableSpan[] sp = ((Spanned) cs).getSpans(off, off, android.text.style.ClickableSpan.class);
-                if (sp.length == 0) return false;
-                sp[0].onClick(body);
-                return true;
-            }
-        });
-        body.setOnTouchListener(new View.OnTouchListener() {
-            public boolean onTouch(View v, android.view.MotionEvent e) { textTap.onTouchEvent(e); return true; }});
         sv.addView(body);
         textScroll = sv;
         map = new MapView(this);
         map.setHost(this);
         android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
         frame.addView(sv, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        // תצוגת הטקסט (0.11.2): רשימה שמציירת רק את השורות שעל המסך, וממשיכה תוך כדי גלילה
+        textList = new android.widget.ListView(this);
+        textList.setDivider(null);
+        textList.setBackgroundColor(0xFFFFFFFF);
+        textList.setPadding(0, pad / 2, 0, dp(70));
+        textList.setClipToPadding(false);
+        textList.setAdapter(textAdapter);
+        textList.setOnItemClickListener(new android.widget.AdapterView.OnItemClickListener() {
+            public void onItemClick(android.widget.AdapterView<?> a, View v, int pos, long id) {
+                if (pos >= 0 && pos < textLines.size() && textLines.get(pos).item != null) openItem(textLines.get(pos).item);
+            }});
+        textList.setVisibility(View.GONE);
+        frame.addView(textList, new android.widget.FrameLayout.LayoutParams(-1, -1));
         frame.addView(map, new android.widget.FrameLayout.LayoutParams(-1, -1));
         brainScroll = new ScrollView(this);
         brainScroll.setFillViewport(true);
@@ -252,6 +272,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         if (has && part != 2) {
             map.setVisibility(View.GONE);
             textScroll.setVisibility(View.GONE);
+            textList.setVisibility(View.GONE);
             if (zoomBar != null) zoomBar.setVisibility(View.GONE);
             invalidateOptionsMenu();
             return;
@@ -270,7 +291,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         }
         map.setVisibility(m ? View.VISIBLE : View.GONE);
         if (zoomBar != null) zoomBar.setVisibility(m ? View.VISIBLE : View.GONE);
-        textScroll.setVisibility(m ? View.GONE : View.VISIBLE);
+        textScroll.setVisibility(m || has ? View.GONE : View.VISIBLE);
+        textList.setVisibility(!m && has ? View.VISIBLE : View.GONE);
         invalidateOptionsMenu();
     }
 
@@ -984,80 +1006,49 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         applyView();
     }
 
-    /** בניית תצוגת הטקסט — רק כשהיא על המסך. */
+    /** תצוגת הטקסט: רק רשימת השורות. כל שורה מעוצבת כשהיא מגיעה למסך. */
     private void buildText(Project p) {
-        int indent = dp(22);
-        int grey = Color.rgb(136, 135, 128);
-        int blue = Color.rgb(24, 95, 165);
-        final SpannableStringBuilder sb = new SpannableStringBuilder();
-        for (TextLines.Line l : TextLines.build(p)) {
-            int start = sb.length();
-            if (l.kind == TextLines.Kind.HEADER) {
-                sb.append("\n").append(l.text);
-                span(sb, new StyleSpan(Typeface.BOLD), start, sb.length());
-                span(sb, new ForegroundColorSpan(grey), start, sb.length());
-            } else if (l.kind == TextLines.Kind.DIVISION) {
-                if (!l.mark.isEmpty()) sb.append(l.mark).append(" · ");
-                sb.append(l.text);
-                span(sb, new StyleSpan(Typeface.ITALIC), start, sb.length());
-                span(sb, new ForegroundColorSpan(blue), start, sb.length());
-                span(sb, new RelativeSizeSpan(0.85f), start, sb.length());
-            } else {
-                int m = sb.length();
-                sb.append(l.mark);
-                span(sb, new RelativeSizeSpan(0.65f), m, sb.length());
-                span(sb, new ForegroundColorSpan(grey), m, sb.length());
-                sb.append("  ");
-                int n = sb.length();
-                sb.append(l.text.isEmpty() ? "(בלי שם)" : l.text);
-                if (l.item != null) {
-                    // נגיעה בשם פותחת את חלון הפריט (0.11)
-                    final Item shownItem = l.item;
-                    span(sb, new android.text.style.ClickableSpan() {
-                        @Override public void onClick(View w) { openItem(shownItem); }
-                        @Override public void updateDrawState(android.text.TextPaint ds) { }
-                    }, n, sb.length());
-                }
-                if (l.depth == 0) span(sb, new StyleSpan(Typeface.BOLD), n, sb.length());
-                if (l.hidden > 0) {
-                    int h = sb.length();
-                    sb.append("  ▸ ").append(String.valueOf(l.hidden));
-                    span(sb, new ForegroundColorSpan(blue), h, sb.length());
-                }
-                if (!l.info.isEmpty()) {
-                    int f = sb.length();
-                    sb.append("  (").append(l.info).append(")");
-                    span(sb, new RelativeSizeSpan(0.72f), f, sb.length());
-                    span(sb, new ForegroundColorSpan(grey), f, sb.length());
-                }
-            }
-            sb.append("\n");
-            sb.setSpan(new LeadingMarginSpan.Standard(l.depth * indent), start, sb.length(),
-                    Spanned.SPAN_PARAGRAPH);
-        }
-        if (android.os.Build.VERSION.SDK_INT >= 28 && sb.length() > 4000) {
-            // טקסט ארוך: הפריסה מחושבת ברקע, והמסך לא נתקע (0.11.1)
-            final android.text.PrecomputedText.Params params = body.getTextMetricsParams();
-            final int gen = ++textGen;
-            body.setText("בונה את תצוגת הטקסט…");
-            new Thread(new Runnable() { public void run() {
-                try {
-                    final android.text.PrecomputedText pt = android.text.PrecomputedText.create(sb, params);
-                    runOnUiThread(new Runnable() { public void run() {
-                        if (gen != textGen) return;
-                        try { body.setText(pt); } catch (RuntimeException e) { body.setText(sb); }
-                    }});
-                } catch (final Throwable e) {
-                    runOnUiThread(new Runnable() { public void run() { if (gen == textGen) body.setText(sb); }});
-                }
-            }}).start();
-            return;
-        }
-        textGen++;
-        body.setText(sb);
+        textLines.clear();
+        textLines.addAll(TextLines.build(p));
+        textAdapter.notifyDataSetChanged();
     }
 
-    private int textGen;
+    private CharSequence lineText(TextLines.Line l) {
+        int grey = Color.rgb(136, 135, 128);
+        int blue = Color.rgb(24, 95, 165);
+        SpannableStringBuilder sb = new SpannableStringBuilder();
+        if (l.kind == TextLines.Kind.HEADER) {
+            sb.append(l.text);
+            span(sb, new StyleSpan(Typeface.BOLD), 0, sb.length());
+            span(sb, new ForegroundColorSpan(grey), 0, sb.length());
+        } else if (l.kind == TextLines.Kind.DIVISION) {
+            if (!l.mark.isEmpty()) sb.append(l.mark).append(" · ");
+            sb.append(l.text);
+            span(sb, new StyleSpan(Typeface.ITALIC), 0, sb.length());
+            span(sb, new ForegroundColorSpan(blue), 0, sb.length());
+            span(sb, new RelativeSizeSpan(0.85f), 0, sb.length());
+        } else {
+            sb.append(l.mark);
+            span(sb, new RelativeSizeSpan(0.65f), 0, sb.length());
+            span(sb, new ForegroundColorSpan(grey), 0, sb.length());
+            sb.append("  ");
+            int n = sb.length();
+            sb.append(l.text.isEmpty() ? "(בלי שם)" : l.text);
+            if (l.depth == 0) span(sb, new StyleSpan(Typeface.BOLD), n, sb.length());
+            if (l.hidden > 0) {
+                int h = sb.length();
+                sb.append("  ▸ ").append(String.valueOf(l.hidden));
+                span(sb, new ForegroundColorSpan(blue), h, sb.length());
+            }
+            if (!l.info.isEmpty()) {
+                int f = sb.length();
+                sb.append("  (").append(l.info).append(")");
+                span(sb, new RelativeSizeSpan(0.72f), f, sb.length());
+                span(sb, new ForegroundColorSpan(grey), f, sb.length());
+            }
+        }
+        return sb;
+    }
 
     /** "הצג עד רמה": מכווץ כל מה שמתחת לרמה שנבחרה (אפשר לפתוח שוב ענף ענף, או "הכול"). */
     private void showToLevel() {
