@@ -912,21 +912,34 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         }
     }
 
-    /** תפריט קטן מתחת לשבב: כל התצוגות ברשימה נגללת; הנוכחית מסומנת. */
-    private void viewsPopup(View anchor) {
+    /** גרפי או טקסט. */
+    private void modePopup(View anchor) {
         final java.util.List<Runnable> acts = new java.util.ArrayList<>();
         final Drop pm = new Drop();
-        // (0.11.1) הכול במקום אחד: גרפי או טקסט, העץ, הרמות, והתצוגות לפי מידע
         addView(pm, acts, "מפה גרפית", showMap, new Runnable() { public void run() {
             if (!showMap) { setShowMap(true); applyView(); rebuildStrips(); } }});
         addView(pm, acts, "טקסט", !showMap, new Runnable() { public void run() {
             if (showMap) { rememberView(); setShowMap(false); applyView(); rebuildStrips(); } }});
-        addView(pm, acts, "עץ", viewMode == 0, new Runnable() { public void run() { setView(0, 1, ""); }});
+        dropdown(anchor, pm.labels, acts);
+    }
+
+    /** העץ והרמות שלו. */
+    private void treePopup(View anchor) {
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        final Drop pm = new Drop();
+        addView(pm, acts, "העץ כולו", viewMode == 0, new Runnable() { public void run() { setView(0, 1, ""); }});
         if (Edit.maxDepth(project) >= 1) {
-            addView(pm, acts, "עץ: הצג עד רמה…", false, new Runnable() { public void run() { upToLevel(); }});
+            addView(pm, acts, "הצג עד רמה… (מכווץ)", false, new Runnable() { public void run() { upToLevel(); }});
             addView(pm, acts, viewMode == 5 ? viewName() + " (שנה…)" : "מרמה עד רמה…", viewMode == 5,
                     new Runnable() { public void run() { fromToLevel(Math.max(1, Edit.maxDepth(project))); }});
         }
+        dropdown(anchor, pm.labels, acts);
+    }
+
+    /** התצוגות לפי מידע: תגיות, שמות המידע, תכונות, בחינות. */
+    private void viewsPopup(View anchor) {
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        final Drop pm = new Drop();
         addView(pm, acts, "# תגיות", viewMode == 1 && tagLevel == 1, new Runnable() { public void run() { setView(1, 1, ""); }});
         int maxLevel = Views.maxTagLevel(project);
         for (int k = 2; k <= maxLevel; k++) {
@@ -938,7 +951,6 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         addView(pm, acts, "תכונות", viewMode == 3, new Runnable() { public void run() { setView(3, 1, ""); }});
         if (!project.aspects.isEmpty())
             addView(pm, acts, "בחינות", viewMode == 4, new Runnable() { public void run() { setView(4, 1, ""); }});
-
         dropdown(anchor, pm.labels, acts);
     }
 
@@ -1425,8 +1437,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         sc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { sheetsPopup(sc); }});
         sc.setOnLongClickListener(new View.OnLongClickListener() { public boolean onLongClick(View v) { sheetMenu(sheet()); return true; }});
         if (part != 2) return;
-        // תצוגות (0.10.5): שבב אחד עם התצוגה הנוכחית; נגיעה — תפריט קטן נגלל עם כל התצוגות
-        final TextView vc = chip(viewRow, "תצוגה: " + viewName() + " · " + (showMap ? "גרפי" : "טקסט") + " ▾", viewMode != 0, false, null);
+        // (0.11.3) שלושה שבבים, ולכל אחד רשימה נגללת משלו: גרפי/טקסט · העץ והרמות · לפי מידע
+        final TextView gc = chip(viewRow, (showMap ? "גרפי" : "טקסט") + " ▾", false, false, null);
+        gc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { modePopup(gc); }});
+        final boolean treeOn = viewMode == 0 || viewMode == 5;
+        final TextView tc = chip(viewRow, (viewMode == 5 ? viewName() : "עץ") + " ▾", treeOn, false, null);
+        tc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { treePopup(tc); }});
+        final TextView vc = chip(viewRow, (treeOn ? "לפי…" : "לפי: " + viewName()) + " ▾", !treeOn, false, null);
         vc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { viewsPopup(vc); }});
         if (viewMode != 0 && viewMode != 5) {
             gap(viewRow);
