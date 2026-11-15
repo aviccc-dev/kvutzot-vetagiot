@@ -152,8 +152,20 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         body.setPadding(pad, pad, pad, dp(40));
         body.setLineSpacing(dp(3), 1f);
         body.setTextDirection(View.TEXT_DIRECTION_RTL);
-        body.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());
-        body.setHighlightColor(0x33185FA5);
+        // נגיעה בשם של פריט בתצוגת הטקסט פותחת את החלון שלו (בלי LinkMovementMethod, שמאט טקסט ארוך)
+        final android.view.GestureDetector textTap = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
+            @Override public boolean onSingleTapUp(android.view.MotionEvent e) {
+                CharSequence cs = body.getText();
+                if (!(cs instanceof Spanned) || body.getLayout() == null) return false;
+                int off = body.getOffsetForPosition(e.getX(), e.getY());
+                android.text.style.ClickableSpan[] sp = ((Spanned) cs).getSpans(off, off, android.text.style.ClickableSpan.class);
+                if (sp.length == 0) return false;
+                sp[0].onClick(body);
+                return true;
+            }
+        });
+        body.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, android.view.MotionEvent e) { textTap.onTouchEvent(e); return true; }});
         sv.addView(body);
         textScroll = sv;
         map = new MapView(this);
@@ -284,7 +296,6 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.add(0, M_CLOSE, 0, "סגור את הטאב");
         m.add(0, M_DIR, 1, "כיוון המפה");
         m.add(0, M_FIT, 1, "התאם למסך");
-        m.add(0, M_LEVEL, 1, "רמות…");
         m.add(0, M_NEW, 1, "מפה חדשה");
         m.add(0, M_TITLE, 1, "שנה כותרת");
         m.add(0, M_SAVE, 2, "שמור");
@@ -320,7 +331,6 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         m.findItem(M_CLOSE).setVisible(cur != null);
         m.findItem(M_DIR).setTitle(vertical ? "כיוון: מימין לשמאל" : "כיוון: מלמעלה למטה").setVisible(project != null && showMap && part == 2);
         m.findItem(M_FIT).setVisible(project != null && showMap && part == 2);
-        m.findItem(M_LEVEL).setVisible(project != null && part == 2);
         m.findItem(M_LOOSE).setVisible(project != null && viewMode == 0 && part == 2 && !project.absolute() && !locked());
         return true;
     }
@@ -884,7 +894,17 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private void viewsPopup(View anchor) {
         final java.util.List<Runnable> acts = new java.util.ArrayList<>();
         final Drop pm = new Drop();
+        // (0.11.1) הכול במקום אחד: גרפי או טקסט, העץ, הרמות, והתצוגות לפי מידע
+        addView(pm, acts, "מפה גרפית", showMap, new Runnable() { public void run() {
+            if (!showMap) { setShowMap(true); applyView(); rebuildStrips(); } }});
+        addView(pm, acts, "טקסט", !showMap, new Runnable() { public void run() {
+            if (showMap) { rememberView(); setShowMap(false); applyView(); rebuildStrips(); } }});
         addView(pm, acts, "עץ", viewMode == 0, new Runnable() { public void run() { setView(0, 1, ""); }});
+        if (Edit.maxDepth(project) >= 1) {
+            addView(pm, acts, "עץ: הצג עד רמה…", false, new Runnable() { public void run() { upToLevel(); }});
+            addView(pm, acts, viewMode == 5 ? viewName() + " (שנה…)" : "מרמה עד רמה…", viewMode == 5,
+                    new Runnable() { public void run() { fromToLevel(Math.max(1, Edit.maxDepth(project))); }});
+        }
         addView(pm, acts, "# תגיות", viewMode == 1 && tagLevel == 1, new Runnable() { public void run() { setView(1, 1, ""); }});
         int maxLevel = Views.maxTagLevel(project);
         for (int k = 2; k <= maxLevel; k++) {
@@ -896,9 +916,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         addView(pm, acts, "תכונות", viewMode == 3, new Runnable() { public void run() { setView(3, 1, ""); }});
         if (!project.aspects.isEmpty())
             addView(pm, acts, "בחינות", viewMode == 4, new Runnable() { public void run() { setView(4, 1, ""); }});
-        if (Edit.maxDepth(project) >= 1)
-            addView(pm, acts, viewMode == 5 ? viewName() + " (שנה…)" : "מרמה עד רמה…", viewMode == 5,
-                    new Runnable() { public void run() { fromToLevel(Math.max(1, Edit.maxDepth(project))); }});
+
         dropdown(anchor, pm.labels, acts);
     }
 
@@ -971,7 +989,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         int indent = dp(22);
         int grey = Color.rgb(136, 135, 128);
         int blue = Color.rgb(24, 95, 165);
-        SpannableStringBuilder sb = new SpannableStringBuilder();
+        final SpannableStringBuilder sb = new SpannableStringBuilder();
         for (TextLines.Line l : TextLines.build(p)) {
             int start = sb.length();
             if (l.kind == TextLines.Kind.HEADER) {
@@ -1017,8 +1035,29 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
             sb.setSpan(new LeadingMarginSpan.Standard(l.depth * indent), start, sb.length(),
                     Spanned.SPAN_PARAGRAPH);
         }
+        if (android.os.Build.VERSION.SDK_INT >= 28 && sb.length() > 4000) {
+            // טקסט ארוך: הפריסה מחושבת ברקע, והמסך לא נתקע (0.11.1)
+            final android.text.PrecomputedText.Params params = body.getTextMetricsParams();
+            final int gen = ++textGen;
+            body.setText("בונה את תצוגת הטקסט…");
+            new Thread(new Runnable() { public void run() {
+                try {
+                    final android.text.PrecomputedText pt = android.text.PrecomputedText.create(sb, params);
+                    runOnUiThread(new Runnable() { public void run() {
+                        if (gen != textGen) return;
+                        try { body.setText(pt); } catch (RuntimeException e) { body.setText(sb); }
+                    }});
+                } catch (final Throwable e) {
+                    runOnUiThread(new Runnable() { public void run() { if (gen == textGen) body.setText(sb); }});
+                }
+            }}).start();
+            return;
+        }
+        textGen++;
         body.setText(sb);
     }
+
+    private int textGen;
 
     /** "הצג עד רמה": מכווץ כל מה שמתחת לרמה שנבחרה (אפשר לפתוח שוב ענף ענף, או "הכול"). */
     private void showToLevel() {
@@ -1395,10 +1434,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         sc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { sheetsPopup(sc); }});
         sc.setOnLongClickListener(new View.OnLongClickListener() { public boolean onLongClick(View v) { sheetMenu(sheet()); return true; }});
         if (part != 2) return;
-        chip(viewRow, showMap ? "גרפי ⇄" : "טקסט ⇄", false, false, new View.OnClickListener() { public void onClick(View v) {
-            setShowMap(!showMap); applyView(); rebuildStrips(); }});
         // תצוגות (0.10.5): שבב אחד עם התצוגה הנוכחית; נגיעה — תפריט קטן נגלל עם כל התצוגות
-        final TextView vc = chip(viewRow, "תצוגה: " + viewName() + " ▾", viewMode != 0, false, null);
+        final TextView vc = chip(viewRow, "תצוגה: " + viewName() + " · " + (showMap ? "גרפי" : "טקסט") + " ▾", viewMode != 0, false, null);
         vc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { viewsPopup(vc); }});
         if (viewMode != 0 && viewMode != 5) {
             gap(viewRow);
