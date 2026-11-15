@@ -87,6 +87,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     /** הטקסט כפי שנטען או נשמר לאחרונה, להשוואה עם שינוי מבחוץ. */
     private String lastText;
     private String lastRead;
+    /** מונה שינויים: כך יודעים אחרי שמירה אם השתנה משהו בינתיים, בלי לבנות את כל הקובץ שוב. */
+    private long rev;
     /** כל הקריאות והכתיבות לקבצים — בתור אחד, אחת אחרי השנייה (0.10.6: בלי שתי שמירות במקביל). */
     private final java.util.concurrent.ExecutorService io = java.util.concurrent.Executors.newSingleThreadExecutor();
     private Project project;
@@ -558,6 +560,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         final Project proj = project;
         final String text = currentText();
         final String known = lastText, seen = lastRead;
+        final long savedRev = rev;
         setStatus("שומר…");
         busy++;
         io.execute(new Runnable() { public void run() {
@@ -591,15 +594,12 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     }
                     lastText = text;
                     lastRead = seenNow;
-                    if (currentText().equals(text)) dirty = false;
+                    if (rev == savedRev) dirty = false;
                     stash();
-                    if (part != 2) {
-                        // בטאבים 1-2 לא בונים מחדש אחרי שמירה — כדי לא להפריע להקלדה ולגרירה
-                        setStatus(partSummary() + (dirty ? " · שומר…" : " · " + (ok ? "נשמר" : STALE)));
-                        rebuildTabsOnly();
-                        return;
-                    }
-                    render(ok ? "נשמר" : STALE, false);
+                    // אחרי שמירה לא בונים את המסך מחדש (0.10.7): רק השורה העליונה והנקודה בטאב.
+                    // בנייה מחדש של כל המפה שתי שניות אחרי כל שינוי גרמה לתקיעות קצרות.
+                    setStatus(partSummary() + (dirty ? " · שומר…" : " · " + (ok ? "נשמר" : STALE)));
+                    rebuildTabsOnly();
                 }});
             } catch (Exception e) {
                 done();
@@ -644,6 +644,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     /** שינוי בטאבים 1-2 (או בכותרת): לסמן, לשמור (אוטומטית), ולבנות מחדש רק כשהמבנה השתנה. */
     private void changedAny(boolean structure) {
         dirty = true;
+        rev++;
         stash();
         if (structure) render(null, false);
         else setStatus(partSummary() + (uri == null ? " · לא שמור" : autosave ? " · שומר…" : " · לא נשמר"));
@@ -1136,7 +1137,6 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
 
     private void switchTo(Doc d) {
         if (d == cur) { rebuildStrips(); return; }
-        if (busy > 0) { setStatus("רגע… שומר או טוען"); return; }
         leaveCurrent();
         cur = d;
         unstash(d);
@@ -1494,6 +1494,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     /** שינוי שאינו צריך בנייה מחדש: לסמן ולשמור. */
     private void markDirty() {
         dirty = true;
+        rev++;
         stash();
         rebuildTabsOnly();
         if (autosave && uri != null) {
@@ -1917,6 +1918,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     /** אחרי כל שינוי: ציור מחדש בלי לזוז, בחירה, ושמירה (אוטומטית — אחרי שתי שניות של שקט). */
     private void changed(Item select, Division selDiv) {
         dirty = true;
+        rev++;
         stash();
         if (select != null) map.selectItem(select, selDiv);
         render(null, false);
