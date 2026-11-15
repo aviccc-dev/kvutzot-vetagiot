@@ -63,6 +63,8 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         Uri uri;
         String fileName = "";
         String lastText;
+        /** מה שנקרא בפועל מהקובץ אחרי השמירה האחרונה (שירותים כמו Dropbox מחזירים לפעמים גרסה אחרת). */
+        String lastRead;
         Project project;
         /** הטאב בתוך הקובץ: 0 התחלת נושא, 1 סיעור מוחות, 2 מפה. */
         int part = 2;
@@ -84,6 +86,9 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private String fileName = "";
     /** הטקסט כפי שנטען או נשמר לאחרונה, להשוואה עם שינוי מבחוץ. */
     private String lastText;
+    private String lastRead;
+    /** כל הקריאות והכתיבות לקבצים — בתור אחד, אחת אחרי השנייה (0.10.6: בלי שתי שמירות במקביל). */
+    private final java.util.concurrent.ExecutorService io = java.util.concurrent.Executors.newSingleThreadExecutor();
     private Project project;
     /** סוג הטאב הנוכחי בתוך הקובץ: 0 התחלת נושא, 1 סיעור מוחות (מפה גמישה), 2 מפה. */
     private int part = 2;
@@ -195,6 +200,21 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         if (dirty && autosave && uri != null) save();
     }
 
+    /** יציאה ב"חזרה": אם יש שינויים שלא יישמרו (דוגמה, או שמירה אוטומטית כבויה) — שואלים קודם. */
+    @Override
+    public void onBackPressed() {
+        stash();
+        int n = 0;
+        String first = null;
+        for (Doc d : docs) if (d.dirty && (d.uri == null || !autosave)) { n++; if (first == null) first = d.label(); }
+        if (n == 0) { super.onBackPressed(); return; }
+        new AlertDialog.Builder(this).setTitle("יש שינויים שלא נשמרו")
+                .setMessage((n == 1 ? "ב\"" + first + "\"" : "ב-" + n + " טאבים") + ". לצאת ולאבד אותם?")
+                .setPositiveButton("צא בלי לשמור", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { Main.super.onBackPressed(); }})
+                .setNegativeButton("ביטול", null).show();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -207,7 +227,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         boolean has = project != null;
         if (brainScroll != null) brainScroll.setVisibility(has && part == 0 ? View.VISIBLE : View.GONE);
         if (freeView != null) freeView.setVisibility(has && part == 1 ? View.VISIBLE : View.GONE);
-        if (freeAdd != null) freeAdd.setVisibility(has && part == 1 ? View.VISIBLE : View.GONE);
+        if (freeAdd != null) freeAdd.setVisibility(has && part == 1 && !locked() ? View.VISIBLE : View.GONE);
         if (has && part != 2) {
             map.setVisibility(View.GONE);
             textScroll.setVisibility(View.GONE);
@@ -373,12 +393,12 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         } else if (req == REQ_EXPORT) {
             final Uri out = u;
             final String text = OpmlIO.writeOpml(project);
-            new Thread(new Runnable() { public void run() {
+            io.execute(new Runnable() { public void run() {
                 try {
                     writeText(out, text);
                     runOnUiThread(new Runnable() { public void run() { setStatus("יוצא ל-OPML: " + displayName(out)); }});
                 } catch (Exception e) { fail("הייצוא נכשל", e); }
-            }}).start();
+            }});
         }
     }
 
@@ -422,7 +442,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         setStatus("טוען…");
         final Doc target = cur;
         busy++;
-        new Thread(new Runnable() { public void run() {
+        io.execute(new Runnable() { public void run() {
             try {
                 final long t0 = System.nanoTime();
                 final String text = readText(u);
@@ -436,7 +456,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 runOnUiThread(new Runnable() { public void run() {
                     busy--;
                     if (target != cur) {
-                        target.uri = u; target.fileName = name; target.lastText = text;
+                        target.uri = u; target.fileName = name; target.lastText = text; target.lastRead = text;
                         target.project = p; target.dirty = false; target.viewMode = 0;
                         saveTabs();
                         return;
@@ -444,6 +464,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     uri = u;
                     fileName = name;
                     lastText = text;
+                    lastRead = text;
                     project = p;
                     dirty = false;
                     viewMode = 0;
@@ -459,12 +480,24 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 }});
             } catch (final SecurityException e) {
                 done();
+                dropIfEmpty(target);
                 fail("אין הרשאה לקובץ. פתח אותו שוב מהתפריט.", e);
             } catch (final Exception e) {
                 done();
+                dropIfEmpty(target);
                 fail("לא ניתן לטעון את הקובץ", e);
             }
-        }}).start();
+        }});
+    }
+
+    /** טאב שנפתח בשביל קובץ שלא נטען (נבחר קובץ לא מתאים, או אין הרשאה): לא משאירים טאב ריק. */
+    private void dropIfEmpty(final Doc target) {
+        runOnUiThread(new Runnable() { public void run() {
+            if (target == null || !docs.contains(target)) return;
+            Uri tu = target == cur ? uri : target.uri;
+            Project tp = target == cur ? project : target.project;
+            if (tu == null && tp == null) closeTab(target);
+        }});
     }
 
     /** כתיבה לקובץ חדש, ומעבר אליו מתוך הזיכרון (בלי לקרוא שוב: Dropbox מחליף כתובות). */
@@ -472,7 +505,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         setStatus("שומר…");
         final Doc target = cur;
         busy++;
-        new Thread(new Runnable() { public void run() {
+        io.execute(new Runnable() { public void run() {
             try {
                 writeText(u, text);
                 final Project p = OpmlIO.read(text);
@@ -481,7 +514,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 runOnUiThread(new Runnable() { public void run() {
                     busy--;
                     if (target != cur) {
-                        target.uri = u; target.fileName = name; target.lastText = text;
+                        target.uri = u; target.fileName = name; target.lastText = text; target.lastRead = text;
                         target.project = p; target.dirty = false; target.viewMode = 0;
                         saveTabs();
                         return;
@@ -489,6 +522,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     uri = u;
                     fileName = name;
                     lastText = text;
+                    lastRead = text;
                     project = p;
                     dirty = false;
                     viewMode = 0;
@@ -498,9 +532,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 }});
             } catch (Exception e) {
                 done();
+                dropIfEmpty(target);
                 fail("השמירה נכשלה", e);
             }
-        }}).start();
+        }});
     }
 
     private static final String STALE = "נשמר, אבל השירות החליף את הקובץ. לפני השמירה הבאה: פתח אותו שוב מ\"פתח קובץ\"";
@@ -510,28 +545,52 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         try { return readText(u).equals(text); } catch (Exception e) { return false; }
     }
 
-    private void save() {
+    private void save() { save(false); }
+
+    /**
+     * שמירה. לפני הכתיבה בודקים שהקובץ לא השתנה במקום אחר (למשל במחשב) מאז שנטען או נשמר כאן;
+     * אם השתנה — לא דורסים, ושואלים. force: לשמור בכל זאת.
+     */
+    private void save(final boolean force) {
         if (uri == null || project == null) return;
         final Uri u = uri;
         final Doc target = cur;
         final Project proj = project;
         final String text = currentText();
+        final String known = lastText, seen = lastRead;
         setStatus("שומר…");
         busy++;
-        new Thread(new Runnable() { public void run() {
+        io.execute(new Runnable() { public void run() {
             try {
+                if (!force && known != null) {
+                    String now = null;
+                    try { now = readText(u); } catch (Exception ignored) { }
+                    if (now != null && !now.equals(known) && !now.equals(seen) && !now.equals(text)) {
+                        final String outside = now;
+                        runOnUiThread(new Runnable() { public void run() {
+                            if (busy > 0) busy--;
+                            conflict(target, u, outside);
+                        }});
+                        return;
+                    }
+                }
                 writeText(u, text);
-                final boolean ok = readsBack(u, text);
+                String back = null;
+                try { back = readText(u); } catch (Exception ignored) { }
+                final boolean ok = text.equals(back);
+                final String seenNow = back == null ? text : back;
                 runOnUiThread(new Runnable() { public void run() {
                     busy--;
                     if (target != cur) {
                         if (target != null) {
                             target.lastText = text;
+                            target.lastRead = seenNow;
                             if (OpmlIO.write(proj).equals(text)) target.dirty = false;
                         }
                         return;
                     }
                     lastText = text;
+                    lastRead = seenNow;
                     if (currentText().equals(text)) dirty = false;
                     stash();
                     if (part != 2) {
@@ -546,7 +605,33 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                 done();
                 fail("השמירה נכשלה", e);
             }
-        }}).start();
+        }});
+    }
+
+    /** הקובץ השתנה במקום אחר, ויש כאן שינויים: לא דורסים בלי לשאול. */
+    private void conflict(final Doc target, final Uri u, final String outside) {
+        if (target != cur) return; // הטאב ברקע נשאר "לא נשמר"; השאלה תעלה כשיחזרו אליו וישמרו
+        setStatus("לא נשמר — הקובץ השתנה במקום אחר");
+        if (asking) return;
+        asking = true;
+        new AlertDialog.Builder(this)
+                .setTitle("הקובץ השתנה במקום אחר")
+                .setMessage("מאז שהקובץ נטען כאן, הוא שונה במקום אחר (למשל במחשב). השמירה נעצרה כדי לא לדרוס את השינוי ההוא.")
+                .setPositiveButton("שמור את מה שכאן", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { asking = false; if (u.equals(uri)) save(true); }})
+                .setNeutralButton("טען את הגרסה האחרת", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) {
+                        asking = false;
+                        if (!u.equals(uri)) return;
+                        handler.removeCallbacks(saver);
+                        dirty = false;
+                        load(u, false);
+                    }})
+                .setNegativeButton("לא עכשיו", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int w) { asking = false; }})
+                .setOnCancelListener(new android.content.DialogInterface.OnCancelListener() {
+                    public void onCancel(android.content.DialogInterface d) { asking = false; }})
+                .show();
     }
 
     private String currentText() {
@@ -604,27 +689,33 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     private void checkExternalChange() {
         if (uri == null || lastText == null || asking) return;
         final Uri u = uri;
-        final String known = lastText;
-        new Thread(new Runnable() { public void run() {
+        io.execute(new Runnable() { public void run() {
             try {
                 final String now = readText(u);
-                if (now.equals(known)) return;
                 runOnUiThread(new Runnable() { public void run() {
-                    if (asking || !u.equals(uri)) return;
+                    // ההשוואה כאן, אחרי שכל שמירה שהייתה בתור כבר עדכנה מה שידוע (בלי הודעת שווא)
+                    if (asking || !u.equals(uri) || busy > 0) return;
+                    if (now.equals(lastText) || now.equals(lastRead)) return;
                     asking = true;
                     new AlertDialog.Builder(Main.this)
                             .setTitle("הקובץ השתנה מבחוץ")
-                            .setMessage("לטעון את הגרסה החדשה? (מה שמוצג עכשיו יוחלף)")
+                            .setMessage(dirty ? "לטעון את הגרסה החדשה? השינויים שנעשו כאן ועוד לא נשמרו יאבדו."
+                                    : "לטעון את הגרסה החדשה? (מה שמוצג עכשיו יוחלף)")
                             .setPositiveButton("טען", new android.content.DialogInterface.OnClickListener() {
-                                public void onClick(android.content.DialogInterface d, int w) { asking = false; load(u, false); }})
+                                public void onClick(android.content.DialogInterface d, int w) {
+                                    asking = false;
+                                    handler.removeCallbacks(saver);
+                                    dirty = false;
+                                    load(u, false);
+                                }})
                             .setNegativeButton("לא עכשיו", new android.content.DialogInterface.OnClickListener() {
-                                public void onClick(android.content.DialogInterface d, int w) { asking = false; lastText = now; }})
+                                public void onClick(android.content.DialogInterface d, int w) { asking = false; lastRead = now; }})
                             .setOnCancelListener(new android.content.DialogInterface.OnCancelListener() {
                                 public void onCancel(android.content.DialogInterface d) { asking = false; }})
                             .show();
                 }});
             } catch (Exception ignored) { }
-        }}).start();
+        }});
     }
 
     private void example(String asset, String name) {
@@ -698,10 +789,78 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         }
     }
 
+    /** הטאבים שבקובץ, ברשימה נגללת: מעבר לטאב, טאב חדש, המגירה, ופעולות על הטאב הנוכחי. */
+    private void sheetsPopup(View anchor) {
+        final java.util.List<Runnable> acts = new java.util.ArrayList<>();
+        final Drop pm = new Drop();
+        final Sheet now = sheet();
+        int hidden = 0;
+        for (final Sheet s : project.sheets) {
+            if (s.hidden) { hidden++; continue; }
+            addView(pm, acts, (s.locked ? "🔒 " : "") + s.name + (s.name.equals(s.kind.label) ? "" : "  ·  " + s.kind.label), s == now,
+                    new Runnable() { public void run() { if (s != sheet()) enterSheet(s); }});
+        }
+        addView(pm, acts, "+ טאב חדש…", false, new Runnable() { public void run() { addSheet(); }});
+        if (hidden > 0) addView(pm, acts, "מגירה (" + hidden + ")…", false, new Runnable() { public void run() { showHidden(); }});
+        addView(pm, acts, "מאפיינים ופעולות: " + now.name + "…", false, new Runnable() { public void run() { sheetMenu(now); }});
+        dropdown(anchor, pm.labels, acts);
+    }
+
+    /** רשימת השורות של תפריט נגלל. */
+    private static final class Drop { final java.util.List<String> labels = new java.util.ArrayList<>(); }
+
+    /**
+     * תפריט קטן מתחת לשבב. כשיש יותר משש שורות הוא נגלל, ורואים שהוא נגלל:
+     * פס גלילה קבוע בצד, והשורה האחרונה חתוכה באמצע.
+     */
+    private void dropdown(View anchor, final java.util.List<String> labels, final java.util.List<Runnable> acts) {
+        final android.widget.ListPopupWindow lp = new android.widget.ListPopupWindow(this);
+        final int rowH = dp(44);
+        lp.setAnchorView(anchor);
+        lp.setModal(true);
+        lp.setAdapter(new android.widget.ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, labels) {
+            @Override public View getView(int pos, View cv, android.view.ViewGroup parent) {
+                TextView v = (TextView) super.getView(pos, cv, parent);
+                v.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+                v.setTextDirection(View.TEXT_DIRECTION_RTL);
+                v.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.RIGHT);
+                v.setSingleLine(true);
+                v.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                v.setMinHeight(rowH);
+                v.setMinimumHeight(rowH);
+                v.setHeight(rowH);
+                v.setPadding(dp(14), 0, dp(14), 0);
+                String s = labels.get(pos);
+                v.setTextColor(s.startsWith("✓") ? 0xFF0C447C : 0xFF2C2C2A);
+                v.setTypeface(s.startsWith("✓") ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+                return v;
+            }
+        });
+        android.graphics.Paint pt = new android.graphics.Paint();
+        pt.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16, getResources().getDisplayMetrics()));
+        pt.setTypeface(Typeface.DEFAULT_BOLD);
+        float w = 0;
+        for (String s : labels) w = Math.max(w, pt.measureText(s));
+        int screen = getResources().getDisplayMetrics().widthPixels;
+        lp.setWidth(Math.min(screen - dp(24), Math.max(dp(170), (int) w + dp(44))));
+        final boolean scrolls = labels.size() > 6;
+        if (scrolls) lp.setHeight(rowH * 6 + rowH / 2);
+        lp.setOnItemClickListener(new android.widget.AdapterView.OnItemClickListener() {
+            public void onItemClick(android.widget.AdapterView<?> a, View v, int pos, long id) { lp.dismiss(); acts.get(pos).run(); }});
+        lp.show();
+        android.widget.ListView lv = lp.getListView();
+        if (lv != null) {
+            lv.setVerticalScrollBarEnabled(scrolls);
+            lv.setScrollbarFadingEnabled(false);
+            lv.setScrollBarSize(dp(5));
+            for (int k = 0; k < labels.size(); k++) if (labels.get(k).startsWith("✓")) { lv.setSelection(Math.max(0, k - 2)); break; }
+        }
+    }
+
     /** תפריט קטן מתחת לשבב: כל התצוגות ברשימה נגללת; הנוכחית מסומנת. */
     private void viewsPopup(View anchor) {
         final java.util.List<Runnable> acts = new java.util.ArrayList<>();
-        final android.widget.PopupMenu pm = new android.widget.PopupMenu(this, anchor);
+        final Drop pm = new Drop();
         addView(pm, acts, "עץ", viewMode == 0, new Runnable() { public void run() { setView(0, 1, ""); }});
         addView(pm, acts, "# תגיות", viewMode == 1 && tagLevel == 1, new Runnable() { public void run() { setView(1, 1, ""); }});
         int maxLevel = Views.maxTagLevel(project);
@@ -717,13 +876,11 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         if (Edit.maxDepth(project) >= 1)
             addView(pm, acts, viewMode == 5 ? viewName() + " (שנה…)" : "מרמה עד רמה…", viewMode == 5,
                     new Runnable() { public void run() { fromToLevel(Math.max(1, Edit.maxDepth(project))); }});
-        pm.setOnMenuItemClickListener(new android.widget.PopupMenu.OnMenuItemClickListener() {
-            public boolean onMenuItemClick(MenuItem mi) { acts.get(mi.getItemId()).run(); return true; }});
-        pm.show();
+        dropdown(anchor, pm.labels, acts);
     }
 
-    private static void addView(android.widget.PopupMenu pm, java.util.List<Runnable> acts, String label, boolean on, Runnable r) {
-        pm.getMenu().add(0, acts.size(), acts.size(), (on ? "✓ " : "    ") + label);
+    private static void addView(Drop pm, java.util.List<Runnable> acts, String label, boolean on, Runnable r) {
+        pm.labels.add((on ? "✓ " : "    ") + label);
         acts.add(r);
     }
 
@@ -736,6 +893,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     }
 
     private void render(String note, boolean refit) {
+        if (project == null) return;
         syncSheet();
         Sheet sh = sheet();
         String sheetNote = sh == null || sh.note.isEmpty() ? "" : " · " + sh.note;
@@ -841,41 +999,86 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     }}).show();
     }
 
-    /** מרמה עד רמה: שתי בחירות — ההתחלה, ואחריה הסוף. */
+    /** גלגל מספרים (במקום רשימה של כל הרמות). */
+    private android.widget.NumberPicker wheel(int min, int max, int value, String[] shown) {
+        android.widget.NumberPicker np = new android.widget.NumberPicker(this);
+        np.setMinValue(min);
+        np.setMaxValue(max);
+        if (shown != null) np.setDisplayedValues(shown);
+        np.setValue(Math.max(min, Math.min(max, value)));
+        np.setWrapSelectorWheel(false);
+        np.setDescendantFocusability(android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        return np;
+    }
+
+    private TextView wheelLabel(String s) {
+        TextView t = new TextView(this);
+        t.setText(s);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        t.setGravity(android.view.Gravity.CENTER);
+        return t;
+    }
+
+    /** מרמה עד רמה: שני גלגלי מספרים — ההתחלה והסוף. */
     private void fromToLevel(final int max) {
-        final String[] a = new String[max];
-        for (int k = 1; k <= max; k++) a[k - 1] = "מרמה " + k;
-        new AlertDialog.Builder(this).setTitle("מאיזו רמה (השורש — 0)")
-                .setItems(a, new android.content.DialogInterface.OnClickListener() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        box.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        box.setGravity(android.view.Gravity.CENTER);
+        box.setPadding(dp(16), dp(8), dp(16), 0);
+        int f0 = viewMode == 5 ? Math.min(levelFrom, max) : 1, t0 = viewMode == 5 ? Math.min(Math.max(levelTo, f0), max) : max;
+        final android.widget.NumberPicker from = wheel(1, max, f0, null), to = wheel(f0, max, t0, null);
+        from.setOnValueChangedListener(new android.widget.NumberPicker.OnValueChangeListener() {
+            public void onValueChange(android.widget.NumberPicker p, int o, int n) {
+                int v = Math.max(to.getValue(), n);
+                to.setMinValue(n);
+                to.setValue(v);
+            }});
+        LinearLayout a = new LinearLayout(this), b = new LinearLayout(this);
+        a.setOrientation(LinearLayout.VERTICAL);
+        b.setOrientation(LinearLayout.VERTICAL);
+        a.addView(wheelLabel("מרמה"));
+        a.addView(from);
+        b.addView(wheelLabel("עד רמה"));
+        b.addView(to);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+        lp.setMargins(dp(18), 0, dp(18), 0);
+        box.addView(a, lp);
+        box.addView(b, lp);
+        new AlertDialog.Builder(this).setTitle("מרמה עד רמה (השורש — 0)").setView(box)
+                .setPositiveButton("הצג", new android.content.DialogInterface.OnClickListener() {
                     public void onClick(android.content.DialogInterface d, int w) {
-                        final int from = w + 1;
-                        final String[] b = new String[max - from + 1];
-                        for (int k = from; k <= max; k++) b[k - from] = k == from ? "רק רמה " + k : "עד רמה " + k;
-                        new AlertDialog.Builder(Main.this).setTitle("מרמה " + from + " — עד איזו רמה")
-                                .setItems(b, new android.content.DialogInterface.OnClickListener() {
-                                    public void onClick(android.content.DialogInterface d2, int w2) {
-                                        levelFrom = from;
-                                        levelTo = from + w2;
-                                        setView(5, 1, "");
-                                    }}).show();
-                    }}).show();
+                        levelFrom = from.getValue();
+                        levelTo = Math.max(levelFrom, to.getValue());
+                        setView(5, 1, "");
+                    }})
+                .setNegativeButton("ביטול", null).show();
     }
 
     private void upToLevel() {
         if (locked()) { setStatus("הטאב נעול — אפשר לשנות במאפייני הטאב"); return; }
         final int max = Edit.maxDepth(project);
         final String[] names = new String[max + 1];
-        for (int k = 0; k < max; k++) names[k] = k == 0 ? "רק השורש" : "עד רמה " + k;
-        names[max] = "הכול פתוח";
-        new AlertDialog.Builder(this).setTitle("הצג עד רמה")
-                .setItems(names, new android.content.DialogInterface.OnClickListener() {
-                    public void onClick(android.content.DialogInterface d, int w) {
+        for (int k = 0; k < max; k++) names[k] = k == 0 ? "רק השורש" : String.valueOf(k);
+        names[max] = "הכול";
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(android.view.Gravity.CENTER);
+        box.setPadding(dp(16), dp(8), dp(16), 0);
+        final android.widget.NumberPicker np = wheel(0, max, max, names);
+        box.addView(wheelLabel("עד רמה"));
+        box.addView(np, new LinearLayout.LayoutParams(-2, -2));
+        new AlertDialog.Builder(this).setTitle("הצג עד רמה").setView(box)
+                .setPositiveButton("הצג", new android.content.DialogInterface.OnClickListener() {
+                    public void onClick(android.content.DialogInterface d, int x) {
+                        int w = np.getValue();
                         int n = Edit.showToLevel(project, w == max ? Integer.MAX_VALUE : w);
                         refitPending = true;
                         viewMode = 0;
                         map.select(null, false);
                         if (n > 0) changedAny(true); else render(null, true);
-                    }}).show();
+                    }})
+                .setNegativeButton("ביטול", null).show();
     }
 
     private static void span(SpannableStringBuilder sb, Object what, int s, int e) {
@@ -896,13 +1099,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
     /** שומר את מצב הטאב הנוכחי מהשדות. */
     private void stash() {
         if (cur == null) return;
-        cur.uri = uri; cur.fileName = fileName; cur.lastText = lastText; cur.project = project; cur.part = part;
+        cur.uri = uri; cur.fileName = fileName; cur.lastText = lastText; cur.lastRead = lastRead; cur.project = project; cur.part = part;
         cur.dirty = dirty; cur.viewMode = viewMode; cur.tagLevel = tagLevel; cur.viewInfo = viewInfo;
         cur.viewSort = viewSort; cur.levelFrom = levelFrom; cur.levelTo = levelTo; cur.sheetId = sheetId;
     }
 
     private void unstash(Doc d) {
-        uri = d.uri; fileName = d.fileName; lastText = d.lastText; project = d.project; part = d.part;
+        uri = d.uri; fileName = d.fileName; lastText = d.lastText; lastRead = d.lastRead; project = d.project; part = d.part;
         dirty = d.dirty; viewMode = d.viewMode; tagLevel = d.tagLevel; viewInfo = d.viewInfo;
         viewSort = d.viewSort; levelFrom = d.levelFrom; levelTo = d.levelTo; sheetId = d.sheetId;
     }
@@ -915,6 +1118,12 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         cur = d;
         unstash(d);
         map.select(null, false);
+        // המסך מתרוקן עד שהקובץ החדש נטען (תיקון 0.10.6: המפה הקודמת נשארה, ונגיעה בה הקריסה)
+        shownP = null;
+        viewResult = null;
+        body.setText("");
+        applyView();
+        rebuildStrips();
     }
 
     /** לפני מעבר: שמירת המצב, ושמירה לקובץ אם יש שינויים ושמירה אוטומטית. */
@@ -1146,25 +1355,13 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
         ((View) viewRow.getParent()).setVisibility(project == null ? View.GONE : View.VISIBLE);
         if (project == null) return;
         final Sheet curSh = sheet();
-        int hiddenSheets = 0;
-        for (final Sheet s : project.sheets) {
-            if (s.hidden) { hiddenSheets++; continue; }
-            TextView c = chip(viewRow, (s.locked ? "🔒 " : "") + s.name, s == curSh, false, new View.OnClickListener() { public void onClick(View v) {
-                if (s == sheet()) { sheetMenu(s); return; }
-                enterSheet(s);
-            }});
-            c.setOnLongClickListener(new View.OnLongClickListener() { public boolean onLongClick(View v) { sheetMenu(s); return true; }});
-        }
-        chip(viewRow, "+ טאב", false, false, new View.OnClickListener() { public void onClick(View v) { addSheet(); }});
-        if (hiddenSheets > 0)
-            chip(viewRow, "מגירה (" + hiddenSheets + ")", false, true, new View.OnClickListener() { public void onClick(View v) { showHidden(); }});
+        // (0.10.6) שבב אחד לטאב הנוכחי; נגיעה — רשימה נגללת של כל הטאבים והפעולות עליהם
+        final TextView sc = chip(viewRow, (curSh.locked ? "🔒 " : "") + curSh.name + " ▾", true, false, null);
+        sc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { sheetsPopup(sc); }});
+        sc.setOnLongClickListener(new View.OnLongClickListener() { public boolean onLongClick(View v) { sheetMenu(sheet()); return true; }});
         if (part != 2) return;
-        gap(viewRow);
-        chip(viewRow, "גרפי", showMap, false, new View.OnClickListener() { public void onClick(View v) {
-            setShowMap(true); applyView(); rebuildStrips(); }});
-        chip(viewRow, "טקסט", !showMap, false, new View.OnClickListener() { public void onClick(View v) {
-            setShowMap(false); applyView(); rebuildStrips(); }});
-        gap(viewRow);
+        chip(viewRow, showMap ? "גרפי ⇄" : "טקסט ⇄", false, false, new View.OnClickListener() { public void onClick(View v) {
+            setShowMap(!showMap); applyView(); rebuildStrips(); }});
         // תצוגות (0.10.5): שבב אחד עם התצוגה הנוכחית; נגיעה — תפריט קטן נגלל עם כל התצוגות
         final TextView vc = chip(viewRow, "תצוגה: " + viewName() + " ▾", viewMode != 0, false, null);
         vc.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { viewsPopup(vc); }});
@@ -1182,6 +1379,7 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
 
     @Override
     public void onFreeAdd(final float x, final float y) {
+        if (project == null || locked()) return;
         askName("פריט חדש", "", true, new Named() {
             float off = 0;
             public void done(String s) {
@@ -1875,6 +2073,10 @@ public class Main extends Activity implements MapView.Host, FreeView.Host {
                     }});
                 break;
             case MapView.A_SIBLING:
+                if (it.loose && project.absolute()) {
+                    setStatus("במפה בסדר מוחלט לא מוסיפים פריטים תלושים. אפשר להציב את הפריט בעץ (⋯)");
+                    break;
+                }
                 final Item[] last = {it};
                 askName("אח חדש ל\"" + it.name + "\"", "", true, new Named() {
                     public void done(String s) {

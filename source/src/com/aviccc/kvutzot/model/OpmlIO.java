@@ -231,7 +231,7 @@ public final class OpmlIO {
     }
 
     private static String fmt(float f) {
-        return f == Math.round(f) ? String.valueOf(Math.round(f)) : String.valueOf(Math.round(f * 10) / 10f);
+        return f == Math.round(f) ? String.valueOf(Math.round(f)) : String.valueOf(Math.round(f * 100) / 100f);
     }
 
     /** String.join לא קיים באנדרואיד 5. */
@@ -251,6 +251,7 @@ public final class OpmlIO {
     /** OPML תקני בלבד, בלי שורת פתיחה: לייצוא לתוכנות אחרות. */
     public static String writeOpml(Project p) {
         p.syncAspects();
+        Edit.pruneTags(p);
         Xml.Node root = new Xml.Node("opml");
         root.attrs.put("version", "2.0");
         Xml.Node head = new Xml.Node("head");

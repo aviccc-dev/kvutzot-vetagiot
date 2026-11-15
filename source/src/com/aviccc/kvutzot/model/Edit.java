@@ -144,6 +144,8 @@ public final class Edit {
         if (other == null || other == t) { t.name = name; return t; }
         for (Item r : p.allRoots()) replaceTag(r, t.id, other.id);
         for (Model.Tag x : p.tags) replaceId(x.tagIds, t.id, other.id);
+        // גם הבחינות נושאות תגיות (תיקון 0.10.6: בלי זה נשארה "תגית רפאים" אחרי טעינה)
+        for (Item a : p.aspects.values()) replaceId(a.tagIds, t.id, other.id);
         for (String id : t.tagIds) if (!other.tagIds.contains(id) && !id.equals(other.id)) other.tagIds.add(id);
         p.tags.remove(t);
         return other;
@@ -164,6 +166,7 @@ public final class Edit {
     public static int tagUse(Project p, String tagId) {
         int n = 0;
         for (Item r : p.allRoots()) n += tagUse(r, tagId);
+        for (Item a : p.aspects.values()) if (a.tagIds.contains(tagId)) n++;
         return n;
     }
 
@@ -259,6 +262,8 @@ public final class Edit {
     /** הצבת פריט (תלוש, או מכל מקום) כבן של parent, בחלוקה d (או הראשונה). */
     public static boolean placeUnder(Project p, Item it, Item parent, Division d) {
         if (it == parent || within(parent, it)) return false;
+        // ראש המפה נשאר ראש המפה
+        if (it.parentDivision == null && !it.loose) return false;
         if (it.parentDivision != null) { it.parentDivision.children.remove(it); it.parentDivision = null; }
         else p.roots.remove(it);
         it.loose = false;
@@ -282,5 +287,29 @@ public final class Edit {
         int n = it.dx != 0 || it.dy != 0 ? 1 : 0;
         for (Division d : it.divisions) for (Item c : d.children) n += countOffsets(c);
         return n;
+    }
+
+    /**
+     * ניקוי לפני שמירה (0.10.6): תגית שאף פריט, בחינה או תגית לא נושאים — נמחקת. בלי זה תגית
+     * שהוסרה מכל הפריטים נשארה לתמיד ברשימת ההצעות. מחזיר כמה נמחקו.
+     */
+    public static int pruneTags(Project p) {
+        java.util.Set<String> used = new java.util.HashSet<>();
+        for (Item r : p.allRoots()) collectTags(r, used);
+        for (Item a : p.aspects.values()) used.addAll(a.tagIds);
+        // תגית על תגית: מה שתגית בשימוש נושאת — גם הוא בשימוש
+        boolean more = true;
+        while (more) {
+            more = false;
+            for (Model.Tag t : p.tags) if (used.contains(t.id)) for (String id : t.tagIds) if (used.add(id)) more = true;
+        }
+        int n = 0;
+        for (int k = p.tags.size() - 1; k >= 0; k--) if (!used.contains(p.tags.get(k).id)) { p.tags.remove(k); n++; }
+        return n;
+    }
+
+    private static void collectTags(Item it, java.util.Set<String> used) {
+        used.addAll(it.tagIds);
+        for (Division d : it.divisions) for (Item c : d.children) collectTags(c, used);
     }
 }

@@ -130,17 +130,25 @@ public final class Model {
                 aspects.remove(e.getKey());
                 merge.put(e.getKey(), first);
             }
-            for (Item r : allRoots()) syncAspects(r, merge);
+            java.util.Set<String> used = new java.util.HashSet<>();
+            for (Item r : allRoots()) syncAspects(r, merge, used);
+            // בחינה שאין חלוקה לפיה ואין עליה שום מידע — נמחקת (0.10.6). כך תיקון של שגיאת כתיב
+            // ("לפי צבא" ← "לפי צבע") לא משאיר את השגויה לתמיד. בחינה שנכתב עליה משהו — נשארת.
+            for (java.util.Map.Entry<String, Item> e : new ArrayList<>(aspects.entrySet())) {
+                Item a = e.getValue();
+                if (a.infos.isEmpty() && a.tagIds.isEmpty() && !used.contains(e.getKey())) aspects.remove(e.getKey());
+            }
         }
 
-        private void syncAspects(Item it, java.util.Map<String, String> merge) {
+        private void syncAspects(Item it, java.util.Map<String, String> merge, java.util.Set<String> used) {
             for (Division d : it.divisions) {
                 if (merge.containsKey(d.aspectId)) d.aspectId = merge.get(d.aspectId);
                 Item a = aspect(d.aspectId);
                 if (a != null) d.basis = a.name;
                 else if (!d.basis.isEmpty()) d.aspectId = obtainAspect(d.basis);
                 else d.aspectId = "";
-                for (Item c : d.children) syncAspects(c, merge);
+                if (!d.aspectId.isEmpty()) used.add(d.aspectId);
+                for (Item c : d.children) syncAspects(c, merge, used);
             }
         }
 

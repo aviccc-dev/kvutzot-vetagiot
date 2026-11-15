@@ -533,6 +533,38 @@ public class ModelTest {
         MapLayout wide = MapLayout.build(dg3, true, fake, 30 * 0.5f, 12 * 3f, true, 2f);
         check(noOverlap(wide), "מרווחים: אין חפיפות");
 
+        // --- תיקוני 0.10.6 ---
+        Project fx = new Project();
+        Item fxRoot = new Item("שורש"); fx.roots.add(fxRoot);
+        Item fxKid = fxRoot.addChild("בן");
+        Division fxDiv = fxRoot.divisions.get(0);
+        Edit.setAspect(fx, fxDiv, "לפי צבא");
+        Edit.setAspect(fx, fxDiv, "לפי צבע");
+        fx.syncAspects();
+        eq(fx.aspects.size(), 1, "בחינה שהוחלפה ואין עליה מידע — נמחקת");
+        Item fxAsp = fx.aspect(fxDiv.aspectId);
+        Model.Tag fxOld = Edit.addTag(fx, fxAsp, "ישן");
+        Edit.addTag(fx, fxKid, "חדש");
+        Edit.renameTag(fx, fxOld, "חדש");
+        Project fx2 = OpmlIO.read(OpmlIO.write(fx));
+        eq(fx2.tags.size(), 1, "איחוד תגיות: בלי תגית רפאים אצל בחינה");
+        eq(Edit.tagUse(fx2, fx2.tags.get(0).id), 2, "התגית אצל הפריט ואצל הבחינה");
+        Edit.setAspect(fx2, fx2.mainRoot().divisions.get(0), "לפי גודל");
+        fx2.syncAspects();
+        eq(fx2.aspects.size(), 2, "בחינה שיש עליה תגית נשארת גם בלי חלוקה");
+        Edit.addTag(fx, fxKid, "זמנית");
+        Edit.removeTag(fxKid, fx.tagByName("זמנית").id);
+        OpmlIO.write(fx);
+        check(fx.tagByName("זמנית") == null && fx.tagByName("חדש") != null, "תגית שאף אחד לא נושא נמחקת בשמירה");
+        Model.Tag onTag = fx.obtainTag("על תגית");
+        fx.tagByName("חדש").tagIds.add(onTag.id);
+        OpmlIO.write(fx);
+        check(fx.tagByName("על תגית") != null, "תגית שעל תגית בשימוש — נשארת");
+        fx.first(Model.Sheet.Kind.MAP).spaceB = 1.25f;
+        eq(OpmlIO.read(OpmlIO.write(fx)).first(Model.Sheet.Kind.MAP).spaceB, 1.25f, "מרווח 1.25 נשמר בדיוק");
+        Item fxLoose = Edit.addLoose(fx, "תלוש");
+        check(!Edit.placeUnder(fx, fxRoot, fxLoose, null) && fx.mainRoot() == fxRoot, "ראש המפה לא מוצב תחת פריט אחר");
+
         // --- טאבים: כמה מכל סוג, עם מאפיינים (0.10) ---
         Project ms = OpmlIO.read(file(dir, "משולש.xml"));
         eq(ms.sheets.size(), 3, "קובץ ישן: שלושה טאבים");
